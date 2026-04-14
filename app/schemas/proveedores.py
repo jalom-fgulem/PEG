@@ -14,6 +14,7 @@ class ProveedorBase(BaseModel):
     localidad: Optional[str] = None
     codigo_postal: Optional[str] = None
     provincia: Optional[str] = None
+    pais: Optional[str] = "ES"
     cuenta_cliente: Optional[str] = None
 
 

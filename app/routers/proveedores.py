@@ -78,6 +78,7 @@ class _ProveedorRapidoBody(BaseModel):
     localidad: _Opt[str] = None
     codigo_postal: _Opt[str] = None
     provincia: _Opt[str] = None
+    pais: _Opt[str] = "ES"
     cuenta_cliente: _Opt[str] = None
 
 
@@ -98,6 +99,7 @@ def proveedor_rapido(
         localidad=body.localidad or None,
         codigo_postal=body.codigo_postal or None,
         provincia=body.provincia or None,
+        pais=body.pais or "ES",
         cuenta_cliente=body.cuenta_cliente.strip() if body.cuenta_cliente else None,
     )
     nuevo = crear_proveedor(data)
@@ -142,6 +144,7 @@ def proveedores_nuevo_post(
     localidad: str = Form(""),
     codigo_postal: str = Form(""),
     provincia: str = Form(""),
+    pais: str = Form("ES"),
     cuenta_cliente: str = Form(""),
 ):
     data = ProveedorCrear(
@@ -156,6 +159,7 @@ def proveedores_nuevo_post(
         localidad=localidad or None,
         codigo_postal=codigo_postal or None,
         provincia=provincia or None,
+        pais=pais or "ES",
         cuenta_cliente=cuenta_cliente.strip() or None,
     )
     crear_proveedor(data)
@@ -199,6 +203,7 @@ def proveedor_datos_json(
         "email":          p.get("email", ""),
         "telefono":       p.get("telefono", ""),
         "cuenta_cliente": p.get("cuenta_cliente", ""),
+        "pais":           p.get("pais", "ES"),
     })
 
 
@@ -240,6 +245,7 @@ def proveedor_editar(
     localidad: str = Form(""),
     codigo_postal: str = Form(""),
     provincia: str = Form(""),
+    pais: str = Form("ES"),
     usuario: dict = Depends(require_login),
 ):
     datos = {
@@ -254,6 +260,7 @@ def proveedor_editar(
         "localidad": localidad.strip() or None,
         "codigo_postal": codigo_postal.strip() or None,
         "provincia": provincia.strip() or None,
+        "pais": pais.strip() or "ES",
     }
     ok = actualizar_proveedor(id_proveedor, datos)
     if not ok:

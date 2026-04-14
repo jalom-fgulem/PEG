@@ -282,9 +282,14 @@
           <input type="text" id="mp-codigo-postal" maxlength="5" pattern="[0-9]{5}" placeholder="24001">
         </div>
 
-        <div class="field" style="grid-column:span 2;margin:0;">
+        <div class="field" style="margin:0;">
           <label>Provincia</label>
           <input type="text" id="mp-provincia">
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>País</label>
+          <select id="mp-pais"></select>
         </div>
 
         <div id="mp-error" style="grid-column:span 2;color:var(--fgulem-magenta);
@@ -398,6 +403,7 @@
           localidad:              localidad       || null,
           codigo_postal:          codigoPostal    || null,
           provincia:              provincia       || null,
+          pais:                   document.getElementById("mp-pais").value || "ES",
           cuenta_cliente:         document.getElementById("mp-cuenta-cliente")?.value.trim() || null,
         }),
       });
@@ -427,6 +433,36 @@
     // ── Rol y servicio del usuario (global) ──────────────────────────────────
     const esGestorServicio = {% if usuario.rol == "GESTOR_SERVICIO" %}true{% else %}false{% endif %};
     const miServicio       = {% if usuario.id_servicio %}{{ usuario.id_servicio }}{% else %}null{% endif %};
+
+    // ── Lista de países (ISO 3166-1 alpha-2) ─────────────────────────────────
+    const PAISES = [
+        ["ES","España"],["","──────────"],
+        ["DE","Alemania"],["AT","Austria"],["BE","Bélgica"],["BG","Bulgaria"],
+        ["HR","Croacia"],["CY","Chipre"],["CZ","Chequia"],["DK","Dinamarca"],
+        ["SK","Eslovaquia"],["SI","Eslovenia"],["EE","Estonia"],["FI","Finlandia"],
+        ["FR","Francia"],["GR","Grecia"],["HU","Hungría"],["IE","Irlanda"],
+        ["IT","Italia"],["LV","Letonia"],["LT","Lituania"],["LU","Luxemburgo"],
+        ["MT","Malta"],["NL","Países Bajos"],["PL","Polonia"],["PT","Portugal"],
+        ["RO","Rumanía"],["SE","Suecia"],["","──────────"],
+        ["CH","Suiza"],["NO","Noruega"],["IS","Islandia"],["GB","Reino Unido"],
+        ["TR","Turquía"],["UA","Ucrania"],["","──────────"],
+        ["US","Estados Unidos"],["CA","Canadá"],["MX","México"],["BR","Brasil"],
+        ["AR","Argentina"],["CO","Colombia"],["CL","Chile"],["PE","Perú"],["VE","Venezuela"],
+        ["","──────────"],
+        ["CN","China"],["JP","Japón"],["KR","Corea del Sur"],["IN","India"],
+        ["MA","Marruecos"],["ZA","Sudáfrica"],["OTHER","Otro"],
+    ];
+
+    function poblarSelectPais(el, valorActual) {
+        el.innerHTML = PAISES.map(([v, t]) =>
+            v === ""
+                ? `<option value="" disabled>${t}</option>`
+                : `<option value="${v}"${v === (valorActual||"ES") ? " selected" : ""}>${t}</option>`
+        ).join("");
+    }
+
+    // Poblar selector del modal "Nuevo proveedor"
+    poblarSelectPais(document.getElementById("mp-pais"), "ES");
 
     // ── Validación española ───────────────────────────────────────────────────
     function validarNIF(v) {
@@ -543,7 +579,8 @@
                         <div style="grid-column:span 2"><p><strong>Dirección</strong><br><span id="v-dir-${id}">${data.direccion||"—"}</span></p></div>
                         <div><p><strong>Localidad</strong><br><span id="v-loc-${id}">${data.localidad||"—"}</span></p></div>
                         <div><p><strong>Código postal</strong><br><span id="v-cp-${id}">${data.codigo_postal||"—"}</span></p></div>
-                        <div style="grid-column:span 2"><p><strong>Provincia</strong><br><span id="v-prov-${id}">${data.provincia||"—"}</span></p></div>
+                        <div><p><strong>Provincia</strong><br><span id="v-prov-${id}">${data.provincia||"—"}</span></p></div>
+                        <div><p><strong>País</strong><br><span id="v-pais-${id}">${(PAISES.find(([v])=>v===(data.pais||"ES"))||["","—"])[1]}</span></p></div>
                     </div>
                     <div style="margin-bottom:20px;">
                         <button type="button" onclick="activarEdicion(${id})"
@@ -650,10 +687,16 @@
                                    placeholder="24001" style="${inputStyle}">
                         </div>
 
-                        <div class="field" style="grid-column:span 2">
+                        <div class="field">
                             <label>Provincia</label>
                             <input name="provincia" type="text"
                                    value="${data.provincia||""}" style="${inputStyle}">
+                        </div>
+
+                        <div class="field">
+                            <label>País</label>
+                            <select id="e-pais-${id}" name="pais" style="${inputStyle}"
+                                    onchange="validarCampoCif(${id})"></select>
                         </div>
 
                         <div style="grid-column:span 2;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -673,6 +716,9 @@
                         </div>
                     </form>
                 </div>`;
+
+                // Poblar selector de país del modo edición
+                poblarSelectPais(document.getElementById(`e-pais-${id}`), data.pais || "ES");
 
             } catch (e) {
                 detalleContenido.innerHTML = "<p>No se ha podido cargar el detalle.</p>";
@@ -792,9 +838,11 @@
 
     // ── Validación en tiempo real ─────────────────────────────────────────────
     function validarCampoCif(id) {
-        const inp = document.getElementById(`e-cif-${id}`);
-        const err = document.getElementById(`err-cif-${id}`);
-        const v = inp.value.trim();
+        const inp  = document.getElementById(`e-cif-${id}`);
+        const err  = document.getElementById(`err-cif-${id}`);
+        const pais = document.getElementById(`e-pais-${id}`)?.value || "ES";
+        const v    = inp.value.trim();
+        if (pais !== "ES") { setError(inp, err, ""); return; }
         setError(inp, err, v && !validarCifNif(v) ? "CIF/NIF no válido." : "");
     }
 
@@ -816,8 +864,9 @@
         const errIban = document.getElementById(`err-iban-${id}`);
         const errGlob = document.getElementById(`err-global-${id}`);
 
+        const paisVal = document.getElementById(`e-pais-${id}`)?.value || "ES";
         let ok = true;
-        if (!validarCifNif(cifInp.value)) {
+        if (paisVal === "ES" && !validarCifNif(cifInp.value)) {
             setError(cifInp, errCif, "CIF/NIF no válido."); ok = false;
         }
         const ibanVal = ibanInp.value.trim();
@@ -846,6 +895,8 @@
             document.getElementById(`v-loc-${id}`).textContent   = data.localidad         || "—";
             document.getElementById(`v-cp-${id}`).textContent    = data.codigo_postal     || "—";
             document.getElementById(`v-prov-${id}`).textContent  = data.provincia         || "—";
+            const paisGuardado = document.getElementById(`v-pais-${id}`);
+            if (paisGuardado) paisGuardado.textContent = (PAISES.find(([v])=>v===(data.pais||"ES"))||["","—"])[1];
             const vCuenta = document.getElementById(`v-cuenta-${id}`);
             if (vCuenta) vCuenta.textContent = data.cuenta_cliente || "—";
 

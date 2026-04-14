@@ -106,7 +106,7 @@ def actualizar_proveedor(id_proveedor: int, datos: dict) -> bool:
     if not proveedor:
         return False
     for campo in ("tipo_persona", "cif_nif", "razon_social", "nombre_comercial", "email", "telefono", "iban",
-                  "direccion", "localidad", "codigo_postal", "provincia", "cuenta_cliente"):
+                  "direccion", "localidad", "codigo_postal", "provincia", "pais", "cuenta_cliente"):
         if campo in datos:
             proveedor[campo] = datos[campo] or None
     return True
