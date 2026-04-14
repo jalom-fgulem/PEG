@@ -1,0 +1,156 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2868
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww33860\viewh25320\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 INSERT INTO rol (codigo, nombre, descripcion) VALUES\
+('SOLICITANTE', 'Solicitante', 'Responsable de servicio que crea PEGs'),\
+('GESTOR', 'Gestor', 'Personal de gesti\'f3n'),\
+('SUPERADMIN', 'Superadministrador', 'Administraci\'f3n completa del sistema');\
+\
+INSERT INTO servicio (codigo, nombre, descripcion) VALUES\
+('HV', 'Hospital Veterinario', 'Servicio Hospital Veterinario'),\
+('CI', 'Centro de Idiomas', 'Servicio Centro de Idiomas'),\
+('DP', 'Desarrollo Profesional', 'Servicio de desarrollo profesional');\
+\
+INSERT INTO usuario (login, nombre, apellidos, email, password_hash, id_rol, id_servicio, recibe_notificaciones, recibe_notificaciones_peg)\
+VALUES\
+('hv.solicitante', \'91Marta\'92, \'91Test\'92, \'91test.hv@fgulem.es', 'pendiente_hash', 1, 1, 1, 1),\
+('ci.solicitante', \'91Rosa\'92, \'91Test\'92, \'91rosaalonso@fgulem.es', 'pendiente_hash', 1, 2, 1, 1),\
+('gestor01', \'91David\'92, \'91Test\'92, \'91gestion@fgulem.es', 'pendiente_hash', 2, 2, 1, 1),\
+('admin01', 'Jos\'e9 Carlos', 'Alonso', \'91jcalonso@fgulem.es', 'pendiente_hash', 3, 2, 1, 1);\
+\
+INSERT INTO proyecto (id_servicio, codigo, nombre, descripcion) VALUES\
+(1, 'HV-GEN', 'Hospital Veterinario General', 'Proyecto \'fanico del hospital'),\
+(2, 'ESP', 'Espa\'f1ol', 'Proyecto de ense\'f1anza de espa\'f1ol'),\
+(2, \'91IMO\'92, 'Idiomas Modernos', 'Proyecto de idiomas modernos'),\
+(3, \'91INC\'92, \'91Incofi\'92, 'Proyecto de colocaci\'f3n'),\
+(3, \'91EXP\'92, \'91Experience Plus, 'Proyecto EXP \'91Plus);\
+\
+INSERT INTO analitica (id_servicio, id_proyecto, nivel_1, nivel_2, descripcion) VALUES\
+(1, 1, \'916\'92, \'912\'92, 'Hospital Veterinario General'),\
+(2, 2, \'912\'92, \'911\'92, 'Centro de Idiomas - Espa\'f1ol'),\
+(2, 3, \'912\'92, \'911\'92, 'Centro de Idiomas - Idiomas Modernos'),\
+(3, 5, \'913\'92, \'914\'92, 'Desarrollo Profesional - INCOFI\'92),\
+(3, 6, \'913\'92, \'918\'92, 'Desarrollo Profesional - Experience \'91Plus);\
+\
+INSERT INTO forma_pago (codigo, nombre) VALUES\
+('TRANSFERENCIA', 'Transferencia'),\
+('DOMICILIACION', 'Domiciliaci\'f3n'),\
+('CAJA', 'Caja'),\
+('TARJETA', 'Tarjeta');\
+\
+INSERT INTO banco (codigo, nombre, iban_ordenante, bic, cuenta_contable) VALUES\
+(\'91UNICAJA\'92, 'Caja Rural', 'ES1200000000000000000000', 'BICUNICXXX', '5720001'),\
+('SANTANDER', 'Banco Santander', 'ES3400000000000000000000', 'BSCHESMMXXX', '5720002');\
+\
+INSERT INTO peg_tipo (codigo, nombre) VALUES\
+('FACTURA', 'Factura'),\
+('PRESUPUESTO', 'Presupuesto');\
+\
+INSERT INTO peg_estado (codigo, nombre, orden_estado) VALUES\
+('BORRADOR', 'Borrador', 1),\
+('ENVIADA', 'Enviada', 2),\
+('EN_REVISION', 'En revisi\'f3n', 3),\
+('CON_INCIDENCIA', 'Con incidencia', 4),\
+('VALIDADA', 'Validada', 5),\
+('PREPARADA_PAGO', 'Preparada para pago', 6),\
+('INCLUIDA_REMESA', 'Incluida en remesa', 7),\
+('PAGADA', 'Pagada', 8),\
+('CERRADA', 'Cerrada', 9),\
+('ANULADA', 'Anulada', 10);\
+\
+INSERT INTO tipo_documento (codigo, nombre, obligatorio_por_defecto) VALUES\
+('FACTURA', 'Factura', 1),\
+('PRESUPUESTO', 'Presupuesto', 0),\
+('ALBARAN', 'Albar\'e1n', 0),\
+('PEDIDO', 'Pedido', 0),\
+('AUTORIZACION', 'Autorizaci\'f3n', 0),\
+('JUSTIFICANTE_PAGO', 'Justificante de pago', 0),\
+('OTRO', 'Otro', 0);\
+\
+INSERT INTO proveedor (tipo_persona, cif_nif, razon_social, nombre_comercial, telefono, email, iban, id_forma_pago_habitual, tipo_iva_habitual)\
+VALUES\
+('JURIDICA', 'B12345678', 'Proveedor Ejemplo SL', 'Proveedor Ejemplo', '987000000', 'proveedor@ejemplo.com', 'ES7620770024003102575766', 1, 21),\
+('FISICA', '12345678Z', 'Mar\'eda P\'e9rez', NULL, '600000000', 'maria@ejemplo.com', NULL, 1, 21),\
+('JURIDICA', 'B76543210', 'Veterinaria T\'e9cnica del Noroeste SL', 'VetNoroeste', '987111222', 'info@vetnoroeste.es', 'ES1111111111111111111111', 1, 21),\
+('JURIDICA', 'B99887766', 'Traducciones Le\'f3n SL', 'Traduleon', '987333444', 'contacto@traduleon.es', 'ES2222222222222222222222', 1, 21);\
+\
+INSERT INTO proveedor_servicio (id_proveedor, id_servicio, habitual) VALUES\
+(1, 1, 1),\
+(1, 2, 1),\
+(2, 2, 0),\
+(3, 1, 1),\
+(4, 2, 1);\
+\
+INSERT INTO peg (\
+    codigo_peg, id_servicio, id_proyecto, id_proveedor, id_peg_tipo, numero_documento,\
+    fecha_documento, fecha_recepcion, fecha_vencimiento, descripcion_gasto, observaciones,\
+    id_forma_pago_prevista, base_imponible, importe_iva, importe_irpf, importe_total,\
+    id_peg_estado, id_analitica, creado_por, fecha_envio\
+)\
+VALUES\
+('PEG-2026-0001', 1, 1, 3, 1, 'FAC-001',\
+ '2026-01-15', '2026-01-16', '2026-02-15', 'Compra de material veterinario',\
+ 'Urgente para quir\'f3fano', 1, 1000.00, 210.00, 0.00, 1210.00, 8, 1, 1, '2026-01-16'),\
+('PEG-2026-0002', 2, 2, 4, 2, 'PRE-101',\
+ '2026-02-10', '2026-02-10', NULL, 'Presupuesto traducci\'f3n material promocional',\
+ NULL, 1, 500.00, 105.00, 0.00, 605.00, 2, 2, 2, '2026-02-10'),\
+('PEG-2026-0003', 2, 4, 2, 1, 'FAC-889',\
+ '2026-02-20', '2026-02-21', '2026-03-21', 'Servicio externo de traducci\'f3n jurada',\
+ 'Pendiente de validaci\'f3n administrativa', 1, 320.00, 67.20, 0.00, 387.20, 3, 4, 2, '2026-02-21'),\
+('PEG-2026-0004', 3, 5, 1, 1, 'FAC-555',\
+ '2026-03-01', '2026-03-02', '2026-04-01', 'Material para jornadas de empleabilidad',\
+ 'Existe incidencia por falta de autorizaci\'f3n', 1, 700.00, 147.00, 0.00, 847.00, 4, 5, 3, '2026-03-02');\
+\
+INSERT INTO peg_documento (id_peg, id_tipo_documento, nombre_fichero, ruta_fichero, es_principal, subido_por) VALUES\
+(1, 1, 'fac_001.pdf', '/documentos/peg/2026/0001/fac_001.pdf', 1, 1),\
+(2, 2, 'pre_101.pdf', '/documentos/peg/2026/0002/pre_101.pdf', 1, 2),\
+(3, 1, 'fac_889.pdf', '/documentos/peg/2026/0003/fac_889.pdf', 1, 2),\
+(4, 1, 'fac_555.pdf', '/documentos/peg/2026/0004/fac_555.pdf', 1, 3);\
+\
+INSERT INTO peg_historial (id_peg, id_peg_estado_origen, id_peg_estado_destino, comentario, realizado_por) VALUES\
+(1, NULL, 2, 'PEG enviada por solicitante', 1),\
+(1, 2, 5, 'PEG validada por gestor', 3),\
+(1, 5, 8, 'PEG pagada', 3),\
+(2, NULL, 2, 'PEG enviada por solicitante', 2),\
+(3, NULL, 2, 'PEG enviada por solicitante', 2),\
+(3, 2, 3, 'PEG en revisi\'f3n', 3),\
+(4, NULL, 2, 'PEG enviada por solicitante', 3),\
+(4, 2, 4, 'Se detecta incidencia', 3);\
+\
+INSERT INTO peg_incidencia (id_peg, descripcion, abierta, creada_por) VALUES\
+(4, 'Falta autorizaci\'f3n firmada del responsable correspondiente', 1, 3);\
+\
+INSERT INTO plantilla_email (codigo, nombre, asunto, cuerpo_html, cuerpo_texto) VALUES\
+('PEG_ENVIADA_SOLICITANTE', 'PEG enviada al solicitante',\
+ 'PEG \{\{codigo_peg\}\} enviada correctamente',\
+ '<p>Su PEG \{\{codigo_peg\}\} ha sido enviada correctamente.</p>',\
+ 'Su PEG \{\{codigo_peg\}\} ha sido enviada correctamente.'),\
+('PEG_ENVIADA_GESTOR', 'PEG enviada al gestor',\
+ 'Nueva PEG \{\{codigo_peg\}\} pendiente de revisi\'f3n',\
+ '<p>Tiene una nueva PEG \{\{codigo_peg\}\} pendiente de revisi\'f3n.</p>',\
+ 'Tiene una nueva PEG \{\{codigo_peg\}\} pendiente de revisi\'f3n.'),\
+('PEG_APROBADA_SOLICITANTE', 'PEG aprobada al solicitante',\
+ 'PEG \{\{codigo_peg\}\} aprobada',\
+ '<p>Su PEG \{\{codigo_peg\}\} ha sido aprobada.</p>',\
+ 'Su PEG \{\{codigo_peg\}\} ha sido aprobada.'),\
+('PEG_INCIDENCIA_SOLICITANTE', 'PEG con incidencia al solicitante',\
+ 'PEG \{\{codigo_peg\}\} con incidencia',\
+ '<p>Su PEG \{\{codigo_peg\}\} presenta una incidencia y requiere revisi\'f3n.</p>',\
+ 'Su PEG \{\{codigo_peg\}\} presenta una incidencia y requiere revisi\'f3n.');\
+\
+INSERT INTO email_envio (tipo_entidad, id_entidad, codigo_plantilla, destinatario, asunto_generado, cuerpo_generado, estado_envio, fecha_envio)\
+VALUES\
+('PEG', 1, 'PEG_ENVIADA_SOLICITANTE', 'ana.hv@fgulem.es', 'PEG PEG-2026-0001 enviada correctamente', 'Su PEG PEG-2026-0001 ha sido enviada correctamente.', 'ENVIADO', SYSDATETIME()),\
+('PEG', 1, 'PEG_ENVIADA_GESTOR', 'maria.gestion@fgulem.es', 'Nueva PEG PEG-2026-0001 pendiente de revisi\'f3n', 'Tiene una nueva PEG PEG-2026-0001 pendiente de revisi\'f3n.', 'ENVIADO', SYSDATETIME());\
+\
+INSERT INTO parametro_sistema (clave, valor, descripcion) VALUES\
+('SMTP_HOST', 'smtp.tudominio.es', 'Servidor SMTP'),\
+('SMTP_PORT', '587', 'Puerto SMTP'),\
+('SMTP_USER', 'sgpeg@tudominio.es', 'Usuario SMTP'),\
+('SMTP_PASSWORD', 'pendiente_configurar', 'Contrase\'f1a SMTP'),\
+('SMTP_TLS', '1', 'Usar TLS'),\
+('SMTP_FROM', 'sgpeg@tudominio.es', 'Remitente por defecto');}

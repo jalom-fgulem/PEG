@@ -1,0 +1,19 @@
+proyecto_gastos/
+├── .venv/
+├── app/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── config.py
+│   │   └── database.py
+│   ├── routers/
+│   │   ├── __init__.py
+│   │   ├── servicios.py
+│   │   └── proveedores.py
+│   ├── templates/
+│   │   ├── base.html
+│   │   └── inicio.html
+│   └── static/
+├── requirements.txt
+└── README.md

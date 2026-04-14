@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% block title %}PEGs{% endblock %}
+{% block page_title %}Propuestas específicas de gasto{% endblock %}
+{% block page_subtitle %}Gestión y seguimiento de los PEGs por servicio y estado{% endblock %}
+
+{% block extra_head %}
+<style>
+  .estado-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .estado-pendiente   { background: rgba(239,159,39,0.14);  color: #854f0b; }
+  .estado-validado    { background: rgba(95,159,211,0.14);  color: #185fa5; }
+  .estado-en_remesa   { background: rgba(127,85,211,0.13);  color: #5a2db5; }
+  .estado-pagado      { background: rgba(99,153,34,0.14);   color: #3b6d11; }
+  .estado-incidencia  { background: rgba(226,75,74,0.13);   color: #a32d2d; }
+  .filtros-inline { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 20px; }
+  .filtros-inline > div { display: flex; flex-direction: column; gap: 6px; }
+  .filtros-inline label { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; color: #86828b; font-weight: 700; }
+  .filtros-inline input, .filtros-inline select { padding: 9px 12px; border: 1px solid #d8dce2; border-radius: 10px; font-size: 0.95rem; color: var(--ink); background: white; }
+  .filtros-inline input:focus, .filtros-inline select:focus { outline: none; border-color: var(--fgulem-blue); box-shadow: 0 0 0 3px rgba(95,159,211,0.14); }
+  #sinResultados { display: none; }
+  .btn-filtro {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-filtro:hover { background: #e5e7eb; }
+  .btn-filtro.activo {
+    background: #166534;
+    color: white;
+    border-color: #166534;
+  }
+  .btn-filtro-estado {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-filtro-estado:hover { background: #e5e7eb; }
+  .btn-filtro-estado.activo {
+    background: #1d4ed8;
+    color: white;
+    border-color: #1d4ed8;
+  }
+  .banner-alerta-factura { background: #fef9c3; border: 1px solid #fde047; color: #854d0e; padding: 10px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 0.875rem; }
+  .banner-alerta-factura a { color: #92400e; font-weight: 600; margin-left: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if pegs_sin_factura > 0 and usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+<div class="banner-alerta-factura">
+  ⚠ Hay {{ pegs_sin_factura }} PEG{{ 's' if pegs_sin_factura > 1 }} pagado{{ 's' if pegs_sin_factura > 1 }} sin factura recibida.
+  <a href="?estado=PAGADO&factura_recibida=0">Ver PEGs afectados</a>
+</div>
+{% endif %}
+<div class="card">
+  <div class="toolbar">
+    <div>
+      <h2 style="margin-bottom:4px;">Todos los PEGs</h2>
+      <div class="muted" id="contadorResultados">{{ items|length }} PEG{% if items|length != 1 %}s{% endif %}</div>
+    </div>
+    <div class="actions">
+      <a class="btn btn-primary" href="/pegs/nuevo">Nuevo PEG</a>
+    </div>
+  </div>
+
+  <!-- Filtros en tiempo real -->
+  <div style="margin-bottom:16px">
+
+    {# ── Fila 1: botones de servicio ── #}
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+      <button type="button"
+              class="btn btn-filtro activo"
+              data-filtro="servicio" data-valor=""
+              onclick="activarFiltroBtn(this,'servicio')">
+        Todos los servicios
+      </button>
+      {% if usuario.rol == 'GESTOR_SERVICIO' %}
+        {% set nombre_servicio = servicios[0].nombre if servicios else '' %}
+        <button type="button"
+                class="btn btn-filtro"
+                data-filtro="servicio"
+                data-valor="{{ nombre_servicio|lower }}"
+                onclick="activarFiltroBtn(this,'servicio')">
+          {{ nombre_servicio }}
+        </button>
+      {% else %}
+        {% for s in servicios %}
+        <button type="button"
+                class="btn btn-filtro"
+                data-filtro="servicio"
+                data-valor="{{ s.nombre|lower }}"
+                onclick="activarFiltroBtn(this,'servicio')">
+          {{ s.nombre }}
+        </button>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    {# ── Fila 2: botones de estado ── #}
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+      <button type="button"
+              class="btn btn-filtro-estado activo"
+              data-filtro="estado" data-valor=""
+              onclick="activarFiltroBtn(this,'estado')">
+        Todos los estados
+      </button>
+      {% for e in estados %}
+      <button type="button"
+              class="btn btn-filtro-estado"
+              data-filtro="estado"
+              data-valor="{{ e.codigo|lower }}"
+              onclick="activarFiltroBtn(this,'estado')">
+        {{ e.nombre }}
+      </button>
+      {% endfor %}
+    </div>
+
+    {# ── Fila 3: buscador de texto ── #}
+    <div class="filtros-inline">
+      <div style="flex:1;min-width:200px">
+        <label for="filtroBusqueda">Buscar</label>
+        <input id="filtroBusqueda" type="text"
+               placeholder="Código, descripción o proveedor..."
+               autocomplete="off">
+      </div>
+    </div>
+
+    {# Selects ocultos que el JS sigue usando internamente #}
+    <select id="filtroServicio" style="display:none">
+      <option value="">Todos</option>
+      {% for s in servicios %}
+      <option value="{{ s.nombre|lower }}">{{ s.nombre }}</option>
+      {% endfor %}
+    </select>
+    <select id="filtroEstado" style="display:none">
+      <option value="">Todos</option>
+      {% for e in estados %}
+      <option value="{{ e.codigo|lower }}">{{ e.nombre }}</option>
+      {% endfor %}
+    </select>
+
+  </div>
+
+  {% if items %}
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Proveedor</th>
+        <th>Descripción</th>
+        <th>Servicio</th>
+        <th style="text-align:right">Importe</th>
+        <th>Fecha recepción</th>
+        <th>Estado</th>
+        <th>Nº Factura</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="tablaPegsBody">
+      {% for item in items %}
+      <tr class="fila-peg"
+          data-busqueda="{{ (item.codigo_peg ~ ' ' ~ item.descripcion_gasto ~ ' ' ~ item.nombre_proveedor)|lower }}"
+          data-servicio="{{ item.nombre_servicio|lower }}"
+          data-estado="{{ item.codigo_estado|lower }}">
+        <td><strong>{{ item.codigo_peg }}</strong></td>
+        <td>{{ item.nombre_proveedor }}</td>
+        <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ item.descripcion_gasto }}</td>
+        <td>{{ item.nombre_servicio }}</td>
+        <td style="text-align:right; font-variant-numeric: tabular-nums;">{{ "%.2f"|format(item.importe_total) }} €</td>
+        <td>{{ item.fecha_recepcion or "—" }}</td>
+        <td><span class="estado-badge estado-{{ item.codigo_estado|lower }}">{{ item.nombre_estado }}</span></td>
+        {% if item.numero_factura_interno %}
+          <td>
+            <span style="font-family:monospace;font-size:0.85rem;
+                         background:#f0fdf4;color:#166534;
+                         padding:2px 7px;border-radius:4px;
+                         border:1px solid #86efac">
+              {{ item.numero_factura_interno }}
+            </span>
+          </td>
+        {% else %}
+          <td><span class="muted">—</span></td>
+        {% endif %}
+        <td style="text-align:center">
+          <a href="/pegs/{{ item.id_peg }}"
+             title="Ver / editar"
+             style="font-size:1.2rem;text-decoration:none">
+            ✏️
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div id="sinResultados" class="empty-state" style="padding: 24px 0;">
+    No hay PEGs que coincidan con los filtros aplicados.
+  </div>
+  {% else %}
+  <div class="empty-state">No hay PEGs registrados. <a href="/pegs/nuevo">Crear el primero</a>.</div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const filasPeg       = document.querySelectorAll(".fila-peg");
+  const sinResultados  = document.getElementById("sinResultados");
+  const contador       = document.getElementById("contadorResultados");
+  const inputBusqueda  = document.getElementById("filtroBusqueda");
+  const selServicio    = document.getElementById("filtroServicio");
+  const selEstado      = document.getElementById("filtroEstado");
+
+  function aplicarFiltros() {
+    const texto    = inputBusqueda.value.trim().toLowerCase();
+    const servicio = selServicio.value.toLowerCase();
+    const estado   = selEstado.value.toLowerCase();
+    let visibles   = 0;
+
+    filasPeg.forEach(fila => {
+      const okTexto    = !texto    || fila.dataset.busqueda.includes(texto);
+      const okServicio = !servicio || fila.dataset.servicio === servicio;
+      const okEstado   = !estado   || fila.dataset.estado   === estado;
+      const mostrar    = okTexto && okServicio && okEstado;
+      fila.style.display = mostrar ? "" : "none";
+      if (mostrar) visibles++;
+    });
+
+    sinResultados.style.display = visibles === 0 && filasPeg.length > 0 ? "block" : "none";
+    contador.textContent = visibles + " PEG" + (visibles !== 1 ? "s" : "");
+  }
+
+  inputBusqueda.addEventListener("input",  aplicarFiltros);
+  selServicio.addEventListener("change",   aplicarFiltros);
+  selEstado.addEventListener("change",     aplicarFiltros);
+
+  function activarFiltroBtn(btn, tipo) {
+    document.querySelectorAll(
+      `[data-filtro="${tipo}"]`
+    ).forEach(b => b.classList.remove("activo"));
+    btn.classList.add("activo");
+    const selectId = tipo === "servicio"
+      ? "filtroServicio" : "filtroEstado";
+    const select = document.getElementById(selectId);
+    if (select) {
+      select.value = btn.dataset.valor;
+      select.dispatchEvent(new Event("change"));
+    }
+  }
+</script>
+{% endblock %}

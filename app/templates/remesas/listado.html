@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Remesas{% endblock %}
+{% block page_title %}Remesas{% endblock %}
+{% block page_subtitle %}Gestión de remesas de pago{% endblock %}
+
+{% block content %}
+
+{% if msg %}
+<div class="flash-{{ msg_type }}" style="margin-bottom:16px; padding:12px 16px; border-radius:10px;
+  {% if msg_type == 'success' %}background:rgba(99,153,34,0.12);border:1px solid rgba(99,153,34,0.28);color:#2f6b10;
+  {% else %}background:rgba(226,75,74,0.10);border:1px solid rgba(226,75,74,0.28);color:#a32d2d;{% endif %}
+  font-weight:600;">
+  {% if msg_type == 'success' %}✓{% else %}⚠{% endif %} {{ msg }}
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="toolbar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+    <form method="get" action="/remesas/" style="display:flex; gap:10px; align-items:center;">
+      <select name="estado" style="width:auto; padding:10px 14px;">
+        <option value="">Todos los estados</option>
+        <option value="ABIERTA"   {% if filtro_estado == 'ABIERTA'   %}selected{% endif %}>Abierta</option>
+        <option value="GENERADA"  {% if filtro_estado == 'GENERADA'  %}selected{% endif %}>Generada</option>
+        <option value="CERRADA"   {% if filtro_estado == 'CERRADA'   %}selected{% endif %}>Cerrada</option>
+      </select>
+      <button class="btn btn-secondary" type="submit">Filtrar</button>
+    </form>
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+    <a class="btn btn-primary" href="/remesas/nueva">＋ Nueva remesa</a>
+    {% endif %}
+  </div>
+
+  {% if items %}
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Descripción</th>
+        <th>Estado</th>
+        <th>Fecha creación</th>
+        <th>Fecha cierre</th>
+        <th>PEGs</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in items %}
+      <tr>
+        <td style="font-weight:700;">{{ r.codigo_remesa }}</td>
+        <td>{{ r.descripcion }}</td>
+        <td>
+          {% if r.estado == 'ABIERTA' %}
+            <span class="estado-badge" style="background:rgba(95,159,211,0.14);color:#185fa5;">Abierta</span>
+          {% elif r.estado == 'VALIDADA' %}
+            <span class="estado-badge" style="background:rgba(139,92,246,0.14);color:#5b21b6;">✓ Validada</span>
+          {% elif r.estado == 'GENERADA' %}
+            <span class="estado-badge" style="background:rgba(239,159,39,0.14);color:#854f0b;">Generada</span>
+          {% else %}
+            <span class="estado-badge" style="background:rgba(99,153,34,0.14);color:#3b6d11;">🔒 Cerrada</span>
+          {% endif %}
+        </td>
+        <td>{{ r.fecha_creacion }}</td>
+        <td>{{ r.fecha_cierre or "—" }}</td>
+        <td>{{ r.pagos|length }}</td>
+        <td><a class="btn btn-secondary" style="padding:7px 12px; font-size:0.86rem;" href="/remesas/{{ r.id_remesa }}">Ver</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">No hay remesas que coincidan con los filtros.</div>
+  {% endif %}
+</div>
+{% endblock %}

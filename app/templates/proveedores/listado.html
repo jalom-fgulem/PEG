@@ -1,0 +1,896 @@
+{% extends "base.html" %}
+
+{% block title %}Proveedores{% endblock %}
+{% block page_title %}Proveedores{% endblock %}
+{% block page_subtitle %}Maestro reutilizable de terceros para propuestas específicas de gasto, pagos y remesas{% endblock %}
+
+{% block extra_head %}
+<style>
+  .btn-filtro {
+    background: #f3f4f6; color: #374151;
+    border: 1.5px solid #e5e7eb; border-radius: 20px;
+    padding: 4px 14px; font-size: 0.8rem;
+    cursor: pointer; transition: all 0.15s;
+    text-decoration: none; display: inline-block;
+  }
+  .btn-filtro:hover { background: #e5e7eb; }
+  .btn-filtro.activo { background: #166534; color: white; border-color: #166534; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="toolbar">
+    <div>
+      <h2 style="margin-bottom:4px;">Todos los proveedores</h2>
+      <div class="muted">{{ items|length }} proveedor{% if items|length != 1 %}es{% endif %}</div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn btn-primary"
+              onclick="abrirModalProveedor()">Nuevo proveedor</button>
+    </div>
+  </div>
+
+  {# ── Filtros de servicio como píldoras ── #}
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+    <a href="/proveedores/?filtro_servicio=todos"
+       class="btn-filtro {% if filtro_servicio == 'todos' %}activo{% endif %}">
+      Todos los servicios
+    </a>
+    {% if usuario.rol == 'GESTOR_SERVICIO' %}
+      {% for s in servicios %}{% if s.id_servicio == usuario.id_servicio %}
+      <a href="/proveedores/?filtro_servicio=mio"
+         class="btn-filtro {% if filtro_servicio == 'mio' %}activo{% endif %}">
+        {{ s.nombre }}
+      </a>
+      {% endif %}{% endfor %}
+    {% else %}
+      {% for s in servicios %}
+      <a href="/proveedores/?filtro_servicio={{ s.id_servicio }}"
+         class="btn-filtro {% if filtro_servicio == s.id_servicio|string %}activo{% endif %}">
+        {{ s.nombre }}
+      </a>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  {# ── Buscador ── #}
+  <div style="max-width:420px;margin-bottom:20px;">
+    <input id="filtroProveedor" type="text"
+           placeholder="Buscar por CIF/NIF o razón social…"
+           autocomplete="off"
+           style="width:100%;padding:9px 12px;border:1px solid #d8dce2;
+                  border-radius:10px;font-size:0.95rem">
+  </div>
+
+    {% if items %}
+    <table>
+        <thead>
+          <tr>
+            <th>CIF/NIF</th>
+            <th>Razón social</th>
+            {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+            <th>Cuenta cliente</th>
+            {% endif %}
+            <th>PEGs</th>
+            <th>Estado</th>
+            <th style="text-align:center">Acción</th>
+          </tr>
+        </thead>
+        <tbody id="tablaProveedoresBody">
+          {% for item in items %}
+          <tr class="fila-proveedor"
+              data-id="{{ item.id_proveedor }}"
+              data-search="{{ (item.cif_nif ~ ' ' ~ item.razon_social ~ ' ' ~ ('activo' if item.activo else 'inactivo'))|lower }}">
+            <td>{{ item.cif_nif }}</td>
+            <td>{{ item.razon_social }}</td>
+            {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+            <td class="td-cuenta-cliente"
+                data-id="{{ item.id_proveedor }}"
+                data-valor="{{ item.cuenta_cliente or '' }}"
+                style="font-size:0.85rem">
+              <div class="cc-vista" onclick="abrirEditCuenta(this)"
+                   style="cursor:pointer;display:flex;align-items:center;gap:6px"
+                   title="Clic para editar">
+                <span class="cc-texto" style="font-family:monospace">
+                  {% if not item.cuenta_cliente %}
+                    <span style="color:#9ca3af;font-style:italic;font-family:inherit">No tiene</span>
+                  {% elif item.cuenta_cliente == cuenta_saco %}
+                    <span style="color:#6b7280">Cuenta saco</span>
+                  {% else %}
+                    {{ item.cuenta_cliente }}
+                  {% endif %}
+                </span>
+                <span style="color:#d1d5db;font-size:0.75rem">✏</span>
+              </div>
+              <div class="cc-editor" style="display:none;display:none">
+                <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+                  <input type="text" class="cc-input"
+                         value="{{ item.cuenta_cliente or '' }}"
+                         placeholder="Sin asignar" maxlength="10"
+                         style="width:100px;font-family:monospace;padding:4px 6px;
+                                border:1px solid #d8dce2;border-radius:6px;font-size:0.85rem"
+                         onkeydown="if(event.key==='Enter')guardarCuentaInline(this);
+                                    if(event.key==='Escape')cerrarEditCuenta(this)">
+                  <select onchange="inlineAplicarCuenta(this)"
+                          style="padding:4px 6px;border:1px solid #d8dce2;border-radius:6px;font-size:0.78rem">
+                    <option value="">—</option>
+                    <option value="saco">Saco</option>
+                    <option value="nueva">Nueva</option>
+                  </select>
+                  <button type="button" onclick="guardarCuentaInline(this)"
+                          style="padding:3px 8px;border:none;border-radius:6px;
+                                 background:var(--fgulem-magenta);color:#fff;
+                                 font-size:0.78rem;cursor:pointer">✓</button>
+                  <button type="button" onclick="cerrarEditCuenta(this)"
+                          style="padding:3px 8px;border:1px solid #d8dce2;border-radius:6px;
+                                 background:none;font-size:0.78rem;cursor:pointer">✕</button>
+                </div>
+              </div>
+            </td>
+            {% endif %}
+            <td>
+              <a href="/pegs/?proveedor_id={{ item.id_proveedor }}"
+                 title="Ver todos los PEGs de este proveedor"
+                 style="text-decoration:none;color:inherit;font-size:0.85rem">
+                <span style="font-weight:700;color:#166534">{{ item.num_pegs_pagados }} pagados</span>
+                <span style="color:#6b7280"> / {{ item.num_pegs_total }} total</span>
+              </a>
+            </td>
+            <td>
+              {% if item.activo %}
+                <span style="background:#f0fdf4;color:#166534;
+                             border:1px solid #86efac;border-radius:12px;
+                             padding:2px 10px;font-size:0.8rem;
+                             font-weight:600">
+                  Activo
+                </span>
+              {% else %}
+                <span style="background:#fef2f2;color:#dc2626;
+                             border:1px solid #fecaca;border-radius:12px;
+                             padding:2px 10px;font-size:0.8rem;
+                             font-weight:600">
+                  Inactivo
+                </span>
+              {% endif %}
+            </td>
+            <td style="text-align:center">
+              <button type="button"
+                      class="js-ver-detalle"
+                      data-id="{{ item.id_proveedor }}"
+                      title="Ver / editar"
+                      style="background:none;border:none;
+                             font-size:1.2rem;cursor:pointer">
+                ✏️
+              </button>
+              <a href="/pegs/nuevo?proveedor_id={{ item.id_proveedor }}"
+                 title="Nuevo PEG"
+                 style="font-size:1.2rem;text-decoration:none;
+                        margin-left:6px">
+                ➕
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+    </table>
+    <div id="sinResultados" class="empty-state" style="display: none;">
+        No se han encontrado proveedores con ese criterio.
+    </div>
+    {% else %}
+    <div class="empty-state">No hay proveedores registrados.</div>
+    {% endif %}
+</div>
+
+<!-- ── MODAL: NUEVO PROVEEDOR ── -->
+<div id="modalNuevoProveedor" class="modal-backdrop">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <h3 style="margin:0;">Nuevo proveedor</h3>
+      <button type="button" class="modal-close" onclick="cerrarModalProveedor()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px;">
+
+        <!-- Identificación -->
+        <div class="field" style="margin:0;">
+          <label>Tipo de persona</label>
+          <select id="mp-tipo-persona">
+            <option value="JURIDICA">Jurídica</option>
+            <option value="FISICA">Física</option>
+          </select>
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>CIF/NIF <span style="color:var(--fgulem-magenta)">*</span></label>
+          <input type="text" id="mp-cif-nif" placeholder="B12345678">
+        </div>
+
+        <div class="field" style="grid-column:span 2;margin:0;">
+          <label>Razón social <span style="color:var(--fgulem-magenta)">*</span></label>
+          <input type="text" id="mp-razon-social" placeholder="Nombre o denominación social">
+        </div>
+
+        <div class="field" style="grid-column:span 2;margin:0;">
+          <label>Nombre comercial</label>
+          <input type="text" id="mp-nombre-comercial" placeholder="Si difiere de la razón social">
+        </div>
+
+        <!-- Contacto -->
+        <div class="field" style="margin:0;">
+          <label>Teléfono</label>
+          <input type="text" id="mp-telefono" placeholder="987 000 000">
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>Email</label>
+          <input type="email" id="mp-email" placeholder="contacto@empresa.com">
+        </div>
+
+        <!-- Bancario -->
+        <div class="field" style="margin:0;">
+          <label>IBAN</label>
+          <input type="text" id="mp-iban" placeholder="ES00 0000 0000 0000 0000 0000">
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>Forma de pago habitual</label>
+          <select id="mp-forma-pago">
+            {% for fp in formas_pago %}
+            <option value="{{ fp.id_forma_pago }}">{{ fp.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+        <div style="grid-column:span 2;border-top:1px solid #e8ecf0;padding-top:14px;margin-top:4px;">
+          <strong style="font-size:0.84rem;color:#888;text-transform:uppercase;letter-spacing:0.04em;">Cuenta contable</strong>
+        </div>
+        <div class="field" style="grid-column:span 2;margin:0;">
+          <label>Cuenta cliente (grupo 4)</label>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input type="text" id="mp-cuenta-cliente"
+                   placeholder="Sin asignar"
+                   style="width:130px;font-family:monospace;padding:9px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.95rem"
+                   maxlength="10">
+            <select onchange="mpAplicarCuenta(this)"
+                    style="padding:9px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.95rem">
+              <option value="">— Elegir —</option>
+              <option value="saco">Cuenta saco ({{ cuenta_saco }})</option>
+              <option value="nueva">Nueva cuenta correlativa</option>
+            </select>
+          </div>
+        </div>
+        {% endif %}
+
+        <div style="grid-column:span 2;border-top:1px solid #e8ecf0;padding-top:14px;margin-top:4px;">
+          <strong style="font-size:0.84rem;color:#888;text-transform:uppercase;letter-spacing:0.04em;">Dirección postal</strong>
+        </div>
+
+        <div class="field" style="grid-column:span 2;margin:0;">
+          <label>Dirección</label>
+          <input type="text" id="mp-direccion" placeholder="Calle, número, piso...">
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>Localidad</label>
+          <input type="text" id="mp-localidad">
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>Código postal</label>
+          <input type="text" id="mp-codigo-postal" maxlength="5" pattern="[0-9]{5}" placeholder="24001">
+        </div>
+
+        <div class="field" style="grid-column:span 2;margin:0;">
+          <label>Provincia</label>
+          <input type="text" id="mp-provincia">
+        </div>
+
+        <div id="mp-error" style="grid-column:span 2;color:var(--fgulem-magenta);
+             font-size:0.88rem;display:none;padding:8px 12px;
+             background:rgba(194,27,132,0.07);border-radius:8px;margin:0;"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+        <button type="button" onclick="cerrarModalProveedor()"
+          style="background:transparent;border:1px solid #d8dce2;border-radius:10px;
+                 padding:9px 18px;cursor:pointer;font-size:0.9rem;">
+          Cancelar
+        </button>
+        <button type="button" onclick="guardarProveedorRapido()"
+          style="background:linear-gradient(135deg,var(--fgulem-magenta),var(--fgulem-magenta-soft));
+                 color:#fff;border:none;border-radius:10px;padding:9px 22px;
+                 cursor:pointer;font-weight:700;font-size:0.9rem;">
+          Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="detalleModal" class="modal-backdrop">
+    <div class="modal-panel" style="width: min(980px, 100%);">
+        <div class="modal-header">
+            <h3 style="margin: 0;">Detalle del proveedor</h3>
+            <button type="button" class="modal-close" id="cerrarModal">&times;</button>
+        </div>
+        <div class="modal-body" id="detalleContenido">
+            Cargando...
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // ── Modal nuevo proveedor ─────────────────────────────────────────────────
+  function abrirModalProveedor() {
+    const ids = ["mp-razon-social","mp-cif-nif","mp-nombre-comercial","mp-iban",
+                 "mp-telefono","mp-email","mp-direccion","mp-localidad",
+                 "mp-codigo-postal","mp-provincia","mp-cuenta-cliente"];
+    ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+    document.getElementById("mp-tipo-persona").value  = "JURIDICA";
+    document.getElementById("mp-error").style.display = "none";
+    document.getElementById("modalNuevoProveedor").classList.add("active");
+    document.getElementById("mp-razon-social").focus();
+  }
+
+  function cerrarModalProveedor() {
+    document.getElementById("modalNuevoProveedor").classList.remove("active");
+  }
+
+  function mpAplicarCuenta(sel) {
+    const input = document.getElementById("mp-cuenta-cliente");
+    if (!input) return;
+    if (sel.value === "saco") {
+      input.value = "{{ cuenta_saco }}";
+    } else if (sel.value === "nueva") {
+      fetch("/proveedores/siguiente-cuenta-cliente")
+        .then(r => r.json())
+        .then(data => { input.value = data.cuenta; })
+        .catch(() => alert("Error al calcular la siguiente cuenta."));
+    }
+    sel.value = "";
+  }
+
+  document.getElementById("modalNuevoProveedor").addEventListener("click", e => {
+    if (e.target === document.getElementById("modalNuevoProveedor")) cerrarModalProveedor();
+  });
+
+  async function guardarProveedorRapido() {
+    const razonSocial     = document.getElementById("mp-razon-social").value.trim();
+    const cifNif          = document.getElementById("mp-cif-nif").value.trim();
+    const tipoPersona     = document.getElementById("mp-tipo-persona").value;
+    const nombreComercial = document.getElementById("mp-nombre-comercial").value.trim();
+    const iban            = document.getElementById("mp-iban").value.trim();
+    const formaPago       = document.getElementById("mp-forma-pago").value;
+    const telefono        = document.getElementById("mp-telefono").value.trim();
+    const email           = document.getElementById("mp-email").value.trim();
+    const direccion       = document.getElementById("mp-direccion").value.trim();
+    const localidad       = document.getElementById("mp-localidad").value.trim();
+    const codigoPostal    = document.getElementById("mp-codigo-postal").value.trim();
+    const provincia       = document.getElementById("mp-provincia").value.trim();
+    const errEl           = document.getElementById("mp-error");
+
+    if (!razonSocial || !cifNif) {
+      errEl.textContent   = "Razón social y CIF/NIF son obligatorios.";
+      errEl.style.display = "block";
+      return;
+    }
+
+    errEl.style.display = "none";
+
+    try {
+      const res = await fetch("/proveedores/rapido", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipo_persona:           tipoPersona,
+          razon_social:           razonSocial,
+          cif_nif:                cifNif,
+          nombre_comercial:       nombreComercial || null,
+          iban:                   iban            || null,
+          id_forma_pago_habitual: parseInt(formaPago) || null,
+          telefono:               telefono        || null,
+          email:                  email           || null,
+          direccion:              direccion       || null,
+          localidad:              localidad       || null,
+          codigo_postal:          codigoPostal    || null,
+          provincia:              provincia       || null,
+          cuenta_cliente:         document.getElementById("mp-cuenta-cliente")?.value.trim() || null,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        errEl.textContent   = data.detail || data.error || "Error al crear el proveedor.";
+        errEl.style.display = "block";
+        return;
+      }
+
+      window.location.reload();
+    } catch (e) {
+      errEl.textContent   = "Error de red. Inténtelo de nuevo.";
+      errEl.style.display = "block";
+    }
+  }
+
+    // ── Referencias DOM ──────────────────────────────────────────────────────
+    const modal            = document.getElementById("detalleModal");
+    const detalleContenido = document.getElementById("detalleContenido");
+    const cerrarModal      = document.getElementById("cerrarModal");
+    const filtroProveedor  = document.getElementById("filtroProveedor");
+    const filasProveedor   = document.querySelectorAll(".fila-proveedor");
+    const sinResultados    = document.getElementById("sinResultados");
+
+    // ── Rol y servicio del usuario (global) ──────────────────────────────────
+    const esGestorServicio = {% if usuario.rol == "GESTOR_SERVICIO" %}true{% else %}false{% endif %};
+    const miServicio       = {% if usuario.id_servicio %}{{ usuario.id_servicio }}{% else %}null{% endif %};
+
+    // ── Validación española ───────────────────────────────────────────────────
+    function validarNIF(v) {
+        const m = v.match(/^(\d{8})([TRWAGMYFPDXBNJZSQVHLCKE])$/i);
+        if (!m) return false;
+        return m[2].toUpperCase() === "TRWAGMYFPDXBNJZSQVHLCKE"[parseInt(m[1]) % 23];
+    }
+
+    function validarNIE(v) {
+        const m = v.match(/^([XYZ])(\d{7})([TRWAGMYFPDXBNJZSQVHLCKE])$/i);
+        if (!m) return false;
+        const num = {"X":"0","Y":"1","Z":"2"}[m[1].toUpperCase()] + m[2];
+        return m[3].toUpperCase() === "TRWAGMYFPDXBNJZSQVHLCKE"[parseInt(num) % 23];
+    }
+
+    function validarCIF(v) {
+        const m = v.match(/^([ABCDEFGHJKLMNPQRSUVW])(\d{7})([0-9A-J])$/i);
+        if (!m) return false;
+        const digits = m[2];
+        let sumaPares = 0, sumaImpares = 0;
+        for (let i = 0; i < 7; i++) {
+            const d = parseInt(digits[i]);
+            if (i % 2 === 0) {   // posiciones impares del nº (1,3,5,7 → índices 0,2,4,6)
+                const doble = d * 2;
+                sumaImpares += doble > 9 ? doble - 9 : doble;
+            } else {
+                sumaPares += d;
+            }
+        }
+        const dc = (10 - (sumaPares + sumaImpares) % 10) % 10;
+        const ctrl = m[3].toUpperCase();
+        return ctrl === String(dc) || ctrl === "JABCDEFGHI"[dc];
+    }
+
+    function validarCifNif(v) {
+        const s = v.trim().toUpperCase();
+        return validarNIF(s) || validarNIE(s) || validarCIF(s);
+    }
+
+    function validarIBAN(v) {
+        const s = v.trim().toUpperCase().replace(/\s+/g, "");
+        if (!/^ES\d{22}$/.test(s)) return false;
+        const rearranged = s.slice(4) + s.slice(0, 4);
+        const numeric = rearranged.split("").map(c => {
+            const code = c.charCodeAt(0);
+            return code >= 65 ? String(code - 55) : c;
+        }).join("");
+        return BigInt(numeric) % 97n === 1n;
+    }
+
+    // ── Helpers de campo ──────────────────────────────────────────────────────
+    function setError(inputEl, msgEl, msg) {
+        inputEl.style.borderColor = msg ? "#c21b84" : "";
+        msgEl.textContent = msg;
+        msgEl.style.display = msg ? "block" : "none";
+    }
+
+    // ── Abrir modal ───────────────────────────────────────────────────────────
+    document.querySelectorAll(".js-ver-detalle").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const id = btn.dataset.id;
+            detalleContenido.innerHTML = "Cargando...";
+            modal.classList.add("active");
+
+            try {
+                const res = await fetch(`/proveedores/${id}/json`);
+                const data = await res.json();
+                if (data.error) { detalleContenido.innerHTML = `<p>${data.error}</p>`; return; }
+
+                const pegs = Array.isArray(data.pegs) ? data.pegs : [];
+                const ESTADO_BADGE = {1:"Pendiente",2:"Validado",3:"En remesa",4:"Pagado",5:"Incidencia"};
+                const ESTADO_COLOR = {1:"#92400e",2:"#1d4ed8",3:"#5b21b6",4:"#166534",5:"#991b1b"};
+                const ESTADO_BG    = {1:"#fef3c7",2:"#dbeafe",3:"#ede9fe",4:"#dcfce7",5:"#fee2e2"};
+                const pegsHtml = pegs.length
+                    ? `<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+                       <thead><tr style="border-bottom:2px solid #e8ecf0;">
+                           <th style="text-align:left;padding:6px 8px;font-weight:600;">Código</th>
+                           <th style="text-align:left;padding:6px 8px;font-weight:600;">Fecha recepción</th>
+                           <th style="text-align:right;padding:6px 8px;font-weight:600;">Importe</th>
+                           <th style="text-align:left;padding:6px 8px;font-weight:600;">Estado</th>
+                           <th style="padding:6px 8px;"></th>
+                       </tr></thead>
+                       <tbody>${pegs.map(p => {
+                           const est = p.id_peg_estado||1;
+                           return `<tr style="border-bottom:1px solid #f0f0f0;">
+                               <td style="padding:6px 8px;font-family:monospace;font-size:0.82rem;">${p.codigo_peg||""}</td>
+                               <td style="padding:6px 8px;">${p.fecha_recepcion||p.fecha_documento||"—"}</td>
+                               <td style="padding:6px 8px;text-align:right;">${(p.importe_total||0).toLocaleString("es-ES",{style:"currency",currency:"EUR"})}</td>
+                               <td style="padding:6px 8px;"><span style="background:${ESTADO_BG[est]};color:${ESTADO_COLOR[est]};padding:2px 8px;border-radius:20px;font-size:0.78rem;font-weight:600;">${ESTADO_BADGE[est]||""}</span></td>
+                               <td style="padding:6px 8px;text-align:center;"><a href="#" onclick="abrirPeg(${p.id_peg},${p.id_servicio},event)" style="text-decoration:none;font-size:1rem;">✏️</a></td>
+                           </tr>`;
+                       }).join("")}</tbody></table>`
+                    : `<div class="empty-state" style="padding:18px 0;">Sin PEGs asociados.</div>`;
+
+                const inputStyle  = "width:100%;padding:8px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.93rem;box-sizing:border-box;";
+                const errStyle    = "color:#c21b84;font-size:0.82rem;margin:3px 0 0;display:none;";
+                const esGestorEco = {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}true{% else %}false{% endif %};
+
+                detalleContenido.innerHTML = `
+                <!-- MODO VISTA -->
+                <div id="vista-${id}">
+                    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px;">
+                        <div><p><strong>Tipo</strong><br><span id="v-tipo-${id}">${data.tipo_persona||""}</span></p></div>
+                        <div><p><strong>CIF/NIF</strong><br><span id="v-cif-${id}">${data.cif_nif||""}</span></p></div>
+                        <div><p><strong>Razón social</strong><br><span id="v-rs-${id}">${data.razon_social||""}</span></p></div>
+                        <div><p><strong>Nombre comercial</strong><br><span id="v-nc-${id}">${data.nombre_comercial||"—"}</span></p></div>
+                        <div><p><strong>Email</strong><br><span id="v-email-${id}">${data.email||"—"}</span></p></div>
+                        <div><p><strong>Teléfono</strong><br><span id="v-tel-${id}">${data.telefono||"—"}</span></p></div>
+                        <div><p><strong>IBAN</strong><br><span id="v-iban-${id}" style="font-family:monospace;font-size:0.9rem">${data.iban||"—"}</span></p></div>
+                        ${esGestorEco ? `<div><p><strong>Cuenta cliente</strong><br><span id="v-cuenta-${id}" style="font-family:monospace">${data.cuenta_cliente||"—"}</span></p></div>` : `<div></div>`}
+                        <div style="grid-column:span 2;border-top:1px solid #e8ecf0;padding-top:12px;margin-top:4px;">
+                            <strong style="font-size:0.84rem;color:#888;text-transform:uppercase;letter-spacing:0.04em;">Dirección postal</strong>
+                        </div>
+                        <div style="grid-column:span 2"><p><strong>Dirección</strong><br><span id="v-dir-${id}">${data.direccion||"—"}</span></p></div>
+                        <div><p><strong>Localidad</strong><br><span id="v-loc-${id}">${data.localidad||"—"}</span></p></div>
+                        <div><p><strong>Código postal</strong><br><span id="v-cp-${id}">${data.codigo_postal||"—"}</span></p></div>
+                        <div style="grid-column:span 2"><p><strong>Provincia</strong><br><span id="v-prov-${id}">${data.provincia||"—"}</span></p></div>
+                    </div>
+                    <div style="margin-bottom:20px;">
+                        <button type="button" onclick="activarEdicion(${id})"
+                            style="background:linear-gradient(135deg,#c21b84,#d94da0);color:#fff;border:none;
+                                   border-radius:10px;padding:8px 18px;cursor:pointer;font-weight:700;font-size:0.9rem;">
+                            Editar
+                        </button>
+                    </div>
+                    <h3 style="margin-bottom:10px;">Histórico de PEGs</h3>
+                    ${pegsHtml}
+                </div>
+
+                <!-- MODO EDICIÓN -->
+                <div id="edicion-${id}" style="display:none;">
+                    <form id="form-editar-${id}" onsubmit="guardarProveedor(event,${id})"
+                          style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px;">
+
+                        <div class="field">
+                            <label>Tipo de persona <span style="color:var(--fgulem-magenta)">*</span></label>
+                            <select id="e-tipo-${id}" name="tipo_persona" required style="${inputStyle}">
+                                <option value="JURIDICA" ${data.tipo_persona==="JURIDICA"?"selected":""}>Jurídica</option>
+                                <option value="FISICA"   ${data.tipo_persona==="FISICA"?"selected":""}>Física</option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label>CIF/NIF <span style="color:var(--fgulem-magenta)">*</span></label>
+                            <input id="e-cif-${id}" name="cif_nif" type="text" required
+                                   value="${data.cif_nif||""}" style="${inputStyle}"
+                                   oninput="validarCampoCif(${id})">
+                            <p id="err-cif-${id}" style="${errStyle}">CIF/NIF no válido.</p>
+                        </div>
+
+                        <div class="field" style="grid-column:span 2">
+                            <label>Razón social <span style="color:var(--fgulem-magenta)">*</span></label>
+                            <input id="e-rs-${id}" name="razon_social" type="text" required
+                                   value="${data.razon_social||""}" style="${inputStyle}">
+                        </div>
+
+                        <div class="field">
+                            <label>Nombre comercial</label>
+                            <input id="e-nc-${id}" name="nombre_comercial" type="text"
+                                   value="${data.nombre_comercial||""}" style="${inputStyle}">
+                        </div>
+
+                        <div class="field">
+                            <label>Email</label>
+                            <input id="e-email-${id}" name="email" type="email"
+                                   value="${data.email||""}" style="${inputStyle}">
+                        </div>
+
+                        <div class="field">
+                            <label>Teléfono</label>
+                            <input id="e-tel-${id}" name="telefono" type="text"
+                                   value="${data.telefono||""}" style="${inputStyle}">
+                        </div>
+
+                        <div class="field">
+                            <label>IBAN</label>
+                            <input id="e-iban-${id}" name="iban" type="text"
+                                   value="${data.iban||""}" placeholder="ES00 0000 0000 0000 0000 0000"
+                                   style="${inputStyle}" oninput="validarCampoIban(${id})">
+                            <p id="err-iban-${id}" style="${errStyle}">IBAN español no válido (ESxx + 22 dígitos).</p>
+                        </div>
+
+                        ${esGestorEco ? `
+                        <div class="field">
+                            <label>Cuenta cliente (grupo 4)</label>
+                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                <input id="e-cuenta-${id}" name="cuenta_cliente" type="text"
+                                       value="${data.cuenta_cliente||""}"
+                                       placeholder="Sin asignar" maxlength="10"
+                                       style="width:130px;font-family:monospace;padding:8px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.93rem;">
+                                <select onchange="editAplicarCuenta(this,'e-cuenta-${id}')"
+                                        style="padding:8px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.93rem">
+                                    <option value="">— Elegir —</option>
+                                    <option value="saco">Cuenta saco ({{ cuenta_saco }})</option>
+                                    <option value="nueva">Nueva cuenta correlativa</option>
+                                </select>
+                            </div>
+                        </div>` : ""}
+
+                        <div style="grid-column:span 2;border-top:1px solid #e8ecf0;padding-top:14px;margin-top:4px;">
+                            <strong style="font-size:0.84rem;color:#888;text-transform:uppercase;letter-spacing:0.04em;">Dirección postal</strong>
+                        </div>
+
+                        <div class="field" style="grid-column:span 2">
+                            <label>Dirección</label>
+                            <input name="direccion" type="text"
+                                   value="${data.direccion||""}" placeholder="Calle, número, piso..."
+                                   style="${inputStyle}">
+                        </div>
+
+                        <div class="field">
+                            <label>Localidad</label>
+                            <input name="localidad" type="text"
+                                   value="${data.localidad||""}" style="${inputStyle}">
+                        </div>
+
+                        <div class="field">
+                            <label>Código postal</label>
+                            <input name="codigo_postal" type="text"
+                                   value="${data.codigo_postal||""}" maxlength="5" pattern="[0-9]{5}"
+                                   placeholder="24001" style="${inputStyle}">
+                        </div>
+
+                        <div class="field" style="grid-column:span 2">
+                            <label>Provincia</label>
+                            <input name="provincia" type="text"
+                                   value="${data.provincia||""}" style="${inputStyle}">
+                        </div>
+
+                        <div style="grid-column:span 2;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                            <button type="submit"
+                                style="background:linear-gradient(135deg,#c21b84,#d94da0);color:#fff;border:none;
+                                       border-radius:10px;padding:8px 20px;cursor:pointer;font-weight:700;font-size:0.9rem;">
+                                Guardar cambios
+                            </button>
+                            <button type="button" onclick="cancelarEdicion(${id})"
+                                style="background:transparent;border:1px solid #d8dce2;border-radius:10px;
+                                       padding:8px 16px;cursor:pointer;font-size:0.9rem;">
+                                Cancelar
+                            </button>
+                            <p id="err-global-${id}" style="color:#c21b84;font-size:0.85rem;margin:0;display:none;">
+                                Error al guardar. Inténtelo de nuevo.
+                            </p>
+                        </div>
+                    </form>
+                </div>`;
+
+            } catch (e) {
+                detalleContenido.innerHTML = "<p>No se ha podido cargar el detalle.</p>";
+            }
+        });
+    });
+
+    // ── Navegación a PEG con control de permiso ───────────────────────────────
+    function abrirPeg(idPeg, idServicioPeg, e) {
+        e.preventDefault();
+        if (esGestorServicio && miServicio !== null && idServicioPeg !== miServicio) {
+            mostrarAvisoPeg("No tienes permiso para acceder a este PEG.");
+            return;
+        }
+        window.location.href = "/pegs/" + idPeg;
+    }
+
+    function mostrarAvisoPeg(msg) {
+        const existente = document.getElementById("aviso-peg-toast");
+        if (existente) existente.remove();
+        const toast = document.createElement("div");
+        toast.id = "aviso-peg-toast";
+        toast.textContent = msg;
+        toast.style.cssText = [
+            "position:fixed", "bottom:32px", "left:50%", "transform:translateX(-50%)",
+            "background:#1e293b", "color:#fff", "padding:12px 28px",
+            "border-radius:14px", "font-size:0.9rem", "font-weight:500",
+            "z-index:9999", "box-shadow:0 6px 24px rgba(0,0,0,0.22)",
+            "pointer-events:none", "opacity:1", "transition:opacity 0.4s"
+        ].join(";");
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            setTimeout(() => toast.remove(), 420);
+        }, 2600);
+    }
+
+    // ── Edición inline cuenta cliente ────────────────────────────────────────
+    function abrirEditCuenta(vistaEl) {
+        const td = vistaEl.closest("td");
+        vistaEl.style.display = "none";
+        td.querySelector(".cc-editor").style.display = "block";
+        td.querySelector(".cc-input").focus();
+        td.querySelector(".cc-input").select();
+    }
+
+    function cerrarEditCuenta(el) {
+        const td = el.closest("td");
+        td.querySelector(".cc-editor").style.display = "none";
+        td.querySelector(".cc-vista").style.display  = "flex";
+    }
+
+    function inlineAplicarCuenta(sel) {
+        const input = sel.closest(".cc-editor").querySelector(".cc-input");
+        if (sel.value === "saco") {
+            input.value = "{{ cuenta_saco }}";
+        } else if (sel.value === "nueva") {
+            fetch("/proveedores/siguiente-cuenta-cliente")
+                .then(r => r.json())
+                .then(data => { input.value = data.cuenta; })
+                .catch(() => alert("Error al calcular la siguiente cuenta."));
+        }
+        sel.value = "";
+    }
+
+    async function guardarCuentaInline(el) {
+        const td     = el.closest("td");
+        const id     = td.dataset.id;
+        const valor  = td.querySelector(".cc-input").value.trim();
+        const saco   = "{{ cuenta_saco }}";
+
+        const res = await fetch(`/proveedores/${id}/editar-json`, {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ cuenta_cliente: valor || null }),
+        });
+        if (!res.ok) { alert("Error al guardar."); return; }
+
+        // Actualizar texto visible
+        const span = td.querySelector(".cc-texto");
+        if (!valor) {
+            span.innerHTML = `<span style="color:#9ca3af;font-style:italic;font-family:inherit">No tiene</span>`;
+        } else if (valor === saco) {
+            span.innerHTML = `<span style="color:#6b7280">Cuenta saco</span>`;
+        } else {
+            span.textContent = valor;
+        }
+        td.dataset.valor = valor;
+        cerrarEditCuenta(el);
+    }
+
+    // ── Cuenta cliente en edición ─────────────────────────────────────────────
+    function editAplicarCuenta(sel, inputId) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        if (sel.value === "saco") {
+            input.value = "{{ cuenta_saco }}";
+        } else if (sel.value === "nueva") {
+            fetch("/proveedores/siguiente-cuenta-cliente")
+                .then(r => r.json())
+                .then(data => { input.value = data.cuenta; })
+                .catch(() => alert("Error al calcular la siguiente cuenta."));
+        }
+        sel.value = "";
+    }
+
+    // ── Modo edición ──────────────────────────────────────────────────────────
+    function activarEdicion(id) {
+        document.getElementById(`vista-${id}`).style.display = "none";
+        document.getElementById(`edicion-${id}`).style.display = "block";
+    }
+
+    function cancelarEdicion(id) {
+        document.getElementById(`edicion-${id}`).style.display = "none";
+        document.getElementById(`vista-${id}`).style.display = "block";
+    }
+
+    // ── Validación en tiempo real ─────────────────────────────────────────────
+    function validarCampoCif(id) {
+        const inp = document.getElementById(`e-cif-${id}`);
+        const err = document.getElementById(`err-cif-${id}`);
+        const v = inp.value.trim();
+        setError(inp, err, v && !validarCifNif(v) ? "CIF/NIF no válido." : "");
+    }
+
+    function validarCampoIban(id) {
+        const inp = document.getElementById(`e-iban-${id}`);
+        const err = document.getElementById(`err-iban-${id}`);
+        const v = inp.value.trim();
+        setError(inp, err, v && !validarIBAN(v) ? "IBAN español no válido (ESxx + 22 dígitos)." : "");
+    }
+
+    // ── Guardar proveedor ─────────────────────────────────────────────────────
+    async function guardarProveedor(event, id) {
+        event.preventDefault();
+
+        // Validar antes de enviar
+        const cifInp  = document.getElementById(`e-cif-${id}`);
+        const ibanInp = document.getElementById(`e-iban-${id}`);
+        const errCif  = document.getElementById(`err-cif-${id}`);
+        const errIban = document.getElementById(`err-iban-${id}`);
+        const errGlob = document.getElementById(`err-global-${id}`);
+
+        let ok = true;
+        if (!validarCifNif(cifInp.value)) {
+            setError(cifInp, errCif, "CIF/NIF no válido."); ok = false;
+        }
+        const ibanVal = ibanInp.value.trim();
+        if (ibanVal && !validarIBAN(ibanVal)) {
+            setError(ibanInp, errIban, "IBAN español no válido (ESxx + 22 dígitos)."); ok = false;
+        }
+        if (!ok) return;
+
+        const formData = new FormData(document.getElementById(`form-editar-${id}`));
+        errGlob.style.display = "none";
+
+        try {
+            const res  = await fetch(`/proveedores/${id}/editar`, { method: "POST", body: formData });
+            const data = await res.json();
+            if (!data.ok) { errGlob.style.display = "block"; return; }
+
+            // Actualizar vista del modal
+            document.getElementById(`v-tipo-${id}`).textContent  = data.tipo_persona      || "";
+            document.getElementById(`v-cif-${id}`).textContent   = data.cif_nif           || "";
+            document.getElementById(`v-rs-${id}`).textContent    = data.razon_social      || "";
+            document.getElementById(`v-nc-${id}`).textContent    = data.nombre_comercial  || "—";
+            document.getElementById(`v-email-${id}`).textContent = data.email             || "—";
+            document.getElementById(`v-tel-${id}`).textContent   = data.telefono          || "—";
+            document.getElementById(`v-iban-${id}`).textContent  = data.iban              || "—";
+            document.getElementById(`v-dir-${id}`).textContent   = data.direccion         || "—";
+            document.getElementById(`v-loc-${id}`).textContent   = data.localidad         || "—";
+            document.getElementById(`v-cp-${id}`).textContent    = data.codigo_postal     || "—";
+            document.getElementById(`v-prov-${id}`).textContent  = data.provincia         || "—";
+            const vCuenta = document.getElementById(`v-cuenta-${id}`);
+            if (vCuenta) vCuenta.textContent = data.cuenta_cliente || "—";
+
+            // Actualizar fila de la tabla
+            const filaActualizada = document.querySelector(`.fila-proveedor[data-id="${id}"]`);
+            if (filaActualizada) {
+                const tdCif    = filaActualizada.querySelector("td:nth-child(1)");
+                const tdRs     = filaActualizada.querySelector("td:nth-child(2)");
+                const tdCuenta = filaActualizada.querySelector("td.td-cuenta-cliente");
+                if (tdCif) tdCif.textContent = data.cif_nif || "";
+                if (tdRs)  tdRs.textContent  = data.razon_social || "";
+                if (tdCuenta) {
+                    const cuenta = data.cuenta_cliente || "";
+                    const saco   = "{{ cuenta_saco }}";
+                    tdCuenta.innerHTML = !cuenta
+                        ? `<span style="color:#9ca3af;font-style:italic">No tiene</span>`
+                        : cuenta === saco
+                            ? `<span style="color:#6b7280">Cuenta saco</span>`
+                            : cuenta;
+                }
+                filaActualizada.dataset.search = `${(data.cif_nif||"")} ${(data.razon_social||"")}`.toLowerCase();
+            }
+
+            cancelarEdicion(id);
+        } catch (e) {
+            errGlob.style.display = "block";
+        }
+    }
+
+    // ── Cerrar modal ──────────────────────────────────────────────────────────
+    cerrarModal.addEventListener("click", () => modal.classList.remove("active"));
+    modal.addEventListener("click", e => { if (e.target === modal) modal.classList.remove("active"); });
+
+    // ── Filtro de tabla ───────────────────────────────────────────────────────
+    if (filtroProveedor) {
+        filtroProveedor.addEventListener("input", () => {
+            const termino = filtroProveedor.value.trim().toLowerCase();
+            let visibles = 0;
+            filasProveedor.forEach(fila => {
+                const coincide = (fila.dataset.search || "").includes(termino);
+                fila.style.display = coincide ? "" : "none";
+                if (coincide) visibles++;
+            });
+            if (sinResultados) sinResultados.style.display = visibles === 0 ? "block" : "none";
+        });
+    }
+</script>
+{% endblock %}

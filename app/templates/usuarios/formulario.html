@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{% if accion == 'crear' %}Nuevo usuario{% else %}Editar usuario{% endif %}{% endblock %}
+{% block page_title %}{% if accion == 'crear' %}Nuevo usuario{% else %}Editar usuario: {{ editado.username }}{% endif %}{% endblock %}
+{% block page_subtitle %}{% if accion == 'crear' %}Crear cuenta de acceso{% else %}Modificar datos del usuario{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:680px;">
+
+  {% if error %}
+  <div style="margin-bottom:16px; padding:12px 16px; border-radius:10px; background:rgba(226,75,74,0.10);border:1px solid rgba(226,75,74,0.28);color:#a32d2d; font-weight:600;">
+    ⚠ {{ error }}
+  </div>
+  {% endif %}
+
+  <form method="post" action="{% if accion == 'crear' %}/usuarios/nuevo{% else %}/usuarios/{{ editado.id_usuario }}/editar{% endif %}">
+
+    <h3 style="margin:0 0 16px; font-size:1rem; color:#185fa5; border-bottom:1px solid rgba(95,159,211,0.2); padding-bottom:8px;">Datos personales</h3>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <div class="form-group">
+        <label for="nombre">Nombre <span style="color:#a32d2d;">*</span></label>
+        <input type="text" id="nombre" name="nombre" required
+               value="{{ editado.nombre if editado else '' }}">
+      </div>
+      <div class="form-group">
+        <label for="apellidos">Apellidos <span style="color:#a32d2d;">*</span></label>
+        <input type="text" id="apellidos" name="apellidos" required
+               value="{{ editado.apellidos if editado else '' }}">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email <span style="color:#a32d2d;">*</span></label>
+      <input type="email" id="email" name="email" required
+             value="{{ editado.email if editado else '' }}">
+    </div>
+
+    <h3 style="margin:24px 0 16px; font-size:1rem; color:#185fa5; border-bottom:1px solid rgba(95,159,211,0.2); padding-bottom:8px;">Acceso</h3>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <div class="form-group">
+        <label for="username">Nombre de usuario <span style="color:#a32d2d;">*</span></label>
+        <input type="text" id="username" name="username" required
+               style="font-family:monospace;"
+               {% if accion == 'editar' %}disabled value="{{ editado.username }}"{% else %}value=""{% endif %}>
+        {% if accion == 'editar' %}
+        <small style="color:#888;">El nombre de usuario no se puede cambiar.</small>
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <label for="rol">Rol <span style="color:#a32d2d;">*</span></label>
+        <select id="rol" name="rol" onchange="toggleServicios(this.value)">
+          {% for r in roles %}
+          <option value="{{ r }}" {% if editado and editado.rol == r %}selected{% endif %}>
+            {% if r == 'GESTOR_SERVICIO' %}Gestor de Servicio
+            {% elif r == 'GESTOR_ECONOMICO' %}Gestor Económico
+            {% else %}Administrador{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="password{% if accion == 'editar' %}_nueva{% endif %}">
+        {% if accion == 'crear' %}Contraseña <span style="color:#a32d2d;">*</span>{% else %}Nueva contraseña <small style="color:#888;">(dejar vacío para no cambiar)</small>{% endif %}
+      </label>
+      <input type="password" id="password{% if accion == 'editar' %}_nueva{% endif %}"
+             name="{% if accion == 'crear' %}password{% else %}password_nueva{% endif %}"
+             {% if accion == 'crear' %}required{% endif %}
+             placeholder="{% if accion == 'crear' %}Mínimo 6 caracteres{% else %}Dejar vacío para mantener la actual{% endif %}">
+    </div>
+
+    <div id="bloque-servicios" style="{% if editado and editado.rol != 'GESTOR_SERVICIO' %}display:none;{% endif %}">
+      <h3 style="margin:24px 0 16px; font-size:1rem; color:#185fa5; border-bottom:1px solid rgba(95,159,211,0.2); padding-bottom:8px;">Servicios asignados</h3>
+      <div style="display:flex; flex-wrap:wrap; gap:10px;">
+        {% for s in servicios %}
+        <label style="display:flex; align-items:center; gap:8px; padding:8px 14px; border:1px solid rgba(95,159,211,0.25); border-radius:8px; cursor:pointer; background:rgba(95,159,211,0.04);">
+          <input type="checkbox" name="servicios_ids" value="{{ s.id_servicio }}"
+                 {% if editado and s.id_servicio in editado.servicios_ids %}checked{% endif %}>
+          <span style="font-weight:600; font-family:monospace;">{{ s.codigo }}</span>
+          <span style="color:#555;">{{ s.nombre }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <small style="color:#888; display:block; margin-top:8px;">Solo necesario para Gestores de Servicio.</small>
+    </div>
+
+    <div style="display:flex; gap:12px; margin-top:24px;">
+      <button class="btn btn-primary" type="submit">
+        {% if accion == 'crear' %}Crear usuario{% else %}Guardar cambios{% endif %}
+      </button>
+      <a class="btn btn-secondary" href="/usuarios/">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<script>
+function toggleServicios(rol) {
+  const bloque = document.getElementById('bloque-servicios');
+  bloque.style.display = rol === 'GESTOR_SERVICIO' ? '' : 'none';
+}
+// Ejecutar al cargar por si el rol inicial no es GESTOR_SERVICIO
+toggleServicios(document.getElementById('rol').value);
+</script>
+{% endblock %}

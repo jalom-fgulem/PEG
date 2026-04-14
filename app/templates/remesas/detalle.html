@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block title %}{{ remesa.codigo_remesa }}{% endblock %}
+{% block page_title %}
+  {{ remesa.codigo_remesa }}
+  {% if remesa.estado == 'ABIERTA' %}
+    <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:999px;font-size:0.78rem;font-weight:700;background:rgba(95,159,211,0.14);color:#185fa5;vertical-align:middle;margin-left:10px;">Abierta</span>
+  {% elif remesa.estado == 'GENERADA' %}
+    <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:999px;font-size:0.78rem;font-weight:700;background:rgba(239,159,39,0.14);color:#854f0b;vertical-align:middle;margin-left:10px;">Generada</span>
+  {% else %}
+    <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:999px;font-size:0.78rem;font-weight:700;background:rgba(99,153,34,0.14);color:#3b6d11;vertical-align:middle;margin-left:10px;">🔒 Cerrada</span>
+  {% endif %}
+{% endblock %}
+{% block page_subtitle %}{{ remesa.descripcion }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .flash-success { padding:12px 16px; border-radius:10px; background:rgba(99,153,34,0.12); border:1px solid rgba(99,153,34,0.28); color:#2f6b10; font-weight:600; margin-bottom:16px; }
+  .flash-error   { padding:12px 16px; border-radius:10px; background:rgba(226,75,74,0.10); border:1px solid rgba(226,75,74,0.28); color:#a32d2d; font-weight:600; margin-bottom:16px; }
+  .banner-cerrada { padding:14px 18px; border-radius:10px; background:rgba(239,159,39,0.12); border:1px solid rgba(239,159,39,0.30); color:#854f0b; font-weight:600; margin-bottom:18px; font-size:0.96rem; }
+  .info-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .info-item label { display:block; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em; color:#8a8691; font-weight:700; margin-bottom:4px; }
+  .info-item span  { font-size:0.97rem; color:var(--ink); font-weight:600; }
+  .btn-danger { background:rgba(226,75,74,0.12); color:#a32d2d; border:1px solid rgba(226,75,74,0.28); }
+  .btn-danger:hover { background:rgba(226,75,74,0.22); }
+  .btn-quitar { background:rgba(226,75,74,0.10); color:#a32d2d; border:1px solid rgba(226,75,74,0.25); padding:5px 10px; border-radius:8px; font-size:0.82rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .btn-quitar:hover { background:rgba(226,75,74,0.20); }
+  .modal-peg-item { display:flex; align-items:flex-start; gap:12px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; cursor:pointer; transition:border-color 0.15s,background 0.15s; margin-bottom:0; font-weight:normal; }
+  .modal-peg-item:has(input:checked) { border-color:var(--fgulem-blue); background:rgba(95,159,211,0.06); }
+  .step-bar { display:flex; align-items:center; gap:0; margin-bottom:18px; }
+  .step { display:flex; align-items:center; gap:6px; font-size:0.82rem; font-weight:700; color:#bbb; }
+  .step.done { color:#3b6d11; }
+  .step.active { color:var(--fgulem-magenta); }
+  .step-sep { width:28px; height:2px; background:#e0e0e0; margin:0 4px; }
+  .step-sep.done { background:#3b6d11; }
+  @media (max-width:780px) { .info-grid { grid-template-columns:1fr 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if msg %}
+<div class="flash-{{ msg_type }}">{% if msg_type == 'success' %}✓{% else %}⚠{% endif %} {{ msg }}</div>
+{% endif %}
+
+{% if remesa.estado == 'CERRADA' %}
+<div class="banner-cerrada">🔒 Esta remesa está cerrada. Los gastos no pueden modificarse.</div>
+{% endif %}
+
+<!-- Barra de progreso del flujo -->
+<div class="step-bar">
+  <div class="step {% if remesa.estado == 'ABIERTA' %}active{% elif remesa.estado in ['GENERADA','CERRADA'] %}done{% endif %}">
+    <span>①</span> Abierta
+  </div>
+  <div class="step-sep {% if remesa.estado in ['GENERADA','CERRADA'] %}done{% endif %}"></div>
+  <div class="step {% if remesa.estado == 'GENERADA' %}active{% elif remesa.estado == 'CERRADA' %}done{% endif %}">
+    <span>②</span> Generada
+  </div>
+  <div class="step-sep {% if remesa.estado == 'CERRADA' %}done{% endif %}"></div>
+  <div class="step {% if remesa.estado == 'CERRADA' %}done{% endif %}">
+    <span>③</span> Cerrada
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 300px; gap:18px; align-items:start;">
+
+  <!-- COLUMNA PRINCIPAL -->
+  <div>
+    <div class="card">
+      <div class="info-grid">
+        <div class="info-item"><label>Código</label><span>{{ remesa.codigo_remesa }}</span></div>
+        <div class="info-item"><label>Estado</label><span>{{ remesa.estado }}</span></div>
+        <div class="info-item"><label>Creado por</label><span>{{ remesa.creado_por }}</span></div>
+        <div class="info-item"><label>Fecha creación</label><span>{{ remesa.fecha_creacion }}</span></div>
+        <div class="info-item"><label>Fecha cierre</label><span>{{ remesa.fecha_cierre or "—" }}</span></div>
+        <div class="info-item"><label>Banco</label>
+          <span>{% if banco %}{{ banco.nombre }}{% else %}—{% endif %}</span>
+        </div>
+        {% if banco %}
+        <div class="info-item" style="grid-column:span 2;"><label>IBAN ordenante</label><span style="font-family:monospace; font-size:0.92rem;">{{ banco.iban_ordenante }}</span></div>
+        <div class="info-item"><label>BIC / SWIFT</label><span style="font-family:monospace;">{{ banco.bic }}</span></div>
+        {% endif %}
+        <div class="info-item"><label>PDF</label>
+          <span>{% if remesa.pdf_path %}<a href="/remesas/{{ remesa.id_remesa }}/descargar-pdf" target="_blank" style="color:var(--fgulem-magenta);">Descargar</a>{% else %}—{% endif %}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h3 style="margin:0;">Gastos incluidos ({{ pagos|length }})</h3>
+        {% if remesa.estado == 'ABIERTA' and usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+        <button class="btn btn-primary" style="padding:8px 14px; font-size:0.88rem;" onclick="abrirModalPegs()">＋ Añadir PEGs</button>
+        {% endif %}
+      </div>
+      {% if pagos %}
+      <table>
+        <thead>
+          <tr>
+            <th>Código PEG</th>
+            <th>Proveedor</th>
+            <th>NIF</th>
+            <th>Concepto</th>
+            <th style="text-align:right;">Base</th>
+            <th style="text-align:right;">IVA</th>
+            <th style="text-align:right;">Total</th>
+            <th>Estado</th>
+            {% if remesa.estado == 'ABIERTA' and usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}<th></th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in pagos %}
+          <tr>
+            <td><a href="/pegs/{{ p.id_peg }}" style="color:var(--fgulem-magenta); font-weight:700;">{{ p.codigo_peg }}</a></td>
+            <td>{{ p.nombre_proveedor }}</td>
+            <td style="font-size:0.88rem; color:var(--ink-soft);">{{ p.cif_nif }}</td>
+            <td style="font-size:0.9rem;">{{ p.descripcion_gasto }}</td>
+            <td style="text-align:right;">{{ "%.2f"|format(p.base_imponible) }} €</td>
+            <td style="text-align:right;">{{ "%.2f"|format(p.importe_iva) }} €</td>
+            <td style="text-align:right; font-weight:700;">{{ "%.2f"|format(p.importe_total) }} €</td>
+            <td><span class="estado-badge estado-{{ p.codigo_estado|lower }}" style="font-size:0.78rem; padding:4px 10px;">{{ p.nombre_estado }}</span></td>
+            {% if remesa.estado == 'ABIERTA' and usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+            <td><button class="btn-quitar" onclick="quitarPeg({{ p.id_peg }}, this)">Quitar</button></td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr style="border-top:2px solid var(--line);">
+            <td colspan="4" style="font-weight:700; text-align:right; padding-right:12px;">TOTALES</td>
+            <td style="text-align:right; font-weight:700;">{{ "%.2f"|format(pagos|sum(attribute='base_imponible')) }} €</td>
+            <td style="text-align:right; font-weight:700;">{{ "%.2f"|format(pagos|sum(attribute='importe_iva')) }} €</td>
+            <td style="text-align:right; font-weight:800; color:var(--fgulem-magenta); font-size:1.05rem;">{{ "%.2f"|format(pagos|sum(attribute='importe_total')) }} €</td>
+            <td></td>
+            {% if remesa.estado == 'ABIERTA' and usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}<td></td>{% endif %}
+          </tr>
+        </tfoot>
+      </table>
+      {% else %}
+      <div class="empty-state" style="padding:16px 0;">No hay gastos incluidos en esta remesa.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- COLUMNA LATERAL -->
+  <div>
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+
+    {# BLOQUE ACCIONES (solo cambian estado) #}
+    {% if remesa.estado in ['ABIERTA', 'GENERADA'] %}
+    <div class="card">
+      <h3 style="margin-top:0; margin-bottom:14px;">Acciones</h3>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        {% if remesa.estado == 'ABIERTA' %}
+          <form method="post" action="/remesas/{{ remesa.id_remesa }}/generar"
+                onsubmit="return confirm('¿Generar la remesa? Pasará a estado Generada.')">
+            <button class="btn btn-primary" type="submit" style="width:100%;"
+                    {% if not pagos %}disabled title="Añade al menos un PEG"{% endif %}>
+              ✔ Generar remesa
+            </button>
+          </form>
+          <form method="post" action="/remesas/{{ remesa.id_remesa }}/eliminar"
+                onsubmit="return confirm('¿Eliminar esta remesa? Los PEGs volverán a estado Validado.')">
+            <button class="btn btn-danger" type="submit" style="width:100%;">
+              🗑 Eliminar remesa
+            </button>
+          </form>
+        {% elif remesa.estado == 'GENERADA' %}
+          <form method="post" action="/remesas/{{ remesa.id_remesa }}/cerrar"
+                onsubmit="return confirm('¿Confirmas el pago en banco? Se bloqueará la remesa y todos los PEGs quedarán como PAGADO.')">
+            <button class="btn btn-danger" type="submit" style="width:100%;">🔒 Cerrar remesa</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# BLOQUE DOCUMENTOS (solo descargas, no cambian estado) #}
+    {% if remesa.estado in ['GENERADA', 'CERRADA'] %}
+    <div class="card">
+      <h3 style="margin-top:0; margin-bottom:14px;">Documentos</h3>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <a class="btn btn-secondary" href="/remesas/{{ remesa.id_remesa }}/descargar-pdf"
+           target="_blank" style="width:100%; justify-content:center;">⬇ PDF de la remesa</a>
+        <a href="/remesas/{{ remesa.id_remesa }}/cuaderno34"
+           class="btn btn-secondary" style="width:100%; justify-content:center;">⬇ Archivo banco (C34)</a>
+        {% if remesa.estado == 'CERRADA' %}
+        <a href="/remesas/{{ remesa.id_remesa }}/suenlace?empresa=real"
+           class="btn btn-secondary" style="width:100%; justify-content:center;">⬇ Exportar A3Con (SUENLACE)</a>
+        <p style="font-size:0.88rem; color:var(--ink-soft); margin:6px 0 0;">Cerrada el {{ remesa.fecha_cierre or "—" }}</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% endif %}
+
+    <div class="actions" style="flex-direction:column;">
+      <a class="btn btn-secondary" href="/remesas/" style="width:100%; justify-content:center;">← Volver a remesas</a>
+    </div>
+  </div>
+</div>
+
+{% if remesa.estado == 'ABIERTA' and usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+<div class="modal-backdrop" id="modalPegs">
+  <div class="modal-panel" style="max-width:680px;">
+    <div class="modal-header">
+      <h3 style="margin:0; font-size:1.1rem;">Añadir PEGs a esta remesa</h3>
+      <button class="modal-close" onclick="cerrarModalPegs()">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="modalPegsContenido"><div class="muted" style="text-align:center; padding:20px 0;">Cargando PEGs disponibles...</div></div>
+      <div id="modalPegsError" style="display:none; margin-top:12px; padding:10px 14px; border-radius:8px; background:rgba(226,75,74,0.10); border:1px solid rgba(226,75,74,0.28); color:#a32d2d; font-weight:600;"></div>
+      <div id="modalPegsProgreso" style="display:none; margin-top:12px; padding:10px 14px; border-radius:8px; background:rgba(95,159,211,0.10); border:1px solid rgba(95,159,211,0.28); color:#185fa5; font-weight:600;"></div>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:18px; border-top:1px solid var(--line); padding-top:14px;">
+        <button class="btn btn-secondary" id="btnCancelarPegs" onclick="cerrarModalPegs()">Cancelar</button>
+        <button class="btn btn-primary" id="btnAnadirPegs" onclick="anadirSeleccionados()" style="display:none;">Añadir seleccionados</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if remesa.estado == 'ABIERTA' and usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+<script>
+const REMESA_ID = {{ remesa.id_remesa }};
+function abrirModalPegs() { document.getElementById('modalPegs').classList.add('active'); document.body.style.overflow='hidden'; cargarPegsDisponibles(); }
+function cerrarModalPegs() { document.getElementById('modalPegs').classList.remove('active'); document.body.style.overflow=''; document.getElementById('modalPegsError').style.display='none'; document.getElementById('modalPegsProgreso').style.display='none'; }
+async function cargarPegsDisponibles() {
+  const contenido=document.getElementById('modalPegsContenido'); const btnAnadir=document.getElementById('btnAnadirPegs');
+  contenido.innerHTML='<div class="muted" style="text-align:center;padding:20px 0;">Cargando PEGs disponibles...</div>'; btnAnadir.style.display='none';
+  try {
+    const resp=await fetch('/remesas/pegs-disponibles'); if(!resp.ok) throw new Error('Error '+resp.status);
+    const pegs=await resp.json();
+    if(!pegs||pegs.length===0){contenido.innerHTML='<div class="muted" style="padding:16px 0;">No hay PEGs validados disponibles.</div>';return;}
+    let html='<div style="display:flex;flex-direction:column;gap:8px;">';
+    pegs.forEach(p=>{html+=`<label class="modal-peg-item" data-id="${p.id_peg}"><input type="checkbox" name="peg_sel" value="${p.id_peg}" style="width:auto;margin-top:3px;flex-shrink:0;" onchange="actualizarBtnAnadir()"><div style="flex:1;min-width:0;"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span style="font-weight:700;color:var(--ink);font-size:0.93rem;">${p.codigo_peg}</span><span style="font-weight:800;color:var(--fgulem-magenta);white-space:nowrap;">${Number(p.importe_total).toFixed(2)} €</span></div><div style="font-size:0.85rem;color:var(--ink-soft);margin-top:2px;">${p.proveedor_nombre} · ${p.servicio_nombre}</div><div style="font-size:0.83rem;color:var(--ink-soft);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.descripcion_gasto}</div></div></label>`;});
+    html+='</div>'; contenido.innerHTML=html;
+  } catch(e){contenido.innerHTML='<div class="muted" style="padding:16px 0;">Error al cargar los PEGs.</div>';}
+}
+function actualizarBtnAnadir(){const sel=document.querySelectorAll('input[name="peg_sel"]:checked');const btn=document.getElementById('btnAnadirPegs');btn.style.display=sel.length>0?'inline-flex':'none';btn.textContent=sel.length===1?'Añadir seleccionado':`Añadir ${sel.length} seleccionados`;}
+async function anadirSeleccionados(){
+  const checks=[...document.querySelectorAll('input[name="peg_sel"]:checked')];if(!checks.length)return;
+  const errorDiv=document.getElementById('modalPegsError');const progresoDiv=document.getElementById('modalPegsProgreso');const btnAnadir=document.getElementById('btnAnadirPegs');const btnCancelar=document.getElementById('btnCancelarPegs');
+  errorDiv.style.display='none';progresoDiv.style.display='none';btnAnadir.disabled=true;btnCancelar.disabled=true;
+  const errores=[];let ok=0;
+  for(let i=0;i<checks.length;i++){const id_peg=parseInt(checks[i].value,10);progresoDiv.style.display='block';progresoDiv.textContent=`Añadiendo ${i+1} de ${checks.length}...`;
+    try{const resp=await fetch(`/remesas/${REMESA_ID}/agregar-peg/${id_peg}`,{method:'POST'});const data=await resp.json();if(data.ok){ok++;}else{const label=checks[i].closest('label');const codigo=label?label.querySelector('span')?.textContent.trim():`PEG #${id_peg}`;errores.push(`${codigo}: ${data.error||'Error desconocido'}`);}
+    }catch(e){errores.push(`PEG #${id_peg}: Error de conexión`);}}
+  progresoDiv.style.display='none';btnAnadir.disabled=false;btnCancelar.disabled=false;
+  if(errores.length>0){errorDiv.innerHTML='⚠ Algunos PEGs no se pudieron añadir:<br>'+errores.map(e=>`• ${e}`).join('<br>');errorDiv.style.display='block';}
+  if(ok>0){cerrarModalPegs();window.location.reload();}
+}
+document.getElementById('modalPegs').addEventListener('click',function(e){if(e.target===this)cerrarModalPegs();});
+async function quitarPeg(id_peg,btn){if(!confirm('¿Quitar este PEG de la remesa?'))return;btn.disabled=true;btn.textContent='...';
+  try{const resp=await fetch(`/remesas/${REMESA_ID}/quitar-peg/${id_peg}`,{method:'POST'});const data=await resp.json();if(data.ok){btn.closest('tr').remove();}else{alert('Error: '+(data.error||'No se pudo quitar'));btn.disabled=false;btn.textContent='Quitar';}}
+  catch(e){alert('Error de conexión');btn.disabled=false;btn.textContent='Quitar';}}
+</script>
+{% endif %}
+{% endblock %}

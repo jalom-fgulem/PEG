@@ -1,0 +1,1880 @@
+{% extends "base.html" %}
+{% block title %}Inicio — SGPEG{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── Modales de flujo ─────────────────────────────────────────── */
+  .modal-flujo .modal-panel {
+    width: min(860px, 96%);
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-flujo .modal-body {
+    overflow-y: auto;
+    flex: 1;
+    padding: 24px 28px;
+  }
+
+  /* Caja introductoria */
+  .modal-intro {
+    background: rgba(95, 159, 211, 0.08);
+    border-left: 3px solid var(--fgulem-blue);
+    border-radius: 0 12px 12px 0;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    color: var(--ink-soft);
+    font-size: 0.94rem;
+    line-height: 1.55;
+  }
+
+  /* Etiqueta de sección */
+  .flow-section-label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    color: #8a8691;
+    margin: 20px 0 10px;
+  }
+
+  /* Título de subsección */
+  .subsection-h {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 22px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* Pastillas de estado */
+  .flow-states {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+  .state-pill {
+    padding: 4px 11px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .sp-pending  { background: #fff3cd; color: #856404; }
+  .sp-validated{ background: #d1ecf1; color: #0c5460; }
+  .sp-remesa   { background: #cce5ff; color: #004085; }
+  .sp-paid     { background: #d4edda; color: #155724; }
+  .sp-incident { background: #f8d7da; color: #721c24; }
+  .flow-arrow  { color: #bbb; font-size: 0.9rem; }
+
+  /* Pasos numerados */
+  .flow-step {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 15px;
+    align-items: flex-start;
+  }
+  .step-num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--fgulem-magenta), var(--fgulem-magenta-soft));
+    color: white;
+    font-weight: 700;
+    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step-content strong {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--ink);
+    font-size: 0.95rem;
+  }
+  .step-content p {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.91rem;
+    line-height: 1.55;
+  }
+
+  /* Ramas de decisión */
+  .step-branch {
+    margin: -4px 0 16px 42px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .branch-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .branch-tag {
+    flex-shrink: 0;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    white-space: nowrap;
+    margin-top: 1px;
+  }
+  .branch-ok   { background: #d4edda; color: #155724; }
+  .branch-warn { background: #f8d7da; color: #721c24; }
+  .branch-info { background: rgba(95,159,211,0.15); color: #185fa5; }
+  .branch-row strong { display: block; margin-bottom: 3px; font-size: 0.92rem; color: var(--ink); }
+  .branch-row p { margin: 0; color: var(--ink-soft); font-size: 0.88rem; line-height: 1.5; }
+
+  /* Rejilla de permisos */
+  .perms-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .perm-item {
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 0.87rem;
+    font-weight: 600;
+  }
+  .perm-yes { background: #f0faf4; color: #155724; }
+  .perm-no  { background: #fdf3f4; color: #721c24; }
+
+  /* Pestañas ADMIN */
+  .tab-bar {
+    display: flex;
+    gap: 3px;
+    border-bottom: 2px solid var(--line);
+    margin-bottom: 20px;
+  }
+  .tab-btn {
+    padding: 8px 16px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+    border-radius: 8px 8px 0 0;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+  }
+  .tab-btn:hover  { background: rgba(194,27,132,0.04); color: var(--ink); }
+  .tab-btn.active { color: var(--fgulem-magenta); border-bottom-color: var(--fgulem-magenta); background: rgba(194,27,132,0.04); }
+  .tab-pane       { display: none; }
+  .tab-pane.active{ display: block; }
+
+  /* Caja de nota/tip dentro del modal */
+  .flow-note {
+    background: rgba(194,27,132,0.05);
+    border: 1px solid rgba(194,27,132,0.15);
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin: 12px 0;
+  }
+  .flow-note strong { color: var(--fgulem-magenta); }
+
+  /* Pie del modal */
+  .modal-footer {
+    padding: 12px 24px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* ── KPI DASHBOARD ──────────────────────────────────────────── */
+  .kpi-grid {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .kpi-card {
+    flex: 1 1 110px;
+    max-width: 160px;
+    background: rgba(255,255,255,0.94);
+    border: 1px solid rgba(229,231,235,0.95);
+    border-radius: 16px;
+    padding: 16px 18px 14px;
+    box-shadow: 0 4px 14px rgba(42,46,56,0.07);
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    border-top: 3px solid transparent;
+  }
+  .kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 22px rgba(42,46,56,0.13);
+  }
+  .kpi-valor {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .kpi-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+  }
+  .kpi-sub {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 2px;
+    opacity: 0.75;
+  }
+
+  /* Colores por estado */
+  .kpi-pendiente  { border-top-color: #d97706; }
+  .kpi-pendiente  .kpi-valor { color: #854f0b; }
+  .kpi-incidencia { border-top-color: #ef4444; }
+  .kpi-incidencia .kpi-valor { color: #a32d2d; }
+  .kpi-validado   { border-top-color: #5a9fd3; }
+  .kpi-validado   .kpi-valor { color: #185fa5; }
+  .kpi-remesa     { border-top-color: #7f55d3; }
+  .kpi-remesa     .kpi-valor { color: #5a2db5; }
+  .kpi-pagado     { border-top-color: #7faa55; }
+  .kpi-pagado     .kpi-valor { color: #3b6d11; }
+  .kpi-abierta    { border-top-color: #5a9fd3; }
+  .kpi-abierta    .kpi-valor { color: #185fa5; }
+  .kpi-alerta     { border-top-color: #ef4444; background: rgba(226,75,74,0.04); }
+  .kpi-alerta     .kpi-valor { color: #a32d2d; }
+
+  /* Desglose por servicio */
+  .kpi-desglose {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: rgba(239,159,39,0.07);
+    border: 1px solid rgba(239,159,39,0.20);
+    border-radius: 10px;
+    font-size: 0.84rem;
+  }
+  .kpi-desglose-label {
+    color: var(--ink-soft);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .kpi-desglose-pill {
+    background: rgba(239,159,39,0.14);
+    color: #854f0b;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .kpi-desglose-pill strong {
+    font-weight: 800;
+  }
+
+  /* Tarjeta KPI como botón (sin enlace) */
+  button.kpi-card {
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    width: 100%;
+  }
+
+  /* Filtro de servicios (mismo estilo que en PEGs) */
+  .kpi-filtro-btn {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .kpi-filtro-btn:hover { background: #e5e7eb; }
+  .kpi-filtro-btn.activo {
+    background: #166534;
+    color: white;
+    border-color: #166534;
+  }
+
+  /* ── Fila de botones del dashboard */
+  .accesos-fila {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 0;
+  }
+  .acceso-card {
+    flex: 1 1 220px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    background: rgba(255,255,255,0.94);
+    border: 1px solid rgba(229,231,235,0.95);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    box-shadow: var(--shadow);
+  }
+  .acceso-card p {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.91rem;
+    line-height: 1.5;
+    flex: 1;
+  }
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+{# ── Bienvenida ─────────────────────────────────────────────────────────── #}
+<p style="margin:0 0 22px; font-size:0.98rem; color:var(--ink-soft);">
+  Bienvenido/a de nuevo,
+  <strong style="color:var(--ink);">{{ usuario.nombre_completo }}</strong>.
+  Desde aquí puedes gestionar las Propuestas Específicas de Gasto.
+</p>
+
+{# ── Dashboard de KPIs ─────────────────────────────────────────────────── #}
+<div style="margin-bottom:24px;">
+
+  {# Cabecera: título + filtro de servicios para GESTOR_ECONOMICO / ADMIN #}
+  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+    <p class="guia-label" style="margin:0;">Dashboard</p>
+
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+      <a href="/"
+         class="kpi-filtro-btn {% if not filtro_servicio %}activo{% endif %}">
+        Todos los servicios
+      </a>
+      {% for s in servicios %}
+      <a href="/?servicio={{ s.id_servicio }}"
+         class="kpi-filtro-btn {% if filtro_servicio == s.id_servicio %}activo{% endif %}">
+        {{ s.nombre }}
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="kpi-grid">
+
+    {# ── KPI: PENDIENTE ── #}
+    <a class="kpi-card kpi-pendiente" href="/pegs/?estado=1{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
+       title="Ver PEGs pendientes">
+      <div class="kpi-valor">{{ kpis.pendiente }}</div>
+      <div class="kpi-label">Pendiente{% if kpis.pendiente != 1 %}s{% endif %}</div>
+      <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_pendiente) }} €</div>
+    </a>
+
+    {# ── KPI: INCIDENCIA ── #}
+    <a class="kpi-card kpi-incidencia" href="/pegs/?estado=5{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
+       title="Ver PEGs con incidencia">
+      <div class="kpi-valor">{{ kpis.incidencia }}</div>
+      <div class="kpi-label">Incidencia{% if kpis.incidencia != 1 %}s{% endif %}</div>
+      <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_incidencia) }} €</div>
+    </a>
+
+    {# ── KPI: VALIDADO ── #}
+    <a class="kpi-card kpi-validado" href="/pegs/?estado=2{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
+       title="Ver PEGs validadas">
+      <div class="kpi-valor">{{ kpis.validado }}</div>
+      <div class="kpi-label">Validada{% if kpis.validado != 1 %}s{% endif %}</div>
+      <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_validado) }} €</div>
+    </a>
+
+    {# ── KPI: EN REMESA ──
+         GESTOR_SERVICIO → botón que abre modal informativo (no tiene acceso a /remesas/)
+         Otros roles → enlace normal al listado filtrado
+    ── #}
+    {% if usuario.rol == 'GESTOR_SERVICIO' %}
+    <button class="kpi-card kpi-remesa" onclick="document.getElementById('modal-sin-acceso').classList.add('active'); document.body.style.overflow='hidden';"
+            title="Información sobre PEGs en remesa">
+      <div class="kpi-valor">{{ kpis.en_remesa }}</div>
+      <div class="kpi-label">En remesa</div>
+      <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_en_remesa) }} €</div>
+    </button>
+    {% else %}
+    <a class="kpi-card kpi-remesa" href="/pegs/?estado=3{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
+       title="Ver PEGs en remesa">
+      <div class="kpi-valor">{{ kpis.en_remesa }}</div>
+      <div class="kpi-label">En remesa</div>
+      <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_en_remesa) }} €</div>
+    </a>
+    {% endif %}
+
+    {# ── KPI: PAGADO ── #}
+    <a class="kpi-card kpi-pagado" href="/pegs/?estado=4{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
+       title="Ver PEGs pagadas">
+      <div class="kpi-valor">{{ kpis.pagado }}</div>
+      <div class="kpi-label">Pagada{% if kpis.pagado != 1 %}s{% endif %}</div>
+      <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_pagado) }} €</div>
+    </a>
+
+    {# ── KPIs exclusivos GESTOR_ECONOMICO + ADMIN ── #}
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+
+    {% if kpis.remesas_abiertas > 0 %}
+    <a class="kpi-card kpi-abierta" href="/remesas/?estado=ABIERTA"
+       title="Ver remesas abiertas">
+      <div class="kpi-valor">{{ kpis.remesas_abiertas }}</div>
+      <div class="kpi-label">Remesa{% if kpis.remesas_abiertas != 1 %}s{% endif %} abierta{% if kpis.remesas_abiertas != 1 %}s{% endif %}</div>
+    </a>
+    {% endif %}
+
+    {% if kpis.pagados_sin_factura > 0 %}
+    <a class="kpi-card kpi-alerta" href="/pegs/?estado=4&factura_recibida=0"
+       title="PEGs pagadas sin factura recibida">
+      <div class="kpi-valor">{{ kpis.pagados_sin_factura }}</div>
+      <div class="kpi-label">Sin factura recibida</div>
+    </a>
+    {% endif %}
+
+    {% endif %}
+
+  </div>
+
+  {# ── Desglose PENDIENTES por servicio (solo GESTOR_ECONOMICO + ADMIN) ── #}
+  {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and kpis.pendiente_por_servicio %}
+  <div class="kpi-desglose" style="margin-top:10px;">
+    <span class="kpi-desglose-label">Pendientes por servicio:</span>
+    {% for s in kpis.pendiente_por_servicio %}
+    <a href="/?servicio={{ s.id }}" class="kpi-desglose-pill" style="text-decoration:none; cursor:pointer;">
+      {{ s.nombre }} <strong>{{ s.count }}</strong>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+
+{# ── Modal: acceso restringido (GESTOR_SERVICIO → En remesa) ──────────── #}
+{% if usuario.rol == 'GESTOR_SERVICIO' %}
+<div id="modal-sin-acceso" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal-panel" style="max-width:480px;">
+    <div class="modal-header">
+      <span style="font-weight:700; font-size:1.05rem;">🔒 Sección gestionada por el equipo económico</span>
+      <button class="modal-close" onclick="document.getElementById('modal-sin-acceso').classList.remove('active'); document.body.style.overflow='';">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-intro" style="margin-bottom:14px;">
+        Las PEGs que aparecen en este estado han sido validadas por el equipo económico
+        e incluidas en una remesa de pago. El proceso de pago es gestionado exclusivamente
+        por el equipo económico.
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:linear-gradient(135deg,#5a2db5,#7f55d3);">R</div>
+        <div class="step-content">
+          <strong>¿Qué significa "En remesa"?</strong>
+          <p>Tu PEG ha sido agrupada junto a otras en un fichero bancario (Cuaderno 34)
+            que se enviará al banco para realizar el pago al proveedor.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:linear-gradient(135deg,#3b6d11,#7faa55);">✓</div>
+        <div class="step-content">
+          <strong>¿Qué debes hacer?</strong>
+          <p>Nada. Recibirás una notificación por correo cuando el pago se haya realizado
+            y la PEG pase a estado
+            <span class="state-pill sp-paid" style="font-size:0.78rem;vertical-align:middle;">PAGADO</span>.
+          </p>
+        </div>
+      </div>
+      <div class="flow-note" style="margin-top:4px;">
+        💡 Puedes consultar el detalle de cada PEG en remesa desde
+        <a href="/pegs/?estado=3" style="color:var(--fgulem-magenta);font-weight:700;">el listado de PEGs</a>
+        filtrado por estado <strong>En remesa</strong>.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <a href="/pegs/?estado=3" class="btn btn-secondary" style="margin-right:8px;">Ver mis PEGs en remesa</a>
+      <button class="btn btn-primary" onclick="document.getElementById('modal-sin-acceso').classList.remove('active'); document.body.style.overflow='';">Entendido</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── Botones de acceso a guías ──────────────────────────────────────────── #}
+<div class="accesos-fila">
+
+  <div class="acceso-card">
+    <button id="btn-como-funciona" class="btn btn-primary" style="white-space:nowrap; flex-shrink:0;">
+      📘 ¿Cómo funciona?
+    </button>
+    <p>Flujo completo del sistema según tu rol: estados, permisos y procesos de principio a fin.</p>
+  </div>
+
+  <div class="acceso-card">
+    <button id="btn-crear-peg" class="btn btn-primary" style="white-space:nowrap; flex-shrink:0; background:linear-gradient(135deg,#2f7a55,#7faa55); box-shadow:0 12px 22px rgba(47,122,85,0.22);">
+      📄 Cómo crear una PEG
+    </button>
+    <p>Guía paso a paso para dar de alta una Propuesta Específica de Gasto correctamente.</p>
+  </div>
+
+  <div class="acceso-card">
+    <button id="btn-estados-peg" class="btn btn-primary" style="white-space:nowrap; flex-shrink:0; background:linear-gradient(135deg,#854f0b,#d97706); box-shadow:0 12px 22px rgba(133,79,11,0.22);">
+      🔄 Estados de una PEG
+    </button>
+    <p>Qué significa cada estado, qué acciones permite y cómo avanza la PEG en su ciclo de vida.</p>
+  </div>
+
+  {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+  <div class="acceso-card">
+    <button id="btn-validar-peg" class="btn btn-primary" style="white-space:nowrap; flex-shrink:0; background:linear-gradient(135deg,#185fa5,#5a9fd3); box-shadow:0 12px 22px rgba(24,95,165,0.22);">
+      ✅ Validar una PEG
+    </button>
+    <p>Proceso de revisión, validación contable y gestión de incidencias sobre las PEGs recibidas.</p>
+  </div>
+
+  <div class="acceso-card">
+    <button id="btn-remesa-pago" class="btn btn-primary" style="white-space:nowrap; flex-shrink:0; background:linear-gradient(135deg,#5a2db5,#7f55d3); box-shadow:0 12px 22px rgba(90,45,181,0.22);">
+      🏦 Remesa y pago
+    </button>
+    <p>Crear una remesa, añadir PEGs, generar el Cuaderno 34, exportar a A3Con y cerrar el pago.</p>
+  </div>
+  {% endif %}
+
+  {% if usuario.rol == 'ADMIN' %}
+  <div class="acceso-card">
+    <button id="btn-usuarios" class="btn btn-primary" style="white-space:nowrap; flex-shrink:0; background:linear-gradient(135deg,#374151,#6b7280); box-shadow:0 12px 22px rgba(55,65,81,0.22);">
+      👤 Gestionar usuarios
+    </button>
+    <p>Crear usuarios, asignar roles y servicios, y activar o desactivar el acceso al sistema.</p>
+  </div>
+
+  <div class="acceso-card">
+    <button id="btn-bancos" class="btn btn-primary" style="white-space:nowrap; flex-shrink:0; background:linear-gradient(135deg,#0c5460,#17a2b8); box-shadow:0 12px 22px rgba(12,84,96,0.22);">
+      🏛️ Configurar bancos
+    </button>
+    <p>Dar de alta los bancos ordenantes (BIC e IBAN) que se usarán al generar remesas de pago.</p>
+  </div>
+
+  <div class="acceso-card">
+    <button id="btn-cuentas" class="btn btn-primary" style="white-space:nowrap; flex-shrink:0; background:linear-gradient(135deg,#4a1d96,#7c3aed); box-shadow:0 12px 22px rgba(74,29,150,0.22);">
+      📒 Cuentas de gasto
+    </button>
+    <p>Gestionar las cuentas contables del grupo 6 disponibles al validar PEGs, alineadas con A3Con.</p>
+  </div>
+  {% endif %}
+
+</div>
+
+
+{# ════════════════════════════════════════════════════════════════
+   MODAL 1 — ¿CÓMO FUNCIONA?
+   ════════════════════════════════════════════════════════════════ #}
+<div id="modal-flujos" class="modal-backdrop modal-flujo" role="dialog" aria-modal="true" aria-labelledby="modal-flujos-title">
+  <div class="modal-panel">
+
+    <div class="modal-header">
+      <span id="modal-flujos-title" style="font-weight:700; font-size:1.05rem;">
+        📘 ¿Cómo funciona el sistema?
+      </span>
+      <button class="modal-close" id="btn-cerrar-modal" aria-label="Cerrar">×</button>
+    </div>
+
+    <div class="modal-body">
+
+      {# ── GESTOR DE SERVICIO ──────────────────────────────────── #}
+      {% if usuario.rol == 'GESTOR_SERVICIO' %}
+
+      <h2 style="margin-top:0; color:var(--fgulem-magenta);">Tu flujo de trabajo — Gestor de Servicio</h2>
+      <div class="modal-intro">
+        Como Gestor de Servicio, tu función principal es crear y gestionar las Propuestas
+        Específicas de Gasto (PEGs) de tu servicio. El equipo económico se encarga de
+        validarlas y tramitar el pago.
+      </div>
+
+      <div class="flow-section-label">Estados de una PEG</div>
+      <div class="flow-states">
+        <span class="state-pill sp-pending">PENDIENTE</span>
+        <span class="flow-arrow">→</span>
+        <span class="state-pill sp-validated">VALIDADO</span>
+        <span class="flow-arrow">→</span>
+        <span class="state-pill sp-remesa">EN REMESA</span>
+        <span class="flow-arrow">→</span>
+        <span class="state-pill sp-paid">PAGADO</span>
+        <span class="flow-arrow" style="margin-left:6px;">|</span>
+        <span class="state-pill sp-incident" style="margin-left:4px;">INCIDENCIA</span>
+      </div>
+
+      <div class="flow-section-label" style="margin-top:20px;">Pasos del flujo</div>
+
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>Inicio de sesión y acceso al panel</strong>
+          <p>Accedes a la plataforma y ves únicamente las PEGs de tu servicio asignado.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>Crear una nueva PEG</strong>
+          <p>Selecciona proveedor, rellena datos del documento, añade líneas de IVA e IRPF
+            si aplica, y adjunta obligatoriamente al menos una factura o presupuesto. Al
+            guardar, el equipo económico recibe aviso automático.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <strong>Consultar y gestionar tus PEGs</strong>
+          <p>Filtra por estado, revisa el detalle, edita si está en PENDIENTE, gestiona
+            documentos adjuntos. Si la PEG está PAGADA puedes confirmar la recepción
+            física de la factura.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <strong>Gestión de proveedores</strong>
+          <p>Puedes consultar proveedores, dar de alta nuevos y editar datos básicos e IBAN.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <strong>Esperar validación o resolver incidencias</strong>
+          <p>Si el equipo económico detecta un problema, recibirás un correo con el motivo.
+            Corrige lo indicado para que la PEG continúe su tramitación.</p>
+        </div>
+      </div>
+
+      <div class="flow-section-label">Qué puedes y qué no puedes hacer</div>
+      <div class="perms-grid">
+        <div class="perm-item perm-yes">✅ Ver sus propias PEGs</div>
+        <div class="perm-item perm-no">🚫 Ver PEGs de otros servicios</div>
+        <div class="perm-item perm-yes">✅ Crear PEGs</div>
+        <div class="perm-item perm-no">🚫 Cambiar el estado de una PEG</div>
+        <div class="perm-item perm-yes">✅ Editar PEGs en PENDIENTE</div>
+        <div class="perm-item perm-no">🚫 Acceder a remesas</div>
+        <div class="perm-item perm-yes">✅ Gestionar documentos adjuntos</div>
+        <div class="perm-item perm-no">🚫 Gestionar usuarios</div>
+        <div class="perm-item perm-yes">✅ Ver y crear proveedores</div>
+        <div class="perm-item perm-yes">✅ Confirmar factura recibida (en PAGADO)</div>
+      </div>
+
+
+      {# ── GESTOR ECONÓMICO ─────────────────────────────────────── #}
+      {% elif usuario.rol == 'GESTOR_ECONOMICO' %}
+
+      <h2 style="margin-top:0; color:var(--fgulem-magenta);">Tu flujo de trabajo — Gestor Económico</h2>
+      <div class="modal-intro">
+        Como Gestor Económico, validas todas las PEGs de todos los servicios y gestionas
+        las remesas de pago hasta que los proveedores cobran.
+      </div>
+
+      <div class="flow-section-label">Estados de una PEG</div>
+      <div class="flow-states">
+        <span class="state-pill sp-pending">PENDIENTE</span>
+        <span class="flow-arrow">→</span>
+        <span class="state-pill sp-validated">VALIDADO</span>
+        <span class="flow-arrow">→</span>
+        <span class="state-pill sp-remesa">EN REMESA</span>
+        <span class="flow-arrow">→</span>
+        <span class="state-pill sp-paid">PAGADO</span>
+        <span class="flow-arrow" style="margin-left:6px;">|</span>
+        <span class="state-pill sp-incident" style="margin-left:4px;">INCIDENCIA</span>
+      </div>
+
+      <div class="subsection-h">Flujo A — Validación de PEGs</div>
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>Revisar el listado de PEGs pendientes</strong>
+          <p>Ves todas las PEGs de todos los servicios. Filtra por servicio, estado o proveedor.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>Revisar documentación adjunta</strong>
+          <p>Descarga y comprueba facturas y presupuestos adjuntos a la PEG.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-content"><strong>Tomar decisión</strong></div>
+      </div>
+      <div class="step-branch">
+        <div class="branch-row">
+          <span class="branch-tag branch-warn">Si hay problema</span>
+          <div>
+            <strong>Marcar INCIDENCIA</strong>
+            <p>Añade un comentario con el motivo. El gestor del servicio recibe aviso por correo.</p>
+          </div>
+        </div>
+        <div class="branch-row">
+          <span class="branch-tag branch-ok">Si todo correcto</span>
+          <div>
+            <strong>Validar PEG</strong>
+            <p>Asigna analítica, cuenta de gasto (grupo 6) y cuenta A3Con del proveedor.
+              La PEG pasa a VALIDADO y el gestor del servicio recibe notificación.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection-h">Flujo B — Gestión de remesas y pagos</div>
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>Crear remesa</strong>
+          <p>Descripción y banco ordenante. Estado inicial: <span class="state-pill sp-pending" style="font-size:0.75rem;vertical-align:middle;">ABIERTA</span>.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>Añadir PEGs validadas</strong>
+          <p>Solo PEGs en VALIDADO con analítica asignada. Al añadirlas pasan a <span class="state-pill sp-remesa" style="font-size:0.75rem;vertical-align:middle;">EN REMESA</span>.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <strong>Generar fichero bancario (Cuaderno 34)</strong>
+          <p>La remesa pasa a <span class="state-pill sp-validated" style="font-size:0.75rem;vertical-align:middle;">GENERADA</span> y queda bloqueada para nuevas modificaciones.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <strong>Generar PDF resumen</strong>
+          <p>Documento de archivo y control interno con el detalle de todos los pagos.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <strong>Exportar a A3Con (SUENLACE.DAT)</strong>
+          <p>Fichero para contabilización automática en el programa de gestión económica.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">6</div>
+        <div class="step-content">
+          <strong>Cerrar remesa</strong>
+          <p>Las PEGs pasan a <span class="state-pill sp-paid" style="font-size:0.75rem;vertical-align:middle;">PAGADO</span>, se asigna fecha de pago y número de factura interno automático.
+            Los gestores del servicio reciben notificación por correo.</p>
+        </div>
+      </div>
+
+
+      {# ── ADMIN ────────────────────────────────────────────────── #}
+      {% elif usuario.rol == 'ADMIN' %}
+
+      <h2 style="margin-top:0; color:var(--fgulem-magenta);">Flujos de trabajo del sistema</h2>
+      <div class="modal-intro">
+        Como Administrador, tienes acceso a todas las funciones del sistema y puedes actuar
+        en cualquiera de los niveles descritos a continuación.
+      </div>
+
+      <div class="tab-bar" role="tablist">
+        <button class="tab-btn active" role="tab" data-tab="tab-gs">👤 Gestor Servicio</button>
+        <button class="tab-btn"        role="tab" data-tab="tab-ge">💼 Gestor Económico</button>
+        <button class="tab-btn"        role="tab" data-tab="tab-adm">⚙️ Administración</button>
+      </div>
+
+      <div id="tab-gs" class="tab-pane active">
+        <div class="modal-intro">Como Gestor de Servicio, la función principal es crear y gestionar las PEGs de un
+          servicio. El equipo económico se encarga de validarlas y tramitar el pago.</div>
+        <div class="flow-section-label">Estados de una PEG</div>
+        <div class="flow-states">
+          <span class="state-pill sp-pending">PENDIENTE</span><span class="flow-arrow">→</span>
+          <span class="state-pill sp-validated">VALIDADO</span><span class="flow-arrow">→</span>
+          <span class="state-pill sp-remesa">EN REMESA</span><span class="flow-arrow">→</span>
+          <span class="state-pill sp-paid">PAGADO</span>
+          <span class="flow-arrow" style="margin-left:6px;">|</span>
+          <span class="state-pill sp-incident" style="margin-left:4px;">INCIDENCIA</span>
+        </div>
+        <div class="flow-section-label" style="margin-top:18px;">Pasos del flujo</div>
+        <div class="flow-step"><div class="step-num">1</div><div class="step-content"><strong>Inicio de sesión y acceso al panel</strong><p>Accede a la plataforma y ve únicamente las PEGs de su servicio asignado.</p></div></div>
+        <div class="flow-step"><div class="step-num">2</div><div class="step-content"><strong>Crear una nueva PEG</strong><p>Selecciona proveedor, rellena datos del documento, añade líneas de IVA e IRPF si aplica, y adjunta obligatoriamente al menos una factura o presupuesto.</p></div></div>
+        <div class="flow-step"><div class="step-num">3</div><div class="step-content"><strong>Consultar y gestionar sus PEGs</strong><p>Filtra por estado, revisa el detalle, edita si está en PENDIENTE, gestiona documentos adjuntos.</p></div></div>
+        <div class="flow-step"><div class="step-num">4</div><div class="step-content"><strong>Gestión de proveedores</strong><p>Puede consultar proveedores, dar de alta nuevos y editar datos básicos e IBAN.</p></div></div>
+        <div class="flow-step"><div class="step-num">5</div><div class="step-content"><strong>Esperar validación o resolver incidencias</strong><p>Si el equipo económico detecta un problema, el gestor del servicio recibe un correo con el motivo y debe corregirlo.</p></div></div>
+        <div class="flow-section-label">Permisos</div>
+        <div class="perms-grid">
+          <div class="perm-item perm-yes">✅ Ver sus propias PEGs</div><div class="perm-item perm-no">🚫 Ver PEGs de otros servicios</div>
+          <div class="perm-item perm-yes">✅ Crear PEGs</div><div class="perm-item perm-no">🚫 Cambiar el estado de una PEG</div>
+          <div class="perm-item perm-yes">✅ Editar PEGs en PENDIENTE</div><div class="perm-item perm-no">🚫 Acceder a remesas</div>
+          <div class="perm-item perm-yes">✅ Ver y crear proveedores</div><div class="perm-item perm-yes">✅ Confirmar factura recibida (en PAGADO)</div>
+        </div>
+      </div>
+
+      <div id="tab-ge" class="tab-pane">
+        <div class="modal-intro">Como Gestor Económico, se validan todas las PEGs de todos los servicios y se gestionan las remesas de pago hasta que los proveedores cobran.</div>
+        <div class="flow-section-label">Estados de una PEG</div>
+        <div class="flow-states">
+          <span class="state-pill sp-pending">PENDIENTE</span><span class="flow-arrow">→</span>
+          <span class="state-pill sp-validated">VALIDADO</span><span class="flow-arrow">→</span>
+          <span class="state-pill sp-remesa">EN REMESA</span><span class="flow-arrow">→</span>
+          <span class="state-pill sp-paid">PAGADO</span>
+          <span class="flow-arrow" style="margin-left:6px;">|</span>
+          <span class="state-pill sp-incident" style="margin-left:4px;">INCIDENCIA</span>
+        </div>
+        <div class="subsection-h">Flujo A — Validación de PEGs</div>
+        <div class="flow-step"><div class="step-num">1</div><div class="step-content"><strong>Revisar el listado de PEGs pendientes</strong><p>Ve todas las PEGs de todos los servicios. Filtra por servicio, estado o proveedor.</p></div></div>
+        <div class="flow-step"><div class="step-num">2</div><div class="step-content"><strong>Revisar documentación adjunta</strong><p>Descarga y comprueba facturas y presupuestos adjuntos a la PEG.</p></div></div>
+        <div class="flow-step"><div class="step-num">3</div><div class="step-content"><strong>Tomar decisión</strong></div></div>
+        <div class="step-branch">
+          <div class="branch-row"><span class="branch-tag branch-warn">Si hay problema</span><div><strong>Marcar INCIDENCIA</strong><p>Añade un comentario con el motivo. El gestor del servicio recibe aviso por correo.</p></div></div>
+          <div class="branch-row"><span class="branch-tag branch-ok">Si todo correcto</span><div><strong>Validar PEG</strong><p>Asigna analítica, cuenta de gasto (grupo 6) y cuenta A3Con del proveedor. La PEG pasa a VALIDADO.</p></div></div>
+        </div>
+        <div class="subsection-h">Flujo B — Gestión de remesas y pagos</div>
+        <div class="flow-step"><div class="step-num">1</div><div class="step-content"><strong>Crear remesa</strong><p>Descripción y banco ordenante. Estado inicial: <span class="state-pill sp-pending" style="font-size:0.75rem;vertical-align:middle;">ABIERTA</span>.</p></div></div>
+        <div class="flow-step"><div class="step-num">2</div><div class="step-content"><strong>Añadir PEGs validadas</strong><p>Solo PEGs en VALIDADO con analítica asignada. Al añadirlas pasan a <span class="state-pill sp-remesa" style="font-size:0.75rem;vertical-align:middle;">EN REMESA</span>.</p></div></div>
+        <div class="flow-step"><div class="step-num">3</div><div class="step-content"><strong>Generar fichero bancario (Cuaderno 34)</strong><p>La remesa pasa a <span class="state-pill sp-validated" style="font-size:0.75rem;vertical-align:middle;">GENERADA</span> y queda bloqueada.</p></div></div>
+        <div class="flow-step"><div class="step-num">4</div><div class="step-content"><strong>Generar PDF resumen y exportar a A3Con</strong><p>Documento de archivo y fichero SUENLACE.DAT para contabilización automática.</p></div></div>
+        <div class="flow-step"><div class="step-num">5</div><div class="step-content"><strong>Cerrar remesa</strong><p>Las PEGs pasan a <span class="state-pill sp-paid" style="font-size:0.75rem;vertical-align:middle;">PAGADO</span>, se asigna fecha de pago y número de factura interno.</p></div></div>
+      </div>
+
+      <div id="tab-adm" class="tab-pane">
+        <div class="modal-intro">Como Administrador tienes control total sobre el sistema sin restricciones de estado en PEGs, más las siguientes secciones exclusivas.</div>
+        <div class="subsection-h">⚙️ Gestión de usuarios</div>
+        <div class="flow-step"><div class="step-num">1</div><div class="step-content"><strong>Listar todos los usuarios</strong><p>Consulta el listado completo con su rol, servicios asignados y estado activo/inactivo.</p></div></div>
+        <div class="flow-step"><div class="step-num">2</div><div class="step-content"><strong>Crear nuevo usuario</strong><p>Asigna username, nombre, rol (GESTOR_SERVICIO / GESTOR_ECONOMICO / ADMIN), servicios y contraseña inicial.</p></div></div>
+        <div class="flow-step"><div class="step-num">3</div><div class="step-content"><strong>Editar y activar / desactivar</strong><p>Modifica cualquier dato, incluida la contraseña, o desactiva el acceso de un usuario sin eliminarlo.</p></div></div>
+        <div class="subsection-h">🏦 Gestión de bancos</div>
+        <div class="flow-step"><div class="step-num">1</div><div class="step-content"><strong>Crear y editar bancos</strong><p>Configura los bancos ordenantes (nombre, BIC, IBAN) que se usarán en las remesas de pago.</p></div></div>
+        <div class="flow-step"><div class="step-num">2</div><div class="step-content"><strong>Activar / desactivar</strong><p>Los bancos inactivos dejan de aparecer en el formulario de nueva remesa.</p></div></div>
+        <div class="subsection-h">📒 Gestión de cuentas de gasto</div>
+        <div class="flow-step"><div class="step-num">1</div><div class="step-content"><strong>Crear cuentas del grupo 6</strong><p>Añade código contable y descripción para que la cuenta esté disponible al validar PEGs.</p></div></div>
+        <div class="flow-step"><div class="step-num">2</div><div class="step-content"><strong>Editar y activar / desactivar</strong><p>Las cuentas inactivas dejan de estar disponibles en el formulario de validación.</p></div></div>
+        <div class="subsection-h">🔓 Control total sobre PEGs pagadas</div>
+        <div class="flow-step"><div class="step-num">✓</div><div class="step-content"><strong>Sin restricciones de edición</strong><p>A diferencia del Gestor Económico, el Administrador puede editar y cambiar el estado de cualquier PEG, incluidas las PAGADAS.</p></div></div>
+      </div>
+
+      {% endif %}
+
+    </div>
+    <div class="modal-footer">
+      <button id="btn-cerrar-modal-footer" class="btn btn-secondary">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+
+{# ════════════════════════════════════════════════════════════════
+   MODAL 2 — CÓMO CREAR UNA PEG (flujo detallado)
+   ════════════════════════════════════════════════════════════════ #}
+<div id="modal-crear-peg" class="modal-backdrop modal-flujo" role="dialog" aria-modal="true">
+  <div class="modal-panel">
+
+    <div class="modal-header">
+      <span style="font-weight:700; font-size:1.05rem;">📄 Cómo crear una PEG — Guía detallada</span>
+      <button class="modal-close" id="btn-cerrar-crear-peg" aria-label="Cerrar">×</button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="modal-intro">
+        Una Propuesta Específica de Gasto (PEG) es el documento que inicia el proceso de pago
+        a un proveedor. Sigue estos pasos para crearla correctamente y evitar incidencias.
+      </div>
+
+      {# ── Estado inicial ── #}
+      <div class="flow-section-label">Estado al crear</div>
+      <div class="flow-states">
+        <span class="state-pill sp-pending">PENDIENTE</span>
+        <span class="flow-arrow">← la PEG se crea siempre en este estado</span>
+      </div>
+
+      {# ── Pasos ── #}
+      <div class="flow-section-label" style="margin-top:20px;">Pasos del proceso</div>
+
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>Accede al listado de PEGs y pulsa "Nuevo PEG"</strong>
+          <p>En el menú lateral pulsa <em>PEGs</em>. En la esquina superior derecha encontrarás
+            el botón <strong>Nuevo PEG</strong> que abre el formulario de alta.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>Selecciona el servicio y proyecto</strong>
+          <p>Elige el servicio al que pertenece el gasto. Si tienes un único servicio asignado,
+            este campo aparece relleno automáticamente y no es editable.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <strong>Selecciona o crea el proveedor</strong>
+          <p>Busca el proveedor en el desplegable. Si no existe aún en el sistema, puedes
+            darlo de alta sin salir del formulario.</p>
+        </div>
+      </div>
+      <div class="step-branch">
+        <div class="branch-row">
+          <span class="branch-tag branch-ok">Proveedor existente</span>
+          <div>
+            <strong>Selecciónalo del desplegable</strong>
+            <p>Al seleccionarlo se rellenan automáticamente el IBAN y la forma de pago habitual
+              que tenga configurados.</p>
+          </div>
+        </div>
+        <div class="branch-row">
+          <span class="branch-tag branch-info">Proveedor nuevo</span>
+          <div>
+            <strong>Pulsa "+ Nuevo proveedor"</strong>
+            <p>Se abre un panel lateral donde introduces CIF/NIF, razón social e IBAN.
+              Al guardar, el proveedor queda seleccionado automáticamente en la PEG.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <strong>Rellena los datos del documento</strong>
+          <p>Introduce el <strong>número de documento</strong> (el que aparece en la factura),
+            la <strong>fecha del documento</strong>, la <strong>fecha de recepción</strong>
+            y la <strong>fecha de vencimiento</strong> si procede. Añade una descripción
+            clara del concepto del gasto.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <strong>Añade las líneas de IVA</strong>
+          <p>Introduce la <strong>base imponible</strong> y selecciona el <strong>tipo de IVA</strong>.
+            El sistema calcula automáticamente la cuota y el total. Puedes añadir varias
+            líneas si la factura tiene tipos de IVA diferentes.</p>
+        </div>
+      </div>
+      <div class="step-branch">
+        <div class="branch-row">
+          <span class="branch-tag branch-info">Gasto exento de IVA</span>
+          <div>
+            <strong>Selecciona tipo 0%</strong>
+            <p>Introduce el importe total en el campo de base imponible y selecciona 0% como tipo.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">6</div>
+        <div class="step-content">
+          <strong>Configura el IRPF si aplica</strong>
+          <p>Si el proveedor está sujeto a retención de IRPF (trabajadores autónomos, profesionales),
+            selecciona el porcentaje correspondiente: <strong>7 %</strong>, <strong>15 %</strong>
+            o <strong>19 %</strong>. El importe de retención se descuenta del total a pagar.</p>
+        </div>
+      </div>
+      <div class="step-branch">
+        <div class="branch-row">
+          <span class="branch-tag branch-info">Sin retención</span>
+          <div>
+            <strong>Deja el campo en blanco o selecciona "Sin IRPF"</strong>
+            <p>La mayoría de facturas de empresas no llevan retención de IRPF.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">7</div>
+        <div class="step-content">
+          <strong>Adjunta la factura o presupuesto</strong>
+          <p>Es <strong>obligatorio</strong> adjuntar al menos un documento antes de guardar.
+            Selecciona el tipo de documento (Factura, Proforma, Presupuesto u Otro),
+            elige el archivo y pulsa <strong>Subir documento</strong>.</p>
+        </div>
+      </div>
+
+      <div class="flow-note">
+        📎 <strong>Formatos admitidos:</strong> PDF, JPG, PNG · <strong>Tamaño máximo:</strong> 10 MB por archivo.
+        Puedes adjuntar varios documentos a la misma PEG.
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">8</div>
+        <div class="step-content">
+          <strong>Guarda la PEG</strong>
+          <p>Pulsa <strong>Guardar PEG</strong> al final del formulario. La propuesta queda
+            registrada en estado <span class="state-pill sp-pending" style="font-size:0.8rem;vertical-align:middle;">PENDIENTE</span>
+            y el equipo económico recibe un aviso automático por correo electrónico.</p>
+        </div>
+      </div>
+
+      {# ── Qué pasa después ── #}
+      <div class="subsection-h">¿Qué ocurre después?</div>
+
+      <div class="flow-step">
+        <div class="step-num" style="background:linear-gradient(135deg,#185fa5,#5a9fd3);">→</div>
+        <div class="step-content">
+          <strong>El equipo económico revisa la PEG</strong>
+          <p>Comprueban que los datos coinciden con la factura adjunta, asignan la analítica
+            contable y la cuenta de gasto.</p>
+        </div>
+      </div>
+      <div class="step-branch">
+        <div class="branch-row">
+          <span class="branch-tag branch-ok">Todo correcto</span>
+          <div>
+            <strong>La PEG pasa a VALIDADO</strong>
+            <p>Recibirás una notificación. A partir de aquí el equipo económico la incluirá
+              en una remesa de pago.</p>
+          </div>
+        </div>
+        <div class="branch-row">
+          <span class="branch-tag branch-warn">Hay un problema</span>
+          <div>
+            <strong>La PEG pasa a INCIDENCIA</strong>
+            <p>Recibirás un correo con el motivo detallado. Debes corregirlo: la PEG vuelve
+              automáticamente a PENDIENTE en cuanto la edites y guardes.</p>
+          </div>
+        </div>
+      </div>
+
+      {# ── Errores frecuentes ── #}
+      <div class="subsection-h">Errores frecuentes a evitar</div>
+      <div class="flow-note">
+        ⚠ <strong>Número de documento duplicado:</strong> el sistema avisa si ya existe otra PEG con el mismo número de documento del mismo proveedor.<br><br>
+        ⚠ <strong>Sin adjunto:</strong> no se puede guardar la PEG sin al menos un documento adjunto.<br><br>
+        ⚠ <strong>Proveedor sin IBAN:</strong> la PEG se puede crear pero no podrá incluirse en una remesa hasta que el proveedor tenga IBAN registrado.
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button id="btn-cerrar-crear-peg-footer" class="btn btn-secondary">Cerrar</button>
+    </div>
+
+  </div>
+</div>
+
+{# ════════════════════════════════════════════════════════════════
+   MODAL 3 — ESTADOS DE UNA PEG
+   ════════════════════════════════════════════════════════════════ #}
+<div id="modal-estados-peg" class="modal-backdrop modal-flujo" role="dialog" aria-modal="true">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span style="font-weight:700; font-size:1.05rem;">🔄 Estados de una PEG — Ciclo de vida</span>
+      <button class="modal-close" id="btn-cerrar-estados" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="modal-intro">
+        Cada PEG avanza por una serie de estados desde que se crea hasta que el proveedor cobra.
+        Conocer cada estado te permite saber en qué punto está la tramitación y qué acciones
+        están disponibles en cada momento.
+      </div>
+
+      <div class="flow-section-label">Flujo de estados</div>
+      <div class="flow-states">
+        <span class="state-pill sp-pending">PENDIENTE</span>
+        <span class="flow-arrow">→</span>
+        <span class="state-pill sp-validated">VALIDADO</span>
+        <span class="flow-arrow">→</span>
+        <span class="state-pill sp-remesa">EN REMESA</span>
+        <span class="flow-arrow">→</span>
+        <span class="state-pill sp-paid">PAGADO</span>
+        <span class="flow-arrow" style="margin-left:6px;">|</span>
+        <span class="state-pill sp-incident" style="margin-left:4px;">INCIDENCIA</span>
+      </div>
+
+      <div class="subsection-h" style="margin-top:22px;">
+        <span class="state-pill sp-pending" style="margin-right:8px;">PENDIENTE</span> Recién creada
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:linear-gradient(135deg,#d97706,#f59e0b);">P</div>
+        <div class="step-content">
+          <strong>La PEG está esperando revisión del equipo económico</strong>
+          <p>Es el estado inicial. El gestor del servicio <strong>puede editarla</strong> libremente:
+            cambiar datos, añadir o eliminar adjuntos, corregir líneas de IVA o IRPF.</p>
+        </div>
+      </div>
+      <div class="flow-note">
+        ✏️ <strong>Quién puede actuar:</strong> Gestor del servicio (edición completa) · Gestor económico y Admin (también pueden editar).
+      </div>
+
+      <div class="subsection-h">
+        <span class="state-pill sp-incident" style="margin-right:8px;">INCIDENCIA</span> Problema detectado
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:linear-gradient(135deg,#a32d2d,#ef4444);">!</div>
+        <div class="step-content">
+          <strong>El equipo económico ha encontrado un error o dato incorrecto</strong>
+          <p>El motivo queda registrado en el historial de la PEG y se envía por correo al
+            gestor del servicio. La PEG debe corregirse.</p>
+        </div>
+      </div>
+      <div class="step-branch">
+        <div class="branch-row">
+          <span class="branch-tag branch-info">Cómo resolverlo</span>
+          <div>
+            <strong>Edita la PEG y corrige lo indicado en el motivo de la incidencia</strong>
+            <p>Al guardar los cambios la PEG vuelve automáticamente a estado
+              <span class="state-pill sp-pending" style="font-size:0.75rem;vertical-align:middle;">PENDIENTE</span>
+              y el equipo económico recibe nuevo aviso.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection-h">
+        <span class="state-pill sp-validated" style="margin-right:8px;">VALIDADO</span> Aprobada
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:linear-gradient(135deg,#185fa5,#5a9fd3);">V</div>
+        <div class="step-content">
+          <strong>El equipo económico ha revisado y aprobado la PEG</strong>
+          <p>Se han asignado la analítica, la cuenta de gasto y la cuenta A3Con del proveedor.
+            La PEG está lista para incluirse en una remesa de pago.</p>
+        </div>
+      </div>
+      <div class="flow-note">
+        🔒 <strong>Edición restringida:</strong> el gestor del servicio ya no puede editar la PEG.
+        Solo el gestor económico y el administrador pueden hacerlo.
+      </div>
+
+      <div class="subsection-h">
+        <span class="state-pill sp-remesa" style="margin-right:8px;">EN REMESA</span> Incluida en una remesa
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:linear-gradient(135deg,#5a2db5,#7f55d3);">R</div>
+        <div class="step-content">
+          <strong>La PEG ha sido añadida a una remesa de pago</strong>
+          <p>Está a la espera de que se genere el fichero Cuaderno 34 y se suba al banco.
+            Mientras la remesa esté abierta, la PEG puede eliminarse de ella.</p>
+        </div>
+      </div>
+
+      <div class="subsection-h">
+        <span class="state-pill sp-paid" style="margin-right:8px;">PAGADO</span> Pagada
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:linear-gradient(135deg,#3b6d11,#7faa55);">✓</div>
+        <div class="step-content">
+          <strong>El proveedor ha recibido el pago</strong>
+          <p>La remesa ha sido cerrada. Se registran automáticamente la fecha de pago y el
+            número de factura interno. El gestor del servicio recibe notificación por correo.</p>
+        </div>
+      </div>
+      <div class="step-branch">
+        <div class="branch-row">
+          <span class="branch-tag branch-ok">Acción disponible</span>
+          <div>
+            <strong>Confirmar recepción de factura física</strong>
+            <p>El gestor del servicio puede marcar que ha recibido la factura en papel,
+              para el control de archivo documental.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button id="btn-cerrar-estados-footer" class="btn btn-secondary">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+
+{# ════════════════════════════════════════════════════════════════
+   MODAL 4 — VALIDAR UNA PEG  (GESTOR_ECONOMICO + ADMIN)
+   ════════════════════════════════════════════════════════════════ #}
+{% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+<div id="modal-validar-peg" class="modal-backdrop modal-flujo" role="dialog" aria-modal="true">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span style="font-weight:700; font-size:1.05rem;">✅ Validar una PEG — Guía detallada</span>
+      <button class="modal-close" id="btn-cerrar-validar" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="modal-intro">
+        La validación es el proceso por el que el equipo económico revisa, contabiliza y aprueba
+        cada PEG antes de incluirla en una remesa de pago. Una validación rigurosa evita errores
+        contables y retrasos en el pago a proveedores.
+      </div>
+
+      <div class="flow-section-label">Resultado esperado</div>
+      <div class="flow-states">
+        <span class="state-pill sp-pending">PENDIENTE</span>
+        <span class="flow-arrow">→ tras validar →</span>
+        <span class="state-pill sp-validated">VALIDADO</span>
+        <span class="flow-arrow"> · o bien · </span>
+        <span class="state-pill sp-incident">INCIDENCIA</span>
+      </div>
+
+      <div class="flow-section-label" style="margin-top:20px;">Pasos del proceso</div>
+
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>Filtra las PEGs en estado PENDIENTE</strong>
+          <p>En el listado de PEGs usa el filtro de estado para mostrar solo las que están
+            en <span class="state-pill sp-pending" style="font-size:0.78rem;vertical-align:middle;">PENDIENTE</span>.
+            Puedes combinar el filtro con el de servicio o usar el buscador por proveedor.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>Abre el detalle y revisa los datos</strong>
+          <p>Comprueba que el número de documento, las fechas, el importe y el proveedor
+            son correctos y coherentes con la factura o presupuesto adjunto.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <strong>Descarga y verifica los documentos adjuntos</strong>
+          <p>En la sección <em>Adjuntos</em> del detalle, descarga cada documento y comprueba
+            que los datos del sistema coinciden exactamente con los de la factura original:
+            CIF/NIF del proveedor, número de factura, fecha, base imponible e IVA.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-content"><strong>Toma una decisión</strong></div>
+      </div>
+      <div class="step-branch">
+        <div class="branch-row">
+          <span class="branch-tag branch-warn">Hay un problema</span>
+          <div>
+            <strong>Pulsa "Marcar incidencia"</strong>
+            <p>Describe el problema con detalle en el campo de texto: qué dato es incorrecto,
+              qué falta o qué no coincide con la factura. El gestor del servicio recibirá
+              este texto en su correo y deberá corregirlo.</p>
+          </div>
+        </div>
+        <div class="branch-row">
+          <span class="branch-tag branch-ok">Todo correcto</span>
+          <div>
+            <strong>Procede a validar</strong>
+            <p>Rellena el panel de validación con los tres campos obligatorios que se
+              describen a continuación.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection-h">Campos del panel de validación</div>
+
+      <div class="flow-step">
+        <div class="step-num">A</div>
+        <div class="step-content">
+          <strong>Analítica del servicio</strong>
+          <p>Selecciona la analítica contable que corresponde al gasto. Es <strong>obligatoria</strong>:
+            sin analítica, la PEG no puede incluirse en ninguna remesa de pago.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">B</div>
+        <div class="step-content">
+          <strong>Cuenta de gasto (grupo 6)</strong>
+          <p>Selecciona la cuenta contable del plan general que corresponde al tipo de gasto
+            (p. ej. 628000 — Suministros, 621000 — Reparaciones, 627000 — Publicidad…).
+            Las cuentas disponibles las configura el administrador.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">C</div>
+        <div class="step-content">
+          <strong>Cuenta A3Con del proveedor</strong>
+          <p>Introduce el código de cuenta del proveedor en A3Con (normalmente del grupo 410
+            o 400). Este dato es necesario para que el fichero SUENLACE.DAT genere el
+            asiento contable correctamente.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <strong>Pulsa "Validar PEG"</strong>
+          <p>Al confirmar, la PEG pasa a
+            <span class="state-pill sp-validated" style="font-size:0.78rem;vertical-align:middle;">VALIDADO</span>,
+            queda lista para incluirse en una remesa y el gestor del servicio recibe
+            notificación automática por correo.</p>
+        </div>
+      </div>
+
+      <div class="subsection-h">Errores frecuentes a evitar</div>
+      <div class="flow-note">
+        ⚠ <strong>Analítica incorrecta:</strong> asegúrate de que la analítica pertenece
+        al servicio que creó la PEG, no a otro.<br><br>
+        ⚠ <strong>Cuenta A3Con vacía:</strong> si el proveedor no tiene cuenta en A3Con
+        todavía, créala primero en el programa y luego registra el código aquí.<br><br>
+        ⚠ <strong>Proveedor sin IBAN:</strong> aunque la PEG se puede validar, no podrá
+        incluirse en una remesa bancaria hasta que el proveedor tenga IBAN registrado.
+        Edita el proveedor para añadirlo.
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button id="btn-cerrar-validar-footer" class="btn btn-secondary">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+
+{# ════════════════════════════════════════════════════════════════
+   MODAL 5 — REMESA Y PAGO  (GESTOR_ECONOMICO + ADMIN)
+   ════════════════════════════════════════════════════════════════ #}
+<div id="modal-remesa-pago" class="modal-backdrop modal-flujo" role="dialog" aria-modal="true">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span style="font-weight:700; font-size:1.05rem;">🏦 Remesa y pago — Guía detallada</span>
+      <button class="modal-close" id="btn-cerrar-remesa" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="modal-intro">
+        Una remesa agrupa varias PEGs validadas en un único fichero de pago bancario
+        (Cuaderno 34). Este proceso cubre desde la creación de la remesa hasta el cierre
+        con los proveedores cobrados y la contabilización en A3Con.
+      </div>
+
+      <div class="flow-section-label">Estados de la remesa</div>
+      <div class="flow-states">
+        <span class="state-pill" style="background:rgba(95,159,211,0.14);color:#185fa5;">ABIERTA</span>
+        <span class="flow-arrow">→</span>
+        <span class="state-pill" style="background:rgba(239,159,39,0.14);color:#854f0b;">GENERADA</span>
+        <span class="flow-arrow">→</span>
+        <span class="state-pill" style="background:rgba(99,153,34,0.14);color:#3b6d11;">CERRADA</span>
+      </div>
+
+      <div class="subsection-h">Fase 1 — Crear la remesa y añadir PEGs</div>
+
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>Crea una nueva remesa</strong>
+          <p>En el menú lateral pulsa <em>Remesas</em> y luego <strong>+ Nueva remesa</strong>.
+            Introduce una descripción identificativa (p. ej. «Remesa mayo 2026 — Centro de Idiomas»)
+            y selecciona el banco ordenante desde el que se realizarán los pagos.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>Añade PEGs validadas</strong>
+          <p>Desde el detalle de la remesa pulsa <strong>Añadir PEGs</strong>. Solo aparecen
+            las PEGs en estado VALIDADO con analítica asignada. Marca las que quieras incluir
+            y confirma. Las PEGs seleccionadas pasan a
+            <span class="state-pill sp-remesa" style="font-size:0.75rem;vertical-align:middle;">EN REMESA</span>.</p>
+        </div>
+      </div>
+
+      <div class="flow-note">
+        💡 Puedes añadir y quitar PEGs de la remesa mientras esté en estado <strong>ABIERTA</strong>.
+        Una vez generado el Cuaderno 34, la remesa queda bloqueada.
+      </div>
+
+      <div class="subsection-h">Fase 2 — Generar los ficheros</div>
+
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <strong>Genera el fichero Cuaderno 34</strong>
+          <p>Pulsa <strong>Generar Cuaderno 34</strong>. Se descarga el fichero bancario
+            estándar listo para subir a la plataforma de banca online de tu entidad.
+            La remesa pasa a estado
+            <span class="state-pill" style="background:rgba(239,159,39,0.14);color:#854f0b;font-size:0.75rem;vertical-align:middle;">GENERADA</span>
+            y queda bloqueada para nuevas modificaciones.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <strong>Sube el fichero al banco</strong>
+          <p>Accede a la banca online de tu entidad y usa la opción de
+            <em>transferencias masivas</em> o <em>Cuaderno 34</em> para cargar el fichero
+            descargado. El banco procesará los pagos y emitirá confirmación.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <strong>Genera el PDF resumen</strong>
+          <p>Pulsa <strong>Generar PDF</strong> para obtener el documento de archivo y
+            control interno con el detalle completo de todos los pagos: beneficiario,
+            IBAN, importe y concepto.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">6</div>
+        <div class="step-content">
+          <strong>Exporta el fichero SUENLACE.DAT para A3Con</strong>
+          <p>Pulsa <strong>Exportar SUENLACE.DAT</strong>. Importa este fichero en A3Con
+            desde <em>Utilidades → Importar/Exportar → Enlace Contable</em> para
+            contabilizar automáticamente todos los pagos de la remesa.</p>
+        </div>
+      </div>
+
+      <div class="subsection-h">Fase 3 — Cerrar la remesa</div>
+
+      <div class="flow-step">
+        <div class="step-num">7</div>
+        <div class="step-content">
+          <strong>Confirma el pago y cierra la remesa</strong>
+          <p>Una vez el banco haya procesado los pagos, pulsa <strong>Cerrar remesa</strong>.
+            Todas las PEGs de la remesa pasan automáticamente a
+            <span class="state-pill sp-paid" style="font-size:0.75rem;vertical-align:middle;">PAGADO</span>,
+            se registra la fecha de pago y se asigna un número de factura interno correlativo.
+            Los gestores de servicio reciben notificación por correo.</p>
+        </div>
+      </div>
+
+      <div class="flow-note">
+        📋 <strong>Tras el cierre</strong> el gestor del servicio puede confirmar desde el
+        detalle de cada PEG que ha recibido la factura física, para el control de archivo documental.
+      </div>
+
+      <div class="subsection-h">Resumen del impacto en las PEGs</div>
+      <div class="flow-states" style="flex-direction:column; align-items:flex-start; gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="state-pill sp-validated" style="min-width:90px;text-align:center;">VALIDADO</span>
+          <span class="flow-arrow">→ al añadir a remesa →</span>
+          <span class="state-pill sp-remesa">EN REMESA</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="state-pill sp-remesa" style="min-width:90px;text-align:center;">EN REMESA</span>
+          <span class="flow-arrow">→ al cerrar remesa →</span>
+          <span class="state-pill sp-paid">PAGADO</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button id="btn-cerrar-remesa-footer" class="btn btn-secondary">Cerrar</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+
+{# ════════════════════════════════════════════════════════════════
+   MODAL 6 — GESTIONAR USUARIOS  (ADMIN)
+   ════════════════════════════════════════════════════════════════ #}
+{% if usuario.rol == 'ADMIN' %}
+<div id="modal-usuarios" class="modal-backdrop modal-flujo" role="dialog" aria-modal="true">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span style="font-weight:700; font-size:1.05rem;">👤 Gestionar usuarios — Guía detallada</span>
+      <button class="modal-close" id="btn-cerrar-usuarios" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="modal-intro">
+        Desde la sección de usuarios puedes crear accesos al sistema, asignar roles y servicios,
+        cambiar contraseñas y desactivar cuentas sin perder el historial de trabajo asociado.
+      </div>
+
+      <div class="flow-section-label">Roles disponibles</div>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:8px;">
+        <div class="flow-note" style="margin:0;">
+          <strong>GESTOR_SERVICIO</strong> — Crea y gestiona las PEGs de su servicio asignado.
+          Solo ve las PEGs de sus propios servicios.
+        </div>
+        <div class="flow-note" style="margin:0;">
+          <strong>GESTOR_ECONOMICO</strong> — Valida PEGs de todos los servicios y gestiona
+          remesas y pagos. No puede administrar usuarios ni configurar el sistema.
+        </div>
+        <div class="flow-note" style="margin:0;">
+          <strong>ADMIN</strong> — Acceso total al sistema sin restricciones de estado,
+          más administración de usuarios, bancos y cuentas de gasto.
+        </div>
+      </div>
+
+      <div class="flow-section-label" style="margin-top:20px;">Pasos del proceso</div>
+
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>Accede al listado de usuarios</strong>
+          <p>En el menú lateral, sección <em>Administración → Usuarios</em>. Verás todos los
+            usuarios del sistema con su rol, servicios asignados y estado activo/inactivo.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>Pulsa "+ Nuevo usuario"</strong>
+          <p>Rellena el <strong>nombre completo</strong>, el <strong>email</strong> y el
+            <strong>nombre de usuario</strong> (username) con el que accederá al sistema.
+            El username debe ser único y no puede contener espacios.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <strong>Asigna el rol</strong>
+          <p>Selecciona GESTOR_SERVICIO, GESTOR_ECONOMICO o ADMIN. El rol determina qué
+            secciones ve el usuario y qué acciones puede realizar.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <strong>Asigna servicios (solo si el rol es GESTOR_SERVICIO)</strong>
+          <p>Selecciona uno o varios servicios de los que este usuario será responsable.
+            Solo verá y gestionará las PEGs de esos servicios.</p>
+        </div>
+      </div>
+      <div class="step-branch">
+        <div class="branch-row">
+          <span class="branch-tag branch-info">GESTOR_ECONOMICO o ADMIN</span>
+          <div>
+            <strong>No requiere asignación de servicios</strong>
+            <p>Estos roles tienen acceso a las PEGs de todos los servicios de forma automática.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <strong>Establece la contraseña inicial</strong>
+          <p>Introduce una contraseña temporal para el usuario. Comunícasela de forma segura.
+            El usuario podrá cambiarla desde su perfil una vez haya iniciado sesión.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">6</div>
+        <div class="step-content">
+          <strong>Guarda el usuario</strong>
+          <p>El usuario queda activo de inmediato y puede iniciar sesión con su username
+            y contraseña.</p>
+        </div>
+      </div>
+
+      <div class="subsection-h">Editar y desactivar usuarios</div>
+
+      <div class="flow-step">
+        <div class="step-num">✏</div>
+        <div class="step-content">
+          <strong>Editar un usuario existente</strong>
+          <p>Desde el listado pulsa el botón de edición de la fila. Puedes cambiar cualquier
+            dato: nombre, email, rol, servicios asignados o contraseña.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">🔒</div>
+        <div class="step-content">
+          <strong>Desactivar un usuario</strong>
+          <p>Pulsa <strong>Desactivar</strong> en la fila del usuario. El acceso queda bloqueado
+            de inmediato pero todos sus datos, PEGs y actividad se conservan. Puedes
+            reactivarlo en cualquier momento desde el mismo listado.</p>
+        </div>
+      </div>
+
+      <div class="flow-note">
+        ⚠ <strong>Precaución:</strong> cambiar el rol de un usuario activo tiene efecto
+        inmediato en su próxima carga de página. Si estaba trabajando, las secciones que
+        ya no le correspondan dejarán de ser accesibles.
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button id="btn-cerrar-usuarios-footer" class="btn btn-secondary">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+
+{# ════════════════════════════════════════════════════════════════
+   MODAL 7 — CONFIGURAR BANCOS  (ADMIN)
+   ════════════════════════════════════════════════════════════════ #}
+<div id="modal-bancos" class="modal-backdrop modal-flujo" role="dialog" aria-modal="true">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span style="font-weight:700; font-size:1.05rem;">🏛️ Configurar bancos — Guía detallada</span>
+      <button class="modal-close" id="btn-cerrar-bancos" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="modal-intro">
+        Los bancos configurados aquí son las cuentas ordenantes desde las que se realizarán
+        los pagos a proveedores. Cada remesa de pago debe asociarse a uno de estos bancos
+        para poder generar el fichero Cuaderno 34.
+      </div>
+
+      <div class="flow-section-label">Pasos del proceso</div>
+
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>Accede a la configuración de bancos</strong>
+          <p>En el menú lateral, sección <em>Configuración → Bancos</em>. Verás el listado
+            de bancos configurados con su estado activo/inactivo.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>Pulsa "+ Nuevo banco"</strong>
+          <p>Se abre el formulario de alta. Rellena los tres campos obligatorios.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">A</div>
+        <div class="step-content">
+          <strong>Nombre del banco</strong>
+          <p>Nombre descriptivo que identifique la entidad y la cuenta, p. ej.
+            <em>«Santander — Cuenta operaciones»</em>. Este nombre aparece en el desplegable
+            de selección al crear una remesa.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">B</div>
+        <div class="step-content">
+          <strong>Código BIC / SWIFT</strong>
+          <p>El código internacional de identificación de la entidad bancaria, p. ej.
+            <strong>BSCHESMMXXX</strong> (Santander), <strong>CAIXESBBXXX</strong> (CaixaBank)
+            o <strong>BBVAESMMXXX</strong> (BBVA). Consta de 8 u 11 caracteres.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">C</div>
+        <div class="step-content">
+          <strong>IBAN ordenante</strong>
+          <p>El IBAN completo de la cuenta desde la que se realizarán los pagos, p. ej.
+            <strong>ES91 2100 0418 4502 0005 1332</strong>. El sistema valida el formato
+            automáticamente.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <strong>Guarda el banco</strong>
+          <p>El banco queda activo de inmediato y aparece disponible en el desplegable
+            al crear una nueva remesa.</p>
+        </div>
+      </div>
+
+      <div class="subsection-h">Activar y desactivar bancos</div>
+
+      <div class="flow-step">
+        <div class="step-num">🔒</div>
+        <div class="step-content">
+          <strong>Desactiva los bancos que ya no uses</strong>
+          <p>Un banco inactivo <strong>no aparece</strong> en el formulario de nueva remesa,
+            pero las remesas ya existentes que lo usaban conservan el dato. Puedes reactivarlo
+            en cualquier momento.</p>
+        </div>
+      </div>
+
+      <div class="flow-note">
+        💡 Si tienes varias cuentas en el mismo banco, crea una entrada por cada IBAN ordenante
+        con un nombre descriptivo diferente para distinguirlas fácilmente.
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button id="btn-cerrar-bancos-footer" class="btn btn-secondary">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+
+{# ════════════════════════════════════════════════════════════════
+   MODAL 8 — CUENTAS DE GASTO  (ADMIN)
+   ════════════════════════════════════════════════════════════════ #}
+<div id="modal-cuentas" class="modal-backdrop modal-flujo" role="dialog" aria-modal="true">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span style="font-weight:700; font-size:1.05rem;">📒 Cuentas de gasto — Guía detallada</span>
+      <button class="modal-close" id="btn-cerrar-cuentas" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="modal-intro">
+        Las cuentas de gasto son las cuentas contables del <strong>grupo 6</strong> del plan
+        general que el equipo económico asigna al validar cada PEG. Deben estar alineadas
+        con el plan contable configurado en A3Con para que la exportación SUENLACE.DAT
+        genere los asientos correctamente.
+      </div>
+
+      <div class="flow-section-label">Pasos del proceso</div>
+
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>Accede a la gestión de cuentas de gasto</strong>
+          <p>En el menú lateral, sección <em>Administración → Cuentas de gasto</em>. Verás
+            el listado de todas las cuentas disponibles con su código, descripción y estado.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>Pulsa "+ Nueva cuenta"</strong>
+          <p>Se abre el formulario de alta con dos campos.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">A</div>
+        <div class="step-content">
+          <strong>Código contable</strong>
+          <p>El código numérico de la cuenta según el plan general, p. ej. <strong>628000</strong>
+            (Suministros), <strong>621000</strong> (Reparaciones y conservación),
+            <strong>627000</strong> (Publicidad y propaganda) o <strong>620000</strong>
+            (Gastos en I+D del ejercicio). Debe coincidir exactamente con el código
+            configurado en A3Con.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">B</div>
+        <div class="step-content">
+          <strong>Descripción</strong>
+          <p>Texto descriptivo que verá el gestor económico en el desplegable al validar
+            una PEG, p. ej. <em>«Suministros de oficina»</em> o <em>«Servicios de mantenimiento»</em>.
+            Sé descriptivo para facilitar la selección correcta.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <strong>Guarda la cuenta</strong>
+          <p>La cuenta queda activa de inmediato y aparece disponible en el panel de
+            validación de PEGs.</p>
+        </div>
+      </div>
+
+      <div class="subsection-h">Activar y desactivar cuentas</div>
+
+      <div class="flow-step">
+        <div class="step-num">🔒</div>
+        <div class="step-content">
+          <strong>Desactiva las cuentas que ya no uses</strong>
+          <p>Una cuenta inactiva <strong>no aparece</strong> en el panel de validación,
+            simplificando la selección. Las PEGs ya validadas con esa cuenta conservan
+            el dato. Puedes reactivarla en cualquier momento.</p>
+        </div>
+      </div>
+
+      <div class="subsection-h">Alineación con A3Con</div>
+      <div class="flow-note">
+        🔗 <strong>Importante:</strong> el código contable que introduzcas aquí se escribe
+        literalmente en el fichero SUENLACE.DAT al exportar una remesa. Si el código no
+        existe en A3Con, la importación generará un error. Verifica siempre los códigos
+        contra el plan contable activo en A3Con antes de crearlos aquí.
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button id="btn-cerrar-cuentas-footer" class="btn btn-secondary">Cerrar</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+
+{% endblock %}
+
+
+{% block extra_scripts %}
+<script>
+(function () {
+
+  /* ── Modal: ¿Cómo funciona? ─────────────────────────────────── */
+  var mFlujos   = document.getElementById('modal-flujos');
+  var btnAbrir  = document.getElementById('btn-como-funciona');
+  var btnCerrar = document.getElementById('btn-cerrar-modal');
+  var btnFooter = document.getElementById('btn-cerrar-modal-footer');
+
+  function abrirFlujos()  { mFlujos.classList.add('active');    document.body.style.overflow = 'hidden'; }
+  function cerrarFlujos() { mFlujos.classList.remove('active'); document.body.style.overflow = ''; }
+
+  if (btnAbrir)  btnAbrir.addEventListener('click',  abrirFlujos);
+  if (btnCerrar) btnCerrar.addEventListener('click',  cerrarFlujos);
+  if (btnFooter) btnFooter.addEventListener('click',  cerrarFlujos);
+  if (mFlujos)   mFlujos.addEventListener('click', function (e) { if (e.target === mFlujos) cerrarFlujos(); });
+
+  /* ── Función genérica para modales simples ─────────────────── */
+  function bindModal(modalId, abrirBtnId, cerrarBtnId, cerrarFooterId) {
+    var m    = document.getElementById(modalId);
+    var bAbr = document.getElementById(abrirBtnId);
+    var bCer = document.getElementById(cerrarBtnId);
+    var bCeF = document.getElementById(cerrarFooterId);
+    if (!m) return;
+    function abrir()  { m.classList.add('active');    document.body.style.overflow = 'hidden'; }
+    function cerrar() { m.classList.remove('active'); document.body.style.overflow = ''; }
+    if (bAbr) bAbr.addEventListener('click', abrir);
+    if (bCer) bCer.addEventListener('click', cerrar);
+    if (bCeF) bCeF.addEventListener('click', cerrar);
+    m.addEventListener('click', function (e) { if (e.target === m) cerrar(); });
+  }
+
+  bindModal('modal-crear-peg',   'btn-crear-peg',    'btn-cerrar-crear-peg',    'btn-cerrar-crear-peg-footer');
+  bindModal('modal-estados-peg', 'btn-estados-peg',  'btn-cerrar-estados',      'btn-cerrar-estados-footer');
+  bindModal('modal-validar-peg', 'btn-validar-peg',  'btn-cerrar-validar',      'btn-cerrar-validar-footer');
+  bindModal('modal-remesa-pago', 'btn-remesa-pago',  'btn-cerrar-remesa',       'btn-cerrar-remesa-footer');
+  bindModal('modal-usuarios',    'btn-usuarios',     'btn-cerrar-usuarios',     'btn-cerrar-usuarios-footer');
+  bindModal('modal-bancos',      'btn-bancos',       'btn-cerrar-bancos',       'btn-cerrar-bancos-footer');
+  bindModal('modal-cuentas',     'btn-cuentas',      'btn-cerrar-cuentas',      'btn-cerrar-cuentas-footer');
+
+  /* ── Escape cierra cualquier modal abierto ─────────────────── */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('.modal-backdrop.active').forEach(function (m) {
+      m.classList.remove('active');
+    });
+    document.body.style.overflow = '';
+  });
+
+  /* ── Pestañas ADMIN ─────────────────────────────────────────── */
+  var tabBtns  = document.querySelectorAll('.tab-btn');
+  var tabPanes = document.querySelectorAll('.tab-pane');
+
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      tabBtns.forEach(function (b)  { b.classList.remove('active'); });
+      tabPanes.forEach(function (p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      var pane = document.getElementById(btn.dataset.tab);
+      if (pane) pane.classList.add('active');
+    });
+  });
+
+}());
+</script>
+{% endblock %}

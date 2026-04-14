@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo proveedor{% endblock %}
+{% block page_title %}Alta de proveedor{% endblock %}
+{% block page_subtitle %}Registro inicial de terceros para su reutilización en propuestas específicas de gasto, pagos y remesas{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="margin-bottom: 6px;">Nuevo proveedor</h2>
+    <p class="muted" style="margin-top: 0;">Campos mínimos de la versión inicial. Más adelante ampliaremos los datos fiscales, bancarios y de contacto.</p>
+
+    <form method="post" action="/proveedores/nuevo">
+        <div class="grid">
+            <div class="grid-4 field">
+                <label for="tipo_persona">Tipo de persona</label>
+                <select id="tipo_persona" name="tipo_persona" required>
+                    <option value="JURIDICA">Jurídica</option>
+                    <option value="FISICA">Física</option>
+                </select>
+            </div>
+
+            <div class="grid-4 field">
+                <label for="cif_nif">CIF/NIF</label>
+                <input id="cif_nif" type="text" name="cif_nif" required>
+            </div>
+
+            <div class="grid-4 field">
+                <label for="telefono">Teléfono</label>
+                <input id="telefono" type="text" name="telefono">
+            </div>
+
+            <div class="grid-8 field">
+                <label for="razon_social">Razón social</label>
+                <input id="razon_social" type="text" name="razon_social" required>
+            </div>
+
+            <div class="grid-4 field">
+                <label for="nombre_comercial">Nombre comercial</label>
+                <input id="nombre_comercial" type="text" name="nombre_comercial">
+            </div>
+
+            <div class="grid-6 field">
+                <label for="email">Email</label>
+                <input id="email" type="email" name="email">
+            </div>
+
+            <div class="grid-6 field">
+                <label for="iban">IBAN</label>
+                <input id="iban" type="text" name="iban">
+            </div>
+
+            {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+            <div class="grid-12 field" style="border-top:1px solid #e8ecf0;padding-top:16px;margin-top:4px;">
+                <strong style="font-size:0.88rem;color:#888;text-transform:uppercase;letter-spacing:0.04em;">Cuenta contable</strong>
+            </div>
+            <div class="grid-6 field">
+                <label for="cuenta_cliente">Cuenta cliente (grupo 4)</label>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <input id="cuenta_cliente" type="text" name="cuenta_cliente"
+                           placeholder="Sin asignar"
+                           style="width:130px;font-family:monospace"
+                           maxlength="10">
+                    <select onchange="aplicarOpcionCuenta(this)"
+                            style="padding:9px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.95rem">
+                        <option value="">— Elegir —</option>
+                        <option value="saco">Cuenta saco ({{ cuenta_saco }})</option>
+                        <option value="nueva">Nueva cuenta correlativa</option>
+                    </select>
+                </div>
+                <span style="font-size:0.75rem;color:#6b7280;margin-top:4px;display:block">
+                    Cuenta saco: {{ cuenta_saco }} · o genera una nueva correlativa
+                </span>
+            </div>
+            {% endif %}
+
+            <div class="grid-12" style="border-top:1px solid #e8ecf0;padding-top:16px;margin-top:4px;">
+                <strong style="font-size:0.88rem;color:#888;text-transform:uppercase;letter-spacing:0.04em;">Dirección postal</strong>
+            </div>
+
+            <div class="grid-12 field">
+                <label for="direccion">Dirección</label>
+                <input id="direccion" type="text" name="direccion" placeholder="Calle, número, piso...">
+            </div>
+
+            <div class="grid-6 field">
+                <label for="localidad">Localidad</label>
+                <input id="localidad" type="text" name="localidad">
+            </div>
+
+            <div class="grid-3 field">
+                <label for="codigo_postal">Código postal</label>
+                <input id="codigo_postal" type="text" name="codigo_postal" maxlength="5" pattern="[0-9]{5}" placeholder="24001">
+            </div>
+
+            <div class="grid-3 field">
+                <label for="provincia">Provincia</label>
+                <input id="provincia" type="text" name="provincia">
+            </div>
+        </div>
+
+        <div class="actions" style="margin-top: 10px;">
+            <button class="btn btn-primary" type="submit">Guardar proveedor</button>
+            <a class="btn btn-secondary" href="/proveedores/">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function aplicarOpcionCuenta(sel) {
+  const input = document.getElementById("cuenta_cliente");
+  if (sel.value === "saco") {
+    input.value = "{{ cuenta_saco }}";
+    sel.value = "";
+  } else if (sel.value === "nueva") {
+    sel.value = "";
+    fetch("/proveedores/siguiente-cuenta-cliente")
+      .then(r => r.json())
+      .then(data => { input.value = data.cuenta; })
+      .catch(() => alert("Error al calcular la siguiente cuenta."));
+  }
+}
+</script>
+{% endblock %}

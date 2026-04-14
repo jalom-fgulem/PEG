@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{% if accion == 'crear' %}Nuevo servicio{% else %}Editar servicio{% endif %}{% endblock %}
+{% block page_title %}{% if accion == 'crear' %}Nuevo servicio{% else %}Editar servicio{% endif %}{% endblock %}
+{% block page_subtitle %}Datos básicos del servicio{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:620px;">
+  <form method="post" action="{% if accion == 'crear' %}/servicios/nuevo{% else %}/servicios/{{ servicio.id_servicio }}/editar{% endif %}">
+
+    <h3 style="margin:0 0 16px; font-size:1rem; color:#185fa5; border-bottom:1px solid rgba(95,159,211,0.2); padding-bottom:8px;">Datos básicos</h3>
+
+    <div style="display:grid; grid-template-columns:140px 1fr; gap:16px;">
+      <div class="form-group">
+        <label for="codigo">Código <span style="color:#a32d2d;">*</span></label>
+        <input type="text" id="codigo" name="codigo" required placeholder="Ej: HVU"
+               maxlength="10" style="font-family:monospace; text-transform:uppercase;"
+               value="{{ servicio.codigo if servicio else '' }}">
+      </div>
+      <div class="form-group">
+        <label for="nombre">Nombre <span style="color:#a32d2d;">*</span></label>
+        <input type="text" id="nombre" name="nombre" required placeholder="Nombre completo del servicio"
+               value="{{ servicio.nombre if servicio else '' }}">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="descripcion">Descripción</label>
+      <textarea id="descripcion" name="descripcion" rows="2" placeholder="Descripción opcional">{{ servicio.descripcion if servicio else '' }}</textarea>
+    </div>
+
+    <h3 style="margin:24px 0 16px; font-size:1rem; color:#185fa5; border-bottom:1px solid rgba(95,159,211,0.2); padding-bottom:8px;">Analítica</h3>
+
+    <div class="form-group" style="max-width:200px;">
+      <label for="analitica_nivel_1">Analítica nivel 1 <span style="color:#a32d2d;">*</span></label>
+      <input type="number" id="analitica_nivel_1" name="analitica_nivel_1" required
+             placeholder="Ej: 6" min="1"
+             style="font-family:monospace; font-weight:700; font-size:1.1rem;"
+             value="{{ servicio.analitica_nivel_1 if servicio else '' }}">
+      <small style="color:#888;">Número identificador del servicio en el plan analítico</small>
+    </div>
+
+    <h3 style="margin:24px 0 16px; font-size:1rem; color:#185fa5; border-bottom:1px solid rgba(95,159,211,0.2); padding-bottom:8px;">Cuenta bancaria por defecto</h3>
+
+    <div class="form-group">
+      <label for="id_banco_defecto">Cuenta bancaria</label>
+      <select id="id_banco_defecto" name="id_banco_defecto" style="width:100%;">
+        <option value="">— Sin asignar —</option>
+        {% for b in bancos %}
+        <option value="{{ b.id_banco }}"
+          {% if servicio and servicio.id_banco_defecto == b.id_banco %}selected{% endif %}>
+          {{ b.alias }} — {{ b.iban }}
+        </option>
+        {% endfor %}
+      </select>
+      <small style="color:#888;">Sugerencia para PEGs de este servicio. La remesa puede usar una cuenta distinta.</small>
+    </div>
+
+    <div style="display:flex; gap:12px; margin-top:24px;">
+      <button class="btn btn-primary" type="submit">
+        {% if accion == 'crear' %}Crear servicio{% else %}Guardar cambios{% endif %}
+      </button>
+      <a class="btn btn-secondary" href="{% if accion == 'editar' %}/servicios/{{ servicio.id_servicio }}{% else %}/servicios/{% endif %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

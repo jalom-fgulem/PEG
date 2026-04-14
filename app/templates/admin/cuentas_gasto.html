@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Cuentas de gasto{% endblock %}
+{% block page_title %}Cuentas de gasto{% endblock %}
+{% block page_subtitle %}Catálogo de cuentas contables del grupo 6 para clasificación de gastos{% endblock %}
+
+{% block extra_head %}
+<style>
+  .flash-success { padding:12px 16px; border-radius:10px; background:rgba(99,153,34,0.12); border:1px solid rgba(99,153,34,0.28); color:#2f6b10; font-weight:600; margin-bottom:16px; }
+  .flash-error   { padding:12px 16px; border-radius:10px; background:rgba(226,75,74,0.10); border:1px solid rgba(226,75,74,0.28); color:#a32d2d; font-weight:600; margin-bottom:16px; }
+  .badge-activo   { display:inline-block; padding:3px 10px; border-radius:999px; font-size:0.78rem; font-weight:700; background:rgba(99,153,34,0.14); color:#3b6d11; }
+  .badge-inactivo { display:inline-block; padding:3px 10px; border-radius:999px; font-size:0.78rem; font-weight:700; background:rgba(150,150,150,0.14); color:#666; }
+  .modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; }
+  .modal-backdrop.active { display:flex; }
+  .modal-panel { background:var(--surface); border-radius:16px; padding:28px; width:100%; max-width:480px; box-shadow:0 8px 40px rgba(0,0,0,0.18); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if msg %}
+<div class="flash-{{ msg_type }}">
+  {% if msg_type == 'success' %}✓{% else %}⚠{% endif %} {{ msg }}
+</div>
+{% endif %}
+
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+    <h3 style="margin:0;">Cuentas registradas</h3>
+    <button class="btn btn-primary" onclick="abrirModalNuevo()">＋ Nueva cuenta</button>
+  </div>
+
+  {% if cuentas %}
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Descripción</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in cuentas %}
+      <tr style="{% if not c.activo %}opacity:0.55;{% endif %}">
+        <td style="font-family:monospace; font-weight:700;">{{ c.codigo }}</td>
+        <td>{{ c.descripcion }}</td>
+        <td>
+          {% if c.activo %}
+            <span class="badge-activo">Activo</span>
+          {% else %}
+            <span class="badge-inactivo">Inactivo</span>
+          {% endif %}
+        </td>
+        <td style="display:flex; gap:8px;">
+          <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.84rem;"
+                  onclick="abrirModalEditar({{ c.id_cuenta_gasto }}, '{{ c.codigo|e }}', '{{ c.descripcion|e }}', {{ 'true' if c.activo else 'false' }})">
+            Editar
+          </button>
+          <form method="post" action="/admin/cuentas-gasto/{{ c.id_cuenta_gasto }}/toggle"
+                onsubmit="return confirm('¿{{ 'Desactivar' if c.activo else 'Activar' }} la cuenta {{ c.codigo }}?')">
+            {% if c.activo %}
+            <button class="btn" type="submit"
+                    style="padding:6px 12px; font-size:0.84rem; background:rgba(226,75,74,0.1); color:#a32d2d; border:1px solid rgba(226,75,74,0.28);">
+              Desactivar
+            </button>
+            {% else %}
+            <button class="btn" type="submit"
+                    style="padding:6px 12px; font-size:0.84rem; background:rgba(99,153,34,0.1); color:#3b6d11; border:1px solid rgba(99,153,34,0.28);">
+              Activar
+            </button>
+            {% endif %}
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">No hay cuentas de gasto registradas aún.</div>
+  {% endif %}
+</div>
+
+<!-- Modal: Nueva cuenta -->
+<div class="modal-backdrop" id="modalNuevo">
+  <div class="modal-panel">
+    <h3 style="margin:0 0 20px;">Nueva cuenta de gasto</h3>
+    <form method="post" action="/admin/cuentas-gasto/nueva">
+      <div class="form-group">
+        <label>Código contable *</label>
+        <input type="text" name="codigo" required placeholder="Ej: 629000"
+               style="width:100%; font-family:monospace;" maxlength="10">
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Descripción *</label>
+        <input type="text" name="descripcion" required placeholder="Ej: Otros servicios"
+               style="width:100%;">
+      </div>
+      <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalNuevo()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar cuenta</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Editar cuenta -->
+<div class="modal-backdrop" id="modalEditar">
+  <div class="modal-panel">
+    <h3 style="margin:0 0 20px;">Editar cuenta de gasto</h3>
+    <form method="post" id="formEditar" action="">
+      <div class="form-group">
+        <label>Código contable *</label>
+        <input type="text" name="codigo" id="editCodigo" required
+               style="width:100%; font-family:monospace;" maxlength="10">
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Descripción *</label>
+        <input type="text" name="descripcion" id="editDescripcion" required style="width:100%;">
+      </div>
+      <div class="form-group" style="margin-top:12px; display:flex; align-items:center; gap:10px;">
+        <input type="checkbox" name="activo" id="editActivo" style="width:auto;">
+        <label for="editActivo" style="margin:0; font-weight:600; cursor:pointer;">Cuenta activa</label>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalEditar()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div style="margin-top:12px;">
+  <a class="btn btn-secondary" href="/">← Volver al inicio</a>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function abrirModalNuevo() { document.getElementById('modalNuevo').classList.add('active'); document.body.style.overflow='hidden'; }
+function cerrarModalNuevo() { document.getElementById('modalNuevo').classList.remove('active'); document.body.style.overflow=''; }
+function abrirModalEditar(id, codigo, descripcion, activo) {
+  document.getElementById('formEditar').action = `/admin/cuentas-gasto/${id}/editar`;
+  document.getElementById('editCodigo').value = codigo;
+  document.getElementById('editDescripcion').value = descripcion;
+  document.getElementById('editActivo').checked = activo;
+  document.getElementById('modalEditar').classList.add('active');
+  document.body.style.overflow='hidden';
+}
+function cerrarModalEditar() { document.getElementById('modalEditar').classList.remove('active'); document.body.style.overflow=''; }
+document.getElementById('modalNuevo').addEventListener('click', function(e){ if(e.target===this) cerrarModalNuevo(); });
+document.getElementById('modalEditar').addEventListener('click', function(e){ if(e.target===this) cerrarModalEditar(); });
+</script>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{% if accion == 'crear' %}Nueva cuenta bancaria{% else %}Editar cuenta bancaria{% endif %}{% endblock %}
+{% block page_title %}{% if accion == 'crear' %}Nueva cuenta bancaria{% else %}Editar cuenta bancaria{% endif %}{% endblock %}
+{% block page_subtitle %}Datos de la cuenta de pago{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:620px;">
+  <form method="post" action="{% if accion == 'crear' %}/bancos/nuevo{% else %}/bancos/{{ banco.id_banco }}/editar{% endif %}">
+
+    <div class="form-group">
+      <label for="alias">Alias <span style="color:#a32d2d;">*</span></label>
+      <input type="text" id="alias" name="alias" required placeholder="Ej: Cuenta principal CaixaBank"
+             value="{{ banco.alias if banco else '' }}">
+      <small style="color:#888;">Nombre descriptivo para identificar la cuenta</small>
+    </div>
+
+    <div class="form-group">
+      <label for="iban">IBAN <span style="color:#a32d2d;">*</span></label>
+      <input type="text" id="iban" name="iban" required placeholder="ES00 0000 0000 0000 0000 0000"
+             maxlength="34" style="font-family:monospace; letter-spacing:0.05em;"
+             value="{{ banco.iban if banco else '' }}"
+             oninput="validarIBAN(this)">
+      <small id="iban-msg" style="color:#888;">Introduce el IBAN español (24 caracteres, empieza por ES)</small>
+    </div>
+
+    <div class="form-group">
+      <label for="bic">BIC / SWIFT</label>
+      <input type="text" id="bic" name="bic" placeholder="Ej: CAIXESBBXXX"
+             maxlength="11" style="font-family:monospace;"
+             value="{{ banco.bic if banco else '' }}">
+      <small style="color:#888;">Opcional. Código internacional del banco</small>
+    </div>
+
+    <div class="form-group">
+      <label for="sufijo_ordenante">Sufijo ordenante <span style="color:#a32d2d;">*</span></label>
+      <input type="text" id="sufijo_ordenante" name="sufijo_ordenante" required placeholder="Ej: 001"
+             maxlength="3" style="font-family:monospace; width:120px;"
+             value="{{ banco.sufijo_ordenante if banco else '' }}">
+      <small style="color:#888;">Código de 3 dígitos que identifica esta cuenta en el Cuaderno 34</small>
+    </div>
+
+    <div style="display:flex; gap:12px; margin-top:24px;">
+      <button class="btn btn-primary" type="submit">
+        {% if accion == 'crear' %}Crear cuenta{% else %}Guardar cambios{% endif %}
+      </button>
+      <a class="btn btn-secondary" href="/bancos/">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<script>
+function validarIBAN(input) {
+  const val = input.value.replace(/\s/g, '').toUpperCase();
+  const msg = document.getElementById('iban-msg');
+  if (val.length === 0) {
+    msg.textContent = 'Introduce el IBAN español (24 caracteres, empieza por ES)';
+    msg.style.color = '#888';
+  } else if (!val.startsWith('ES')) {
+    msg.textContent = '⚠ El IBAN debe comenzar por ES';
+    msg.style.color = '#a32d2d';
+  } else if (val.length !== 24) {
+    msg.textContent = `⚠ El IBAN español tiene 24 caracteres (llevas ${val.length})`;
+    msg.style.color = '#a32d2d';
+  } else {
+    msg.textContent = '✓ Formato correcto';
+    msg.style.color = '#2f6b10';
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,941 @@
+{% extends "base.html" %}
+{% block title %}Nueva PEG{% endblock %}
+{% block page_title %}Nuevo PEG{% endblock %}
+{% block page_subtitle %}Alta de un nuevo PEG — Propuesta Específica de Gasto{% endblock %}
+
+{% block extra_head %}
+<style>
+  .grid-form { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px 18px; }
+  .col-3  { grid-column: span 3; }
+  .col-4  { grid-column: span 4; }
+  .col-6  { grid-column: span 6; }
+  .col-8  { grid-column: span 8; }
+  .col-12 { grid-column: span 12; }
+  .section-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8a8691; font-weight: 700; margin: 8px 0 4px; grid-column: span 12; border-top: 1px solid var(--line); padding-top: 14px; }
+  .importe-row { display: flex; gap: 10px; align-items: flex-end; }
+  .calc-badge { display: inline-block; padding: 12px 14px; background: rgba(194,27,132,0.06); border: 1px solid rgba(194,27,132,0.15); border-radius: 12px; font-weight: 700; color: var(--fgulem-magenta); font-size: 1rem; min-width: 120px; text-align: right; }
+  @media (max-width: 780px) {
+    .col-3,.col-4,.col-6,.col-8 { grid-column: span 12; }
+  }
+  .adj-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .adj-item { display:flex; align-items:center; gap:12px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#fafafa; flex-wrap:wrap; }
+  .adj-file-label { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; background:rgba(160,32,100,0.07); border:1px solid rgba(160,32,100,0.22); border-radius:10px; color:var(--fgulem-magenta); font-weight:700; font-size:0.88rem; cursor:pointer; }
+  .adj-file-label:hover { background:rgba(160,32,100,0.14); }
+  .adj-file-label { position:relative; overflow:hidden; }
+  .adj-file-label input[type=file] { position:absolute; top:0; left:0; opacity:0; width:100%; height:100%; cursor:pointer; font-size:0; }
+  .adj-file-label span { font-weight:400; color:var(--ink-soft); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .btn-adj-del { background:transparent; border:1px solid rgba(194,27,132,0.25); color:var(--fgulem-magenta); border-radius:8px; padding:4px 10px; cursor:pointer; font-size:0.82rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <form method="post" action="/pegs/nuevo" id="formPeg" enctype="multipart/form-data" novalidate>
+
+    {% if error %}
+    <div style="padding:12px 16px;border-radius:10px;background:rgba(226,75,74,0.10);border:1px solid rgba(226,75,74,0.28);color:#a32d2d;font-weight:600;margin-bottom:16px;">
+      ⚠ {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- ── SECCIÓN: SERVICIO Y PROYECTO ── -->
+    <div class="grid-form">
+      <div class="section-title">Servicio y proyecto</div>
+
+      {% if usuario.rol == 'GESTOR_SERVICIO' %}
+      {# Servicio fijo — el router filtra servicios al del gestor de servicio #}
+      <div class="col-4 field">
+        <label>Servicio</label>
+        <input type="text" readonly tabindex="-1"
+          style="background:#f7f7f8;color:var(--ink-soft);"
+          value="{{ servicios[0].nombre if servicios else '' }}">
+        <input type="hidden" name="id_servicio" value="{{ usuario.id_servicio }}">
+      </div>
+      {# Proyecto y analítica ocultos para GESTOR_SERVICIO #}
+
+      {% else %}
+      <div class="col-4 field">
+        <label for="id_servicio">Servicio <span style="color:var(--fgulem-magenta)">*</span></label>
+        <select id="id_servicio" name="id_servicio" required onchange="actualizarProyectos()">
+          <option value="">— Seleccionar —</option>
+          {% for s in servicios %}
+          <option value="{{ s.id_servicio }}">{{ s.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-4 field">
+        <label for="id_proyecto">Proyecto</label>
+        <select id="id_proyecto" name="id_proyecto">
+          <option value="">— Seleccionar servicio primero —</option>
+          {% for p in proyectos %}
+          <option value="{{ p.id_proyecto }}" data-servicio="{{ p.id_servicio }}">{{ p.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-4 field">
+        <label for="id_analitica">Analítica</label>
+        <select id="id_analitica" name="id_analitica">
+          <option value="">— Opcional —</option>
+          {% for a in analiticas %}
+          <option value="{{ a.id_analitica }}" data-servicio="{{ a.id_servicio }}">{{ a.nivel_1 }}.{{ a.nivel_2 }} — {{ a.descripcion }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── SECCIÓN: PROVEEDOR ── -->
+    <div class="grid-form" style="margin-top: 4px;">
+      <div class="section-title">Proveedor</div>
+
+      <div class="col-12 field">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button type="button" onclick="abrirModalEditarProveedor()"
+                  class="btn btn-secondary" style="font-size:0.8rem"
+                  id="btn-editar-proveedor" disabled>
+            ✏ Editar proveedor
+          </button>
+          <button type="button" onclick="abrirModalNuevoProveedor()"
+                  class="btn btn-secondary" style="font-size:0.8rem">
+            ＋ Nuevo proveedor
+          </button>
+        </div>
+
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+          <div style="flex:2;min-width:200px">
+            <label class="form-label">Proveedor *</label>
+            <select name="id_proveedor" id="select-proveedor"
+                    class="select-field" required
+                    onchange="onProveedorCambiado(this)">
+              <option value="">— Selecciona proveedor —</option>
+              {% for p in proveedores %}
+              <option value="{{ p.id_proveedor }}"
+                      data-cuenta="{{ p.cuenta_cliente or '' }}"
+                      data-iban="{{ p.iban or '' }}"
+                      {% if peg is defined and peg.id_proveedor == p.id_proveedor %}
+                      selected{% endif %}
+                      {% if proveedor_preseleccionado and proveedor_preseleccionado.id_proveedor == p.id_proveedor %}
+                      selected{% endif %}>
+                {{ p.razon_social }} — {{ p.cif_nif }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+          <div style="flex:1;min-width:160px" id="bloque-cuenta-cliente">
+            <label class="form-label">Cuenta cliente</label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="text" name="cuenta_cliente_proveedor"
+                     id="input-cuenta-cliente"
+                     class="select-field" style="width:120px"
+                     placeholder="4100000"
+                     value="">
+              <button type="button"
+                      onclick="usarCuentaSaco()"
+                      class="btn btn-secondary"
+                      style="font-size:0.75rem;white-space:nowrap;padding:4px 8px"
+                      title="Usar cuenta saco">
+                Saco
+              </button>
+            </div>
+            <span style="font-size:0.75rem;color:#6b7280">
+              Cuenta propia, saco ({{ cuenta_saco }}) o nueva
+            </span>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Modal editar proveedor -->
+        <div id="modal-editar-proveedor"
+             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);
+                    z-index:1000;align-items:center;justify-content:center">
+          <div style="background:white;border-radius:10px;padding:28px;
+                      width:100%;max-width:480px;max-height:90vh;overflow-y:auto">
+            <h3 style="margin:0 0 16px;font-size:1rem;font-weight:700">Editar proveedor</h3>
+            <div id="modal-editar-proveedor-contenido"></div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+              <button type="button" onclick="cerrarModalEditarProveedor()"
+                      class="btn btn-secondary">Cancelar</button>
+              <button type="button" onclick="guardarProveedorEditado()"
+                      class="btn btn-primary">Guardar cambios</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-3 field">
+        <label>IBAN (del proveedor)</label>
+        <input id="iban_proveedor" type="text" readonly tabindex="-1"
+          style="background: #f7f7f8; color: var(--ink-soft);"
+          value="{{ proveedor_preseleccionado.iban if proveedor_preseleccionado else '' }}">
+      </div>
+
+      <div class="col-3 field">
+        <label for="id_forma_pago_prevista">Forma de pago <span style="color:var(--fgulem-magenta)">*</span></label>
+        <select id="id_forma_pago_prevista" name="id_forma_pago_prevista" required>
+          {% for fp in formas_pago %}
+          <option value="{{ fp.id_forma_pago }}"
+            {% if proveedor_preseleccionado and proveedor_preseleccionado.id_forma_pago_habitual == fp.id_forma_pago %}selected{% endif %}>
+            {{ fp.nombre }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- ── MODAL: NUEVO PROVEEDOR RÁPIDO ── -->
+    <div id="modalNuevoProveedor" class="modal-backdrop">
+      <div class="modal-panel" style="max-width:560px">
+        <div class="modal-header">
+          <h3 style="margin:0;">Nuevo proveedor</h3>
+          <button type="button" class="modal-close" onclick="cerrarModalProveedor()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px;">
+
+            <!-- Identificación -->
+            <div class="field" style="margin:0;">
+              <label>Tipo de persona</label>
+              <select id="mp-tipo-persona">
+                <option value="JURIDICA">Jurídica</option>
+                <option value="FISICA">Física</option>
+              </select>
+            </div>
+
+            <div class="field" style="margin:0;">
+              <label>CIF/NIF <span style="color:var(--fgulem-magenta)">*</span></label>
+              <input type="text" id="mp-cif-nif" placeholder="B12345678">
+            </div>
+
+            <div class="field" style="grid-column:span 2;margin:0;">
+              <label>Razón social <span style="color:var(--fgulem-magenta)">*</span></label>
+              <input type="text" id="mp-razon-social" placeholder="Nombre o denominación social">
+            </div>
+
+            <div class="field" style="grid-column:span 2;margin:0;">
+              <label>Nombre comercial</label>
+              <input type="text" id="mp-nombre-comercial" placeholder="Si difiere de la razón social">
+            </div>
+
+            <!-- Contacto -->
+            <div class="field" style="margin:0;">
+              <label>Teléfono</label>
+              <input type="text" id="mp-telefono" placeholder="987 000 000">
+            </div>
+
+            <div class="field" style="margin:0;">
+              <label>Email</label>
+              <input type="email" id="mp-email" placeholder="contacto@empresa.com">
+            </div>
+
+            <!-- Bancario -->
+            <div class="field" style="margin:0;">
+              <label>IBAN</label>
+              <input type="text" id="mp-iban" placeholder="ES00 0000 0000 0000 0000 0000">
+            </div>
+
+            <div class="field" style="margin:0;">
+              <label>Forma de pago habitual</label>
+              <select id="mp-forma-pago">
+                {% for fp in formas_pago %}
+                <option value="{{ fp.id_forma_pago }}">{{ fp.nombre }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+            <div class="field" style="grid-column:span 2;margin:0;border-top:1px solid var(--line);padding-top:12px;">
+              <label>Cuenta cliente (grupo 4)</label>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input type="text" id="mp-cuenta-cliente" placeholder="Sin asignar"
+                       style="width:130px;font-family:monospace" maxlength="10">
+                <button type="button" onclick="usarCuentaSaco()"
+                        class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px">
+                  Saco ({{ cuenta_saco }})
+                </button>
+                <button type="button" onclick="calcularNuevaCuenta()"
+                        class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px">
+                  Nueva correlativa
+                </button>
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Dirección postal -->
+            <div style="grid-column:span 2;border-top:1px solid var(--line);padding-top:12px;
+                        font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;
+                        color:#8a8691;font-weight:700;">
+              Dirección postal
+            </div>
+
+            <div class="field" style="grid-column:span 2;margin:0;">
+              <label>Dirección</label>
+              <input type="text" id="mp-direccion" placeholder="Calle, número, piso…">
+            </div>
+
+            <div class="field" style="margin:0;">
+              <label>Localidad</label>
+              <input type="text" id="mp-localidad">
+            </div>
+
+            <div class="field" style="margin:0;">
+              <label>Provincia</label>
+              <input type="text" id="mp-provincia">
+            </div>
+
+            <div class="field" style="margin:0;">
+              <label>Código postal</label>
+              <input type="text" id="mp-codigo-postal" placeholder="24001" maxlength="5">
+            </div>
+
+            <div id="mp-error" style="grid-column:span 2;color:var(--fgulem-magenta);
+                 font-size:0.88rem;display:none;padding:8px 12px;
+                 background:rgba(194,27,132,0.07);border-radius:8px;margin:0;"></div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+            <button type="button" onclick="cerrarModalProveedor()"
+              style="background:transparent;border:1px solid #d8dce2;border-radius:10px;
+                     padding:9px 18px;cursor:pointer;font-size:0.9rem;">
+              Cancelar
+            </button>
+            <button type="button" onclick="guardarProveedorRapido()"
+              style="background:linear-gradient(135deg,var(--fgulem-magenta),var(--fgulem-magenta-soft));
+                     color:#fff;border:none;border-radius:10px;padding:9px 22px;
+                     cursor:pointer;font-weight:700;font-size:0.9rem;">
+              Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECCIÓN: DOCUMENTO ── -->
+    <div class="grid-form" style="margin-top: 4px;">
+      <div class="section-title">Documento</div>
+
+      <div class="col-3 field">
+        <label for="id_peg_tipo">Tipo <span style="color:var(--fgulem-magenta)">*</span></label>
+        <select id="id_peg_tipo" name="id_peg_tipo" required>
+          {% for t in tipos %}
+          <option value="{{ t.id_peg_tipo }}">{{ t.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-3 field">
+        <label for="numero_documento">Nº documento <span style="color:var(--fgulem-magenta)">*</span></label>
+        <input id="numero_documento" name="numero_documento" type="text" required placeholder="FAC-001">
+      </div>
+
+      <div class="col-3 field">
+        <label for="fecha_documento">Fecha documento <span style="color:var(--fgulem-magenta)">*</span></label>
+        <input id="fecha_documento" name="fecha_documento" type="date" required>
+      </div>
+
+      <div class="col-3 field">
+        <label for="fecha_recepcion">Fecha recepción <span style="color:var(--fgulem-magenta)">*</span></label>
+        <input id="fecha_recepcion" name="fecha_recepcion" type="date" required>
+      </div>
+
+      <div class="col-3 field">
+        <label for="fecha_vencimiento">Fecha vencimiento</label>
+        <input id="fecha_vencimiento" name="fecha_vencimiento" type="date">
+      </div>
+
+      <div class="col-12 field">
+        <label for="descripcion_gasto">Descripción del gasto <span style="color:var(--fgulem-magenta)">*</span></label>
+        <input id="descripcion_gasto" name="descripcion_gasto" type="text" required
+          placeholder="Descripción breve y clara del gasto">
+      </div>
+
+      <div class="col-12 field">
+        <label for="observaciones">Observaciones</label>
+        <textarea id="observaciones" name="observaciones" rows="2"
+          placeholder="Información adicional relevante (opcional)"></textarea>
+      </div>
+    </div>
+
+    <!-- ── SECCIÓN: DOCUMENTOS ADJUNTOS ── -->
+    <div class="form-seccion">
+      <h3 class="seccion-titulo">Documentos adjuntos</h3>
+      <p style="font-size:0.82rem;color:#6b7280;margin-bottom:12px">
+        Adjunta al menos un documento. El PEG no estará cerrado
+        hasta que se suba una Factura.
+      </p>
+
+      <ul class="adj-list" id="lista-docs-nuevos">
+        <li class="adj-item" id="fila-doc-0"
+            style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <label class="adj-file-label">
+            📎 Seleccionar archivo
+            <input type="file" name="archivos"
+                   accept=".pdf,.jpg,.jpeg,.png"
+                   onchange="this.parentElement.querySelector('span').textContent = this.files[0]?.name || 'Seleccionar archivo'">
+            <span></span>
+          </label>
+          <select name="tipos_documento" class="select-field"
+                  style="width:180px">
+            <option value="FACTURA_PROFORMA">Factura proforma</option>
+            <option value="PRESUPUESTO">Presupuesto</option>
+            <option value="FACTURA">Factura</option>
+            <option value="OTROS">Otros</option>
+          </select>
+          <button type="button" onclick="eliminarFilaDoc(this, 0)"
+                  class="btn-adj-del">Eliminar</button>
+        </li>
+      </ul>
+
+      <button type="button" onclick="añadirFilaDoc()"
+              class="btn btn-secondary"
+              style="font-size:0.82rem;margin-top:8px">
+        ＋ Añadir otro documento
+      </button>
+    </div>
+
+    <!-- ── SECCIÓN: IMPORTES / LÍNEAS IVA ── -->
+    <div class="grid-form" style="margin-top: 4px;">
+      <div class="section-title">Importes</div>
+
+      <!-- Tabla de líneas -->
+      <div class="col-12">
+        <table id="tablaLineas" style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:8px 10px;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;color:#86828b;border-bottom:1px solid var(--line);width:160px;">Tipo IVA</th>
+              <th style="text-align:left;padding:8px 10px;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;color:#86828b;border-bottom:1px solid var(--line);">Base imponible (€)</th>
+              <th style="text-align:right;padding:8px 10px;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;color:#86828b;border-bottom:1px solid var(--line);width:120px;">IVA (€)</th>
+              <th style="text-align:right;padding:8px 10px;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;color:#86828b;border-bottom:1px solid var(--line);width:130px;">Total línea (€)</th>
+              <th style="padding:8px 10px;border-bottom:1px solid var(--line);width:48px;"></th>
+            </tr>
+          </thead>
+          <tbody id="lineasBody"></tbody>
+        </table>
+
+        <button type="button" onclick="añadirLinea()"
+          style="background:transparent;border:1px dashed rgba(194,27,132,0.35);color:var(--fgulem-magenta);
+                 border-radius:10px;padding:7px 18px;cursor:pointer;font-weight:700;font-size:0.88rem;">
+          + Añadir línea
+        </button>
+      </div>
+
+      <!-- IRPF -->
+      <div class="col-12" style="margin-top:8px;">
+        <label style="display:flex;align-items:center;gap:10px;font-weight:600;cursor:pointer;">
+          <input type="checkbox" id="tiene_irpf" name="tiene_irpf"
+            onchange="toggleIrpf()" style="width:auto;accent-color:var(--fgulem-magenta);">
+          Esta factura tiene retención de IRPF
+        </label>
+        <div id="bloqueIrpf" style="display:none;margin-top:12px;display:none;
+             align-items:center;gap:16px;flex-wrap:wrap;">
+          <div class="field" style="margin:0;">
+            <label for="tipo_irpf">Tipo retención</label>
+            <select id="tipo_irpf" name="tipo_irpf" onchange="recalcularTotales()"
+              style="padding:10px 14px;border:1px solid #d8dce2;border-radius:12px;font-size:0.95rem;">
+              <option value="7">7%</option>
+              <option value="15" selected>15%</option>
+              <option value="19">19%</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0;">
+            <label>Importe retención (€)</label>
+            <div class="calc-badge" id="importeIrpfDisplay" style="min-width:100px;">0.00 €</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Totales -->
+      <div class="col-12" style="margin-top:14px;">
+        <div style="display:grid;grid-template-columns:1fr auto;gap:6px 32px;
+                    background:rgba(194,27,132,0.04);border:1px solid rgba(194,27,132,0.12);
+                    border-radius:14px;padding:18px 24px;max-width:480px;margin-left:auto;">
+          <span style="font-size:0.9rem;color:var(--ink-soft);">Base imponible total</span>
+          <span id="resumenBase" style="text-align:right;font-weight:700;">0,00 €</span>
+
+          <span style="font-size:0.9rem;color:var(--ink-soft);">IVA total</span>
+          <span id="resumenIva" style="text-align:right;font-weight:700;">0,00 €</span>
+
+          <span id="labelIrpf" style="font-size:0.9rem;color:var(--ink-soft);display:none;">Retención IRPF</span>
+          <span id="resumenIrpf" style="text-align:right;font-weight:700;color:var(--fgulem-magenta);display:none;">-0,00 €</span>
+
+          <span style="font-size:1rem;font-weight:700;border-top:1px solid var(--line);padding-top:10px;margin-top:4px;">IMPORTE TOTAL</span>
+          <span id="resumenTotal" class="calc-badge" style="font-size:1.1rem;border-top:1px solid var(--line);padding-top:10px;margin-top:4px;background:none;border:none;padding:10px 0 0;">0,00 €</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ACCIONES ── -->
+    <div id="errores-validacion" style="display:none;padding:12px 16px;border-radius:10px;
+         background:rgba(226,75,74,0.10);border:1px solid rgba(226,75,74,0.28);
+         color:#a32d2d;font-weight:600;margin-bottom:14px;"></div>
+    <div class="actions" style="margin-top: 22px;">
+      <button class="btn btn-primary" type="button" onclick="validarYEnviar()">Guardar PEG</button>
+      <a class="btn btn-secondary" href="/pegs/">Cancelar</a>
+    </div>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // ── Filtro proyectos/analíticas por servicio ──────────────────────────────
+  {% if usuario.rol != 'GESTOR_SERVICIO' %}
+  const todosProyectos  = [...document.querySelectorAll("#id_proyecto option[data-servicio]")];
+  const todasAnaliticas = [...document.querySelectorAll("#id_analitica option[data-servicio]")];
+
+  function actualizarProyectos() {
+    const idServicio = document.getElementById("id_servicio").value;
+    const selProy = document.getElementById("id_proyecto");
+    const selAna  = document.getElementById("id_analitica");
+    selProy.innerHTML = '<option value="">— Sin proyecto —</option>';
+    selAna.innerHTML  = '<option value="">— Opcional —</option>';
+    todosProyectos.forEach(opt => {
+      if (!idServicio || opt.dataset.servicio === idServicio) selProy.appendChild(opt.cloneNode(true));
+    });
+    todasAnaliticas.forEach(opt => {
+      if (!idServicio || opt.dataset.servicio === idServicio) selAna.appendChild(opt.cloneNode(true));
+    });
+  }
+  {% endif %}
+
+  // ── Buscador de proveedor ─────────────────────────────────────────────────
+  function filtrarProveedores() {
+    const termino = document.getElementById("buscador-proveedor").value.trim().toLowerCase();
+    const sel = document.getElementById("id_proveedor");
+    Array.from(sel.options).forEach(opt => {
+      if (!opt.value) return;
+      opt.hidden = termino.length > 0 && !opt.text.toLowerCase().includes(termino);
+    });
+  }
+
+  // ── Modal nuevo proveedor ─────────────────────────────────────────────────
+  function abrirModalProveedor() {
+    const ids = ["mp-razon-social","mp-cif-nif","mp-nombre-comercial","mp-iban",
+                 "mp-telefono","mp-email","mp-direccion","mp-localidad",
+                 "mp-provincia","mp-codigo-postal","mp-cuenta-cliente"];
+    ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+    document.getElementById("mp-tipo-persona").value  = "JURIDICA";
+    document.getElementById("mp-error").style.display = "none";
+    document.getElementById("modalNuevoProveedor").classList.add("active");
+    document.getElementById("mp-razon-social").focus();
+  }
+
+  function cerrarModalProveedor() {
+    document.getElementById("modalNuevoProveedor").classList.remove("active");
+  }
+
+  document.getElementById("modalNuevoProveedor").addEventListener("click", e => {
+    if (e.target === document.getElementById("modalNuevoProveedor")) cerrarModalProveedor();
+  });
+
+  async function guardarProveedorRapido() {
+    const razonSocial      = document.getElementById("mp-razon-social").value.trim();
+    const cifNif           = document.getElementById("mp-cif-nif").value.trim();
+    const tipoPersona      = document.getElementById("mp-tipo-persona").value;
+    const nombreComercial  = document.getElementById("mp-nombre-comercial").value.trim();
+    const iban             = document.getElementById("mp-iban").value.trim();
+    const formaPago        = document.getElementById("mp-forma-pago").value;
+    const telefono         = document.getElementById("mp-telefono").value.trim();
+    const email            = document.getElementById("mp-email").value.trim();
+    const direccion        = document.getElementById("mp-direccion").value.trim();
+    const localidad        = document.getElementById("mp-localidad").value.trim();
+    const provincia        = document.getElementById("mp-provincia").value.trim();
+    const codigoPostal     = document.getElementById("mp-codigo-postal").value.trim();
+    const cuentaClienteEl  = document.getElementById("mp-cuenta-cliente");
+    const cuentaCliente    = cuentaClienteEl ? cuentaClienteEl.value.trim() : null;
+    const errEl            = document.getElementById("mp-error");
+
+    if (!razonSocial || !cifNif) {
+      errEl.textContent   = "Razón social y CIF/NIF son obligatorios.";
+      errEl.style.display = "block";
+      return;
+    }
+
+    errEl.style.display = "none";
+
+    try {
+      const res = await fetch("/proveedores/rapido", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipo_persona:           tipoPersona,
+          razon_social:           razonSocial,
+          cif_nif:                cifNif,
+          nombre_comercial:       nombreComercial || null,
+          iban:                   iban || null,
+          id_forma_pago_habitual: parseInt(formaPago) || null,
+          telefono:               telefono   || null,
+          email:                  email      || null,
+          direccion:              direccion  || null,
+          localidad:              localidad  || null,
+          provincia:              provincia  || null,
+          codigo_postal:          codigoPostal || null,
+          cuenta_cliente:         cuentaCliente || null,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        errEl.textContent   = data.detail || data.error || "Error al crear el proveedor.";
+        errEl.style.display = "block";
+        return;
+      }
+
+      // Añadir nueva opción y seleccionarla
+      const sel = document.getElementById("id_proveedor");
+      const opt = new Option(`${data.razon_social} — ${data.cif_nif}`, data.id);
+      sel.add(opt);
+      sel.value = data.id;
+
+      // Limpiar buscador y disparar carga de datos
+      document.getElementById("buscador-proveedor").value = "";
+      filtrarProveedores();
+      cargarDatosProveedor();
+
+      cerrarModalProveedor();
+    } catch (e) {
+      errEl.textContent   = "Error de red. Inténtelo de nuevo.";
+      errEl.style.display = "block";
+    }
+  }
+
+  // ── Carga de datos del proveedor ──────────────────────────────────────────
+  async function cargarDatosProveedor() {
+    const id = document.getElementById("id_proveedor").value;
+    if (!id) return;
+    try {
+      const res  = await fetch(`/pegs/proveedor/${id}/json`);
+      const data = await res.json();
+      document.getElementById("iban_proveedor").value = data.iban || "";
+      if (data.id_forma_pago_habitual) {
+        document.getElementById("id_forma_pago_prevista").value = data.id_forma_pago_habitual;
+      }
+    } catch(e) {}
+  }
+
+  // ── Gestión de líneas de IVA ──────────────────────────────────────────────
+  const MAX_LINEAS = 5;
+
+  function fmt(n) {
+    return n.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+  }
+
+  function crearFila() {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="padding:6px 8px;">
+        <select name="lineas_tipo_iva" onchange="recalcularTotales()"
+          style="padding:8px 10px;border:1px solid #d8dce2;border-radius:10px;font-size:0.93rem;width:100%;">
+          <option value="0">0%</option>
+          <option value="5">5%</option>
+          <option value="10">10%</option>
+          <option value="21" selected>21%</option>
+        </select>
+      </td>
+      <td style="padding:6px 8px;">
+        <input type="number" name="lineas_base_imponible" step="0.01" min="0" placeholder="0.00"
+          oninput="recalcularTotales()"
+          style="padding:8px 10px;border:1px solid #d8dce2;border-radius:10px;font-size:0.93rem;width:100%;text-align:right;">
+      </td>
+      <td style="padding:6px 8px;text-align:right;font-weight:600;" class="col-iva">—</td>
+      <td style="padding:6px 8px;text-align:right;font-weight:600;" class="col-total">—</td>
+      <td style="padding:6px 8px;text-align:center;">
+        <button type="button" onclick="eliminarFila(this)"
+          style="background:transparent;border:1px solid rgba(194,27,132,0.25);color:var(--fgulem-magenta);
+                 border-radius:8px;padding:4px 10px;cursor:pointer;font-size:0.85rem;font-weight:700;">✕</button>
+      </td>`;
+    return tr;
+  }
+
+  function añadirLinea() {
+    const tbody = document.getElementById("lineasBody");
+    if (tbody.rows.length >= MAX_LINEAS) return;
+    tbody.appendChild(crearFila());
+    actualizarBotonesEliminar();
+    recalcularTotales();
+  }
+
+  function eliminarFila(btn) {
+    const tbody = document.getElementById("lineasBody");
+    if (tbody.rows.length <= 1) return;
+    btn.closest("tr").remove();
+    actualizarBotonesEliminar();
+    recalcularTotales();
+  }
+
+  function actualizarBotonesEliminar() {
+    const tbody = document.getElementById("lineasBody");
+    tbody.querySelectorAll("button").forEach(b => b.disabled = tbody.rows.length <= 1);
+  }
+
+  // ── IRPF ─────────────────────────────────────────────────────────────────
+  function toggleIrpf() {
+    const cb     = document.getElementById("tiene_irpf");
+    const bloque = document.getElementById("bloqueIrpf");
+    bloque.style.display = cb.checked ? "flex" : "none";
+    recalcularTotales();
+  }
+
+  // ── Recálculo en tiempo real ──────────────────────────────────────────────
+  function recalcularTotales() {
+    const tbody = document.getElementById("lineasBody");
+    let sumaBase = 0, sumaIva = 0;
+
+    Array.from(tbody.rows).forEach(tr => {
+      const tipo = parseFloat(tr.querySelector("select").value) || 0;
+      const base = parseFloat(tr.querySelector("input[type=number]").value) || 0;
+      const iva  = Math.round(base * tipo * 100) / 10000;   // evitar aritmética float
+      tr.querySelector(".col-iva").textContent   = base > 0 ? iva.toFixed(2) : "—";
+      tr.querySelector(".col-total").textContent = base > 0 ? (base + iva).toFixed(2) : "—";
+      sumaBase += base;
+      sumaIva  += iva;
+    });
+
+    const tieneIrpf = document.getElementById("tiene_irpf").checked;
+    const tipoIrpf  = tieneIrpf ? (parseFloat(document.getElementById("tipo_irpf").value) || 0) : 0;
+    const irpf      = Math.round(sumaBase * tipoIrpf * 100) / 10000;
+    const total     = sumaBase + sumaIva - irpf;
+
+    document.getElementById("resumenBase").textContent  = fmt(sumaBase);
+    document.getElementById("resumenIva").textContent   = fmt(sumaIva);
+    document.getElementById("resumenTotal").textContent = fmt(total);
+
+    const labelIrpf   = document.getElementById("labelIrpf");
+    const resumenIrpf = document.getElementById("resumenIrpf");
+    const importeDisp = document.getElementById("importeIrpfDisplay");
+    if (tieneIrpf) {
+      labelIrpf.style.display   = "";
+      resumenIrpf.style.display = "";
+      resumenIrpf.textContent   = "-" + fmt(irpf);
+      importeDisp.textContent   = fmt(irpf);
+    } else {
+      labelIrpf.style.display   = "none";
+      resumenIrpf.style.display = "none";
+    }
+  }
+
+  // ── Proveedor: editar / nuevo / cuenta saco ──────────────────────────────
+  const CUENTA_SACO = "{{ cuenta_saco }}";
+
+  function onProveedorCambiado(sel) {
+    const opt = sel.options[sel.selectedIndex];
+
+    // Cuenta cliente
+    const cuenta = opt.dataset.cuenta || "";
+    const inputCuenta = document.getElementById("input-cuenta-cliente");
+    if (inputCuenta) inputCuenta.value = cuenta;
+
+    // IBAN
+    const iban = opt.dataset.iban || "";
+    const inputIban = document.getElementById("iban_proveedor");
+    if (inputIban) inputIban.value = iban;
+
+    // Botón editar proveedor
+    const btnEditar = document.getElementById("btn-editar-proveedor");
+    if (btnEditar) btnEditar.disabled = !sel.value;
+  }
+
+  function usarCuentaSaco() {
+    document.getElementById("input-cuenta-cliente").value = CUENTA_SACO;
+  }
+
+  function abrirModalNuevoProveedor() {
+    abrirModalProveedor();
+  }
+
+  function abrirModalEditarProveedor() {
+    const idProv = document.getElementById("select-proveedor").value;
+    if (!idProv) return;
+    fetch(`/proveedores/${idProv}/datos-json`)
+      .then(r => r.json())
+      .then(p => {
+        {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+        const camposCuentaCliente = `
+          <div style="margin-top:8px">
+            <label class="form-label">Cuenta cliente</label>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <input type="text" id="ep-cuenta-cliente"
+                     class="select-field" style="width:120px"
+                     value="${p.cuenta_cliente || ''}">
+              <button type="button" onclick="usarCuentaSacoModal()"
+                      class="btn btn-secondary"
+                      style="font-size:0.75rem;padding:4px 8px">
+                Saco
+              </button>
+              <button type="button" onclick="calcularNuevaCuenta()"
+                      class="btn btn-secondary"
+                      style="font-size:0.75rem;padding:4px 8px">
+                Nueva cuenta
+              </button>
+            </div>
+            <span style="font-size:0.75rem;color:#6b7280">
+              Saco: {{ cuenta_saco }} · o introduce una nueva
+            </span>
+          </div>
+        `;
+        {% else %}
+        const camposCuentaCliente = '';
+        {% endif %}
+        document.getElementById("modal-editar-proveedor-contenido").innerHTML = `
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div><label class="form-label">Razón social</label>
+              <input type="text" id="ep-razon" class="select-field" value="${p.razon_social || ''}"></div>
+            <div><label class="form-label">NIF</label>
+              <input type="text" id="ep-nif" class="select-field" value="${p.nif || p.cif_nif || ''}"></div>
+            <div><label class="form-label">IBAN</label>
+              <input type="text" id="ep-iban" class="select-field" value="${p.iban || ''}"></div>
+            <div><label class="form-label">Email</label>
+              <input type="text" id="ep-email" class="select-field" value="${p.email || ''}"></div>
+            <div><label class="form-label">Teléfono</label>
+              <input type="text" id="ep-telefono" class="select-field" value="${p.telefono || ''}"></div>
+            <input type="hidden" id="ep-id" value="${p.id_proveedor}">
+            ${camposCuentaCliente}
+          </div>`;
+        document.getElementById("modal-editar-proveedor").style.display = "flex";
+      });
+  }
+
+  function cerrarModalEditarProveedor() {
+    document.getElementById("modal-editar-proveedor").style.display = "none";
+  }
+
+  function guardarProveedorEditado() {
+    const id = document.getElementById("ep-id").value;
+    const datos = {
+      razon_social: document.getElementById("ep-razon").value,
+      nif:          document.getElementById("ep-nif").value,
+      iban:         document.getElementById("ep-iban").value,
+      email:        document.getElementById("ep-email").value,
+      telefono:     document.getElementById("ep-telefono").value,
+    };
+    {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+    const epCuenta = document.getElementById("ep-cuenta-cliente");
+    if (epCuenta) datos.cuenta_cliente = epCuenta.value;
+    {% endif %}
+    fetch(`/proveedores/${id}/editar-json`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(datos),
+    }).then(r => {
+      if (r.ok) {
+        cerrarModalEditarProveedor();
+        const opt = document.querySelector(`#select-proveedor option[value="${id}"]`);
+        if (opt) opt.textContent = datos.razon_social + " — " + datos.nif;
+        if (opt) {
+          opt.dataset.cuenta = datos.cuenta_cliente || "";
+          const inputCuenta = document.getElementById("input-cuenta-cliente");
+          if (inputCuenta) inputCuenta.value = datos.cuenta_cliente || "";
+        }
+      } else {
+        alert("Error al guardar el proveedor.");
+      }
+    });
+  }
+
+  function usarCuentaSacoModal() {
+    const campo = document.getElementById("ep-cuenta-cliente");
+    if (campo) campo.value = "{{ cuenta_saco }}";
+  }
+
+  function calcularNuevaCuenta() {
+    fetch("/proveedores/siguiente-cuenta-cliente")
+      .then(r => r.json())
+      .then(data => {
+        const campo = document.getElementById("ep-cuenta-cliente");
+        if (campo) campo.value = data.cuenta;
+      })
+      .catch(() => alert("Error al calcular la siguiente cuenta."));
+  }
+
+  // ── Filas de documentos adjuntos ─────────────────────────────────────────
+  let contadorFilas = 1;
+
+  function añadirFilaDoc() {
+    const lista = document.getElementById("lista-docs-nuevos");
+    const id = contadorFilas++;
+    const li = document.createElement("li");
+    li.className = "adj-item";
+    li.id = `fila-doc-${id}`;
+    li.style.cssText = "display:flex;align-items:center;gap:10px;flex-wrap:wrap";
+    li.innerHTML = `
+      <label class="adj-file-label">
+        📎 Seleccionar archivo
+        <input type="file" name="archivos" required
+               accept=".pdf,.jpg,.jpeg,.png"
+               onchange="this.parentElement.querySelector('span').textContent =
+                         this.files[0]?.name || 'Seleccionar archivo'">
+        <span></span>
+      </label>
+      <select name="tipos_documento" class="select-field" style="width:180px">
+        <option value="FACTURA_PROFORMA">Factura proforma</option>
+        <option value="PRESUPUESTO">Presupuesto</option>
+        <option value="FACTURA">Factura</option>
+        <option value="OTROS">Otros</option>
+      </select>
+      <button type="button" onclick="eliminarFilaDoc(this, ${id})"
+              class="btn-adj-del">Eliminar</button>
+    `;
+    lista.appendChild(li);
+  }
+
+  function eliminarFilaDoc(btn, id) {
+    const filas = document.querySelectorAll(".adj-item");
+    if (filas.length <= 1) {
+      alert("Debe haber al menos un documento adjunto.");
+      return;
+    }
+    document.getElementById(`fila-doc-${id}`).remove();
+  }
+
+  // ── Inicialización ────────────────────────────────────────────────────────
+  // El script se ejecuta al final del body (DOMContentLoaded ya disparó)
+  const _selProv = document.getElementById("id_proveedor");
+  if (_selProv && _selProv.value) cargarDatosProveedor();
+  document.getElementById("fecha_recepcion").value = new Date().toISOString().split("T")[0];
+  añadirLinea();   // primera línea vacía
+
+  // ── Validación y envío ────────────────────────────────────────────────────
+  function validarYEnviar() {
+    const errores = [];
+
+    {% if usuario.rol != 'GESTOR_SERVICIO' %}
+    if (!document.getElementById("id_servicio").value)
+      errores.push("Selecciona un servicio.");
+    {% endif %}
+
+    if (!document.getElementById("select-proveedor").value)
+      errores.push("Selecciona un proveedor.");
+
+    if (!document.getElementById("numero_documento").value.trim())
+      errores.push("Introduce el número de documento.");
+
+    if (!document.getElementById("fecha_documento").value)
+      errores.push("Introduce la fecha del documento.");
+
+    if (!document.getElementById("descripcion_gasto").value.trim())
+      errores.push("Introduce la descripción del gasto.");
+
+    // Al menos un archivo seleccionado
+    const archivos = document.querySelectorAll("input[name='archivos']");
+    const hayArchivo = Array.from(archivos).some(i => i.files && i.files.length > 0);
+    if (!hayArchivo)
+      errores.push("Adjunta al menos un documento (factura, presupuesto…).");
+
+    const div = document.getElementById("errores-validacion");
+    if (errores.length > 0) {
+      div.innerHTML = "⚠ Corrige los siguientes campos:<ul style='margin:6px 0 0 18px;font-weight:400'>"
+        + errores.map(e => `<li>${e}</li>`).join("") + "</ul>";
+      div.style.display = "block";
+      div.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    div.style.display = "none";
+    document.getElementById("formPeg").submit();
+  }
+</script>
+{% endblock %}

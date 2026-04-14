@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{% if accion == 'crear' %}Nuevo proyecto{% else %}Editar proyecto{% endif %}{% endblock %}
+{% block page_title %}{% if accion == 'crear' %}Nuevo proyecto{% else %}Editar proyecto{% endif %}{% endblock %}
+{% block page_subtitle %}{{ servicio.nombre }} · Analítica {{ servicio.analitica_nivel_1 }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:620px;">
+  <form method="post" action="{% if accion == 'crear' %}/servicios/{{ servicio.id_servicio }}/proyectos/nuevo{% else %}/servicios/{{ servicio.id_servicio }}/proyectos/{{ proyecto.id_proyecto }}/editar{% endif %}">
+
+    <h3 style="margin:0 0 16px; font-size:1rem; color:#185fa5; border-bottom:1px solid rgba(95,159,211,0.2); padding-bottom:8px;">Datos del proyecto</h3>
+
+    <div class="form-group">
+      <label for="nombre">Nombre del proyecto <span style="color:#a32d2d;">*</span></label>
+      <input type="text" id="nombre" name="nombre" required placeholder="Ej: Actividad Clínica"
+             value="{{ proyecto.nombre if proyecto else '' }}">
+    </div>
+
+    <div class="form-group" style="max-width:200px;">
+      <label for="analitica_nivel_2">Analítica nivel 2 <span style="color:#a32d2d;">*</span></label>
+      <input type="number" id="analitica_nivel_2" name="analitica_nivel_2" required
+             placeholder="Ej: 1" min="1"
+             style="font-family:monospace; font-weight:700; font-size:1.1rem;"
+             value="{{ proyecto.analitica_nivel_2 if proyecto else '' }}">
+      <small style="color:#888;">
+        Analítica completa: <strong>{{ servicio.analitica_nivel_1 }}.<span id="preview">{{ proyecto.analitica_nivel_2 if proyecto else '?' }}</span></strong>
+      </small>
+    </div>
+
+    <h3 style="margin:24px 0 16px; font-size:1rem; color:#185fa5; border-bottom:1px solid rgba(95,159,211,0.2); padding-bottom:8px;">Cuentas contables</h3>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+      <div class="form-group">
+        <label for="cuenta_gasto">Cuenta gasto</label>
+        <input type="text" id="cuenta_gasto" name="cuenta_gasto"
+               placeholder="Ej: 6290001" style="font-family:monospace;"
+               value="{{ proyecto.cuenta_gasto if proyecto else '' }}">
+      </div>
+      <div class="form-group">
+        <label for="cuenta_iva_soportado">Cuenta IVA soportado</label>
+        <input type="text" id="cuenta_iva_soportado" name="cuenta_iva_soportado"
+               placeholder="Ej: 4720001" style="font-family:monospace;"
+               value="{{ proyecto.cuenta_iva_soportado if proyecto else '' }}">
+      </div>
+      <div class="form-group">
+        <label for="cuenta_tesoreria">Cuenta tesorería</label>
+        <input type="text" id="cuenta_tesoreria" name="cuenta_tesoreria"
+               placeholder="Ej: 5720001" style="font-family:monospace;"
+               value="{{ proyecto.cuenta_tesoreria if proyecto else '' }}">
+      </div>
+    </div>
+
+    <div class="form-group" style="max-width:220px; margin-top:8px;">
+      <label for="cuenta_proveedor">Cuenta contable del proveedor (400XXXXXXX)</label>
+      <input type="text" id="cuenta_proveedor" name="cuenta_proveedor"
+             placeholder="Ej: 400000001" maxlength="12" style="font-family:monospace;"
+             value="{{ proyecto.cuenta_proveedor if proyecto else '' }}">
+    </div>
+
+    <div style="display:flex; gap:12px; margin-top:24px;">
+      <button class="btn btn-primary" type="submit">
+        {% if accion == 'crear' %}Crear proyecto{% else %}Guardar cambios{% endif %}
+      </button>
+      <a class="btn btn-secondary" href="/servicios/{{ servicio.id_servicio }}">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<script>
+document.getElementById('analitica_nivel_2').addEventListener('input', function() {
+  document.getElementById('preview').textContent = this.value || '?';
+});
+</script>
+{% endblock %}

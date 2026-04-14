@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Mi perfil{% endblock %}
+{% block page_title %}Mi perfil{% endblock %}
+{% block page_subtitle %}{{ usuario.nombre_completo }}{% endblock %}
+
+{% block content %}
+
+{% if msg %}
+<div style="margin-bottom:16px; padding:12px 16px; border-radius:10px;
+  {% if msg_type == 'success' %}background:rgba(99,153,34,0.12);border:1px solid rgba(99,153,34,0.28);color:#2f6b10;
+  {% else %}background:rgba(226,75,74,0.10);border:1px solid rgba(226,75,74,0.28);color:#a32d2d;{% endif %}
+  font-weight:600;">
+  {% if msg_type == 'success' %}✓{% else %}⚠{% endif %} {{ msg }}
+</div>
+{% endif %}
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+
+  <div class="card">
+    <h3 style="margin:0 0 16px; font-size:1rem; color:#185fa5;">Mis datos</h3>
+    <table style="width:100%;">
+      <tr><td style="color:#888; width:45%;">Nombre</td><td>{{ usuario.nombre_completo }}</td></tr>
+      <tr><td style="color:#888;">Usuario</td><td style="font-family:monospace;">{{ usuario.username }}</td></tr>
+      <tr><td style="color:#888;">Rol</td><td>
+        {% if usuario.rol == 'ADMIN' %}Administrador
+        {% elif usuario.rol == 'GESTOR_ECONOMICO' %}Gestor Económico
+        {% else %}Gestor de Servicio{% endif %}
+      </td></tr>
+      {% if servicios_usuario %}
+      <tr><td style="color:#888;">Servicios</td><td>
+        {% for s in servicios_usuario %}
+          <span style="display:inline-block; margin:2px 3px 2px 0; padding:2px 8px; background:rgba(95,159,211,0.1); border-radius:5px; font-size:0.88rem;">
+            {{ s.codigo }} — {{ s.nombre }}
+          </span>
+        {% endfor %}
+      </td></tr>
+      {% endif %}
+    </table>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 16px; font-size:1rem; color:#185fa5;">Email de notificaciones</h3>
+    <form method="post" action="/usuarios/mi-perfil/email">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required value="{{ usuario.email }}">
+        <small style="color:#888;">Aquí recibirás las notificaciones de la aplicación.</small>
+      </div>
+      <button class="btn btn-primary" type="submit">Actualizar email</button>
+    </form>
+  </div>
+
+  <div class="card" style="grid-column: 1 / -1; max-width:500px;">
+    <h3 style="margin:0 0 16px; font-size:1rem; color:#185fa5;">Cambiar contraseña</h3>
+    <form method="post" action="/usuarios/mi-perfil/password">
+      <div class="form-group">
+        <label for="password_actual">Contraseña actual <span style="color:#a32d2d;">*</span></label>
+        <input type="password" id="password_actual" name="password_actual" required>
+      </div>
+      <div class="form-group">
+        <label for="password_nueva">Nueva contraseña <span style="color:#a32d2d;">*</span></label>
+        <input type="password" id="password_nueva" name="password_nueva" required
+               placeholder="Mínimo 6 caracteres">
+      </div>
+      <div class="form-group">
+        <label for="password_confirmar">Confirmar nueva contraseña <span style="color:#a32d2d;">*</span></label>
+        <input type="password" id="password_confirmar" name="password_confirmar" required>
+      </div>
+      <button class="btn btn-primary" type="submit">Cambiar contraseña</button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

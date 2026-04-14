@@ -1,0 +1,1317 @@
+{% extends "base.html" %}
+{% set puede_editar =
+    usuario.rol == 'ADMIN' or
+    (usuario.rol == 'GESTOR_SERVICIO' and peg.codigo_estado == 'PENDIENTE') or
+    (usuario.rol == 'GESTOR_ECONOMICO' and peg.codigo_estado in ['PENDIENTE', 'INCIDENCIA', 'VALIDADO', 'EN_REMESA'])
+%}
+{% block title %}{{ peg.codigo_peg }}{% endblock %}
+{% block page_title %}{{ peg.codigo_peg }}{% endblock %}
+{% block page_subtitle %}{{ peg.descripcion_gasto }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .info-item label { display: block; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: #8a8691; font-weight: 700; margin-bottom: 4px; }
+  .info-item span  { font-size: 0.97rem; color: var(--ink); font-weight: 600; }
+  .importe-total { font-size: 1.6rem; font-weight: 800; color: var(--fgulem-magenta); }
+  .estado-badge { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; }
+  .estado-pendiente  { background: rgba(239,159,39,0.14);  color: #854f0b; }
+  .estado-validado   { background: rgba(95,159,211,0.14);  color: #185fa5; }
+  .estado-en_remesa  { background: rgba(127,85,211,0.13);  color: #5a2db5; }
+  .estado-pagado     { background: rgba(99,153,34,0.14);   color: #3b6d11; }
+  .estado-incidencia { background: rgba(226,75,74,0.13);   color: #a32d2d; }
+  .timeline { position: relative; padding-left: 20px; }
+  .timeline::before { content: ''; position: absolute; left: 6px; top: 8px; bottom: 8px; width: 2px; background: var(--line); border-radius: 2px; }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-dot { position: absolute; left: -18px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--fgulem-magenta); border: 2px solid white; box-shadow: 0 0 0 1px var(--fgulem-magenta); }
+  .tl-fecha { font-size: 0.78rem; color: var(--ink-soft); }
+  .tl-texto { font-size: 0.93rem; color: var(--ink); font-weight: 600; }
+  .tl-coment { font-size: 0.87rem; color: var(--ink-soft); }
+  .btn-incidencia { background: rgba(226,75,74,0.12); color: #a32d2d; border: 1px solid rgba(226,75,74,0.25); padding: 10px 16px; border-radius: 10px; font-weight: 700; font-size: 0.93rem; cursor: pointer; width: 100%; }
+  .btn-incidencia:hover { background: rgba(226,75,74,0.22); }
+  @media (max-width: 780px) { .info-grid { grid-template-columns: 1fr 1fr; } }
+  .flash-success { padding: 12px 16px; border-radius: 10px; background: rgba(99,153,34,0.12); border: 1px solid rgba(99,153,34,0.28); color: #2f6b10; font-weight: 600; margin-bottom: 16px; }
+  .flash-error   { padding: 12px 16px; border-radius: 10px; background: rgba(226,75,74,0.10); border: 1px solid rgba(226,75,74,0.28); color: #a32d2d; font-weight: 600; margin-bottom: 16px; }
+  .btn-remesa-disabled { background: #e5e7eb; color: #9ca3af; border: 1px solid #d1d5db; padding: 10px 16px; border-radius: 10px; font-weight: 700; font-size: 0.93rem; cursor: not-allowed; width: 100%; opacity: 0.75; }
+  .btn-remesa-active { background: linear-gradient(135deg, #1d4ed8, #3b82f6); color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; font-size: 0.93rem; cursor: pointer; width: 100%; box-shadow: 0 4px 14px rgba(29,78,216,0.22); transition: opacity 0.15s; }
+  .btn-remesa-active:hover { opacity: 0.88; }
+  .badge-remesa { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.28); color: #15803d; font-weight: 700; font-size: 0.93rem; }
+  .badge-remesa a { color: inherit; }
+  .badge-pagado { display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 10px; background: rgba(20,83,45,0.12); border: 1px solid rgba(20,83,45,0.25); color: #14532d; font-weight: 700; font-size: 0.93rem; }
+  .modal-remesa-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; transition: border-color 0.15s, background 0.15s; margin-bottom: 0; font-weight: normal; }
+  .modal-remesa-item:has(input:checked) { border-color: #3b82f6; background: rgba(59,130,246,0.06); }
+  /* Formulario de edición */
+  #vista-edicion { display: none; }
+  .edit-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .edit-field label { display: block; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: #8a8691; font-weight: 700; margin-bottom: 5px; }
+  .edit-field input, .edit-field select, .edit-field textarea { width: 100%; padding: 8px 10px; border: 1px solid #d8dce2; border-radius: 8px; font-size: 0.93rem; color: var(--ink); background: #fff; box-sizing: border-box; font-family: inherit; }
+  .edit-field input:focus, .edit-field select:focus, .edit-field textarea:focus { outline: none; border-color: var(--fgulem-magenta); box-shadow: 0 0 0 3px rgba(160,32,100,0.10); }
+  .btn-editar-peg { background: rgba(160,32,100,0.09); color: var(--fgulem-magenta); border: 1px solid rgba(160,32,100,0.25); padding: 8px 18px; border-radius: 10px; font-weight: 700; font-size: 0.88rem; cursor: pointer; transition: background 0.15s; }
+  .btn-editar-peg:hover { background: rgba(160,32,100,0.17); }
+  .btn-cancelar-edicion { background: #f3f4f6; color: var(--ink-soft); border: 1px solid #d1d5db; padding: 8px 18px; border-radius: 10px; font-weight: 700; font-size: 0.88rem; cursor: pointer; }
+  .btn-cancelar-edicion:hover { background: #e5e7eb; }
+  @media (max-width: 780px) { .edit-grid { grid-template-columns: 1fr 1fr; } }
+  /* Tabla líneas IVA (edición) */
+  .edit-lineas-table { width:100%; border-collapse:collapse; margin-bottom:10px; }
+  .edit-lineas-table th { text-align:left; padding:8px 10px; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.06em; color:#86828b; border-bottom:1px solid var(--line); }
+  .edit-lineas-table th.r { text-align:right; }
+  .edit-lineas-table td { padding:6px 8px; }
+  .edit-lineas-table td.r { text-align:right; font-weight:600; }
+  .edit-lineas-table td select, .edit-lineas-table td input[type=number] { padding:8px 10px; border:1px solid #d8dce2; border-radius:10px; font-size:0.93rem; width:100%; box-sizing:border-box; }
+  .edit-lineas-table td input[type=number] { text-align:right; }
+  .edit-lineas-table td select:focus, .edit-lineas-table td input:focus { outline:none; border-color:var(--fgulem-magenta); }
+  .btn-add-linea { background:transparent; border:1px dashed rgba(194,27,132,0.35); color:var(--fgulem-magenta); border-radius:10px; padding:7px 18px; cursor:pointer; font-weight:700; font-size:0.88rem; }
+  .edit-totales { display:grid; grid-template-columns:1fr auto; gap:5px 24px; background:rgba(194,27,132,0.04); border:1px solid rgba(194,27,132,0.12); border-radius:12px; padding:14px 20px; max-width:360px; margin-left:auto; margin-top:14px; }
+  .edit-totales .lbl { font-size:0.9rem; color:var(--ink-soft); }
+  .edit-totales .val { text-align:right; font-weight:700; }
+  .edit-totales .lbl-total { font-size:1rem; font-weight:700; border-top:1px solid var(--line); padding-top:8px; margin-top:2px; }
+  .edit-totales .val-total { text-align:right; font-weight:800; color:var(--fgulem-magenta); font-size:1.05rem; border-top:1px solid var(--line); padding-top:8px; margin-top:2px; }
+  /* Sección cambio estado */
+  .estado-box { margin-top:18px; padding:16px 18px; background:rgba(95,159,211,0.06); border:1px solid rgba(95,159,211,0.18); border-radius:12px; }
+  .estado-box .sec-label { font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em; color:#8a8691; font-weight:700; margin-bottom:12px; }
+  /* Adjuntos */
+  .adj-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .adj-item { display:flex; align-items:center; gap:12px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#fafafa; }
+  .adj-icon { font-size:1.4rem; flex-shrink:0; }
+  .adj-info { flex:1; min-width:0; }
+  .adj-nombre { font-size:0.93rem; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .adj-meta { font-size:0.78rem; color:var(--ink-soft); margin-top:2px; }
+  .adj-actions { display:flex; gap:6px; flex-shrink:0; }
+  .btn-adj-ver { background:rgba(95,159,211,0.12); color:#185fa5; border:1px solid rgba(95,159,211,0.28); padding:5px 12px; border-radius:8px; font-size:0.83rem; font-weight:700; cursor:pointer; text-decoration:none; }
+  .btn-adj-ver:hover { background:rgba(95,159,211,0.22); }
+  .btn-adj-del { background:rgba(226,75,74,0.10); color:#a32d2d; border:1px solid rgba(226,75,74,0.25); padding:5px 12px; border-radius:8px; font-size:0.83rem; font-weight:700; cursor:pointer; }
+  .btn-adj-del:hover { background:rgba(226,75,74,0.20); }
+  .adj-upload-row { display:flex; align-items:center; gap:10px; margin-top:14px; flex-wrap:wrap; }
+  .adj-file-label { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; background:rgba(160,32,100,0.07); border:1px solid rgba(160,32,100,0.22); border-radius:10px; color:var(--fgulem-magenta); font-weight:700; font-size:0.88rem; cursor:pointer; }
+  .adj-file-label:hover { background:rgba(160,32,100,0.14); }
+  .adj-file-label input[type=file] { display:none; }
+  .btn-adj-subir { background:linear-gradient(135deg,var(--fgulem-magenta),var(--fgulem-magenta-soft,#c91b84)); color:#fff; border:none; padding:8px 18px; border-radius:10px; font-weight:700; font-size:0.88rem; cursor:pointer; box-shadow:0 3px 10px rgba(160,32,100,0.18); }
+  .btn-adj-subir:disabled { opacity:0.55; cursor:not-allowed; }
+  .adj-progress-wrap { width:100%; height:6px; background:#e5e7eb; border-radius:4px; margin-top:10px; display:none; }
+  .adj-progress-bar { height:100%; width:0%; background:var(--fgulem-magenta); border-radius:4px; transition:width 0.2s; }
+  .adj-error { margin-top:8px; padding:8px 12px; border-radius:8px; background:rgba(226,75,74,0.09); border:1px solid rgba(226,75,74,0.25); color:#a32d2d; font-size:0.87rem; font-weight:600; display:none; }
+  .adj-nombre-sel { font-size:0.85rem; color:var(--ink-soft); font-style:italic; }
+  /* Badges tipo documento */
+  .doc-badge { display:inline-flex; align-items:center; padding:2px 9px; border-radius:999px; font-size:0.73rem; font-weight:700; }
+  .doc-badge-factura     { background:rgba(99,153,34,0.14);   color:#3b6d11; }
+  .doc-badge-proforma    { background:rgba(59,130,246,0.14);  color:#1d4ed8; }
+  .doc-badge-presupuesto { background:rgba(239,159,39,0.14);  color:#854f0b; }
+  .doc-badge-otros       { background:rgba(156,163,175,0.20); color:#4b5563; }
+  /* Historial full-width */
+  .historial-section { margin-top:18px; }
+  .historial-section .tl-grid { display:grid; grid-template-columns:160px 180px 1fr; gap:0; }
+  .historial-section .tl-header { font-size:0.77rem; text-transform:uppercase; letter-spacing:0.07em; color:#8a8691; font-weight:700; padding:6px 10px; border-bottom:2px solid var(--line); }
+  .historial-section .tl-row { display:contents; }
+  .historial-section .tl-row > div { padding:10px 10px; border-bottom:1px solid var(--line); font-size:0.9rem; vertical-align:top; }
+  .historial-section .tl-row > div:first-child { color:var(--ink-soft); font-size:0.83rem; }
+  .historial-section .tl-row .tl-transicion { font-weight:600; color:var(--ink); }
+  .historial-section .tl-row .tl-motivo { color:var(--ink-soft); font-size:0.87rem; }
+  /* Acciones laterales */
+  .accion-bloque { margin-bottom: 12px; }
+  .btn-accion { width: 100%; padding: 10px 14px; border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background 0.15s; text-align: center; }
+  .btn-editar { background: #eff6ff; color: #1d4ed8; border: 1.5px solid #bfdbfe; }
+  .btn-editar:hover { background: #dbeafe; }
+  .btn-validar { width: 100%; background: #16a34a; color: white; padding: 10px; border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; margin-top: 4px; }
+  .btn-validar:hover:not(:disabled) { background: #15803d; }
+  .btn-validar:disabled { background: #9ca3af; cursor: not-allowed; }
+  .btn-eliminar { background: #fef2f2; color: #dc2626; border: 1.5px solid #fecaca; }
+  .btn-eliminar:hover { background: #fee2e2; }
+  .panel-validacion { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 16px; }
+  .panel-titulo { font-size: 0.95rem; font-weight: 600; color: #166534; margin: 0 0 12px 0; }
+  .campo-form { margin-bottom: 12px; }
+  .campo-form label { display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px; }
+  .obligatorio { color: #dc2626; }
+  .select-field, .textarea-field { width: 100%; padding: 7px 9px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; background: white; box-sizing: border-box; }
+  .select-field:focus, .textarea-field:focus { outline: none; border-color: #16a34a; box-shadow: 0 0 0 2px #bbf7d0; }
+  .aviso-warning { font-size: 0.78rem; color: #92400e; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 5px; padding: 5px 8px; margin-top: 4px; }
+  .factura-estado { padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; margin-top: 10px; }
+  .factura-estado.ok { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+  .factura-estado.pendiente { background: #fef9c3; border: 1px solid #fde047; color: #854d0e; }
+  .btn-toggle-factura { background: none; border: none; text-decoration: underline; cursor: pointer; font-size: 0.8rem; margin-left: 8px; color: inherit; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if msg %}
+  <div class="flash-{{ msg_type }}">
+    {% if msg_type == 'success' %}✓{% else %}⚠{% endif %} {{ msg }}
+  </div>
+{% endif %}
+<div style="display: grid; grid-template-columns: 1fr 320px; gap: 18px; align-items: start;">
+
+  <!-- COLUMNA PRINCIPAL -->
+  <div>
+
+    <!-- Vista solo lectura -->
+    <div id="vista-lectura">
+
+    <!-- Cabecera estado + importes -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+        <div>
+          <span class="estado-badge estado-{{ peg.codigo_estado|lower }}">{{ peg.nombre_estado }}</span>
+          <span class="muted" style="margin-left:10px; font-size:0.88rem;">{{ peg.nombre_tipo }}</span>
+        </div>
+        <div class="importe-total">{{ "%.2f"|format(peg.importe_total) }} €</div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item"><label>Servicio</label><span>{{ peg.nombre_servicio }}</span></div>
+        <div class="info-item"><label>Proyecto</label><span>{{ peg.nombre_proyecto or "—" }}</span></div>
+        <div class="info-item"><label>Forma de pago</label><span>{{ peg.nombre_forma_pago }}</span></div>
+        <div class="info-item"><label>Proveedor</label><span>{{ peg.nombre_proveedor }}</span></div>
+        <div class="info-item"><label>CIF/NIF</label><span>{{ peg.cif_nif }}</span></div>
+        <div class="info-item"><label>IBAN</label><span>{{ peg.iban or "—" }}</span></div>
+        <div class="info-item"><label>Nº documento</label><span>{{ peg.numero_documento }}</span></div>
+        <div class="info-item"><label>Fecha documento</label><span>{{ peg.fecha_documento }}</span></div>
+        <div class="info-item"><label>Fecha recepción</label><span>{{ peg.fecha_recepcion or "—" }}</span></div>
+        <div class="info-item"><label>Vencimiento</label><span>{{ peg.fecha_vencimiento or "—" }}</span></div>
+        {% if peg.codigo_estado == 'PAGADO' %}
+        <div class="info-item"><label>Fecha de pago efectivo</label><span>{{ peg.fecha_pago or "—" }}</span></div>
+        {% endif %}
+      </div>
+
+      {% if peg.codigo_estado == 'PAGADO' and usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+      <div style="margin-top:12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <label style="font-size:0.78rem; font-weight:700; color:#8a8691; text-transform:uppercase; letter-spacing:0.08em; white-space:nowrap;">Actualizar fecha de pago:</label>
+        <form method="POST" action="/pegs/{{ peg.id_peg }}/fecha-pago"
+              style="display:flex; align-items:center; gap:8px;">
+          <input type="date" name="fecha_pago" value="{{ peg.fecha_pago or '' }}"
+                 style="padding:5px 8px; border:1px solid #d8dce2; border-radius:8px; font-size:0.88rem;">
+          <button type="submit"
+                  style="padding:5px 14px; border:none; border-radius:8px; background:var(--fgulem-magenta); color:#fff; font-weight:700; font-size:0.83rem; cursor:pointer;">
+            Guardar
+          </button>
+        </form>
+      </div>
+
+      {% if peg.codigo_estado == "PAGADO" and
+            usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+      <div style="margin-top:10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <label style="font-size:0.78rem; font-weight:700; color:#8a8691; text-transform:uppercase; letter-spacing:0.08em; white-space:nowrap;">Nº factura interno:</label>
+        <form method="POST" action="/pegs/{{ peg.id_peg }}/numero-factura"
+              style="display:flex; align-items:center; gap:8px;">
+          <input type="text" name="numero_factura_interno"
+                 value="{{ peg.numero_factura_interno or '' }}"
+                 placeholder="F6001ABR"
+                 maxlength="8"
+                 style="padding:5px 8px; border:1px solid #d8dce2; border-radius:8px; font-size:0.88rem; width:110px;">
+          <button type="submit"
+                  style="padding:5px 14px; border:none; border-radius:8px; background:var(--fgulem-magenta); color:#fff; font-weight:700; font-size:0.83rem; cursor:pointer;">
+            Guardar
+          </button>
+        </form>
+      </div>
+      {% endif %}
+
+      {% endif %}
+
+      {% if peg.observaciones %}
+      <div style="margin-top: 14px; padding: 12px 14px; background: rgba(95,159,211,0.06); border-radius: 10px; font-size: 0.93rem; color: var(--ink-soft);">
+        {{ peg.observaciones }}
+      </div>
+      {% endif %}
+
+      <!-- Desglose importes -->
+      <div style="margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; display: flex; gap: 24px; flex-wrap: wrap;">
+        <div class="info-item"><label>Base imponible</label><span>{{ "%.2f"|format(peg.base_imponible) }} €</span></div>
+        <div class="info-item"><label>IVA</label><span>{{ "%.2f"|format(peg.importe_iva) }} €</span></div>
+        <div class="info-item"><label>IRPF</label><span>–{{ "%.2f"|format(peg.importe_irpf) }} €</span></div>
+        <div class="info-item"><label>Total</label><span style="color:var(--fgulem-magenta); font-size:1.1rem;">{{ "%.2f"|format(peg.importe_total) }} €</span></div>
+      </div>
+    </div>
+
+    </div>{# fin #vista-lectura #}
+
+    <!-- Formulario de edición (oculto por defecto) -->
+    {% if puede_editar %}
+    <div id="vista-edicion">
+    <div class="card">
+      <h3 style="margin-top:0; margin-bottom:18px; color:var(--fgulem-magenta);">Editar PEG</h3>
+      <form method="post" action="/pegs/{{ peg.id_peg }}/editar">
+
+        <div class="edit-grid" style="margin-bottom:14px;">
+          <div class="edit-field" style="grid-column: span 2;">
+            <label>Descripción del gasto</label>
+            <input type="text" name="descripcion_gasto" value="{{ peg.descripcion_gasto }}" required>
+          </div>
+          <div class="edit-field">
+            <label>Nº documento</label>
+            <input type="text" name="numero_documento" value="{{ peg.numero_documento }}" required>
+          </div>
+          <div class="edit-field">
+            <label>Fecha documento</label>
+            <input type="date" name="fecha_documento" value="{{ peg.fecha_documento }}" required>
+          </div>
+          <div class="edit-field">
+            <label>Fecha vencimiento</label>
+            <input type="date" name="fecha_vencimiento" value="{{ peg.fecha_vencimiento or '' }}">
+          </div>
+          <div class="edit-field">
+            <label>Forma de pago prevista</label>
+            <select name="id_forma_pago_prevista" id="editFormaPago">
+              {% for fp in formas_pago %}
+              <option value="{{ fp.id_forma_pago }}" {% if fp.id_forma_pago == peg.id_forma_pago_prevista %}selected{% endif %}>{{ fp.nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="edit-field" style="grid-column: span 3;">
+            <label>Observaciones</label>
+            <textarea name="observaciones" rows="2" placeholder="Observaciones opcionales...">{{ peg.observaciones or '' }}</textarea>
+          </div>
+        </div>
+
+        <!-- Proveedor (edición) -->
+        <div style="margin-top:14px; border-top:1px solid var(--line); padding-top:16px;">
+          <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;color:#8a8691;font-weight:700;margin-bottom:10px;">Proveedor</div>
+
+          {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <button type="button" onclick="abrirModalEditarProveedor()"
+                    class="btn btn-secondary" style="font-size:0.8rem"
+                    id="btn-editar-proveedor" disabled>
+              ✏ Editar proveedor
+            </button>
+            <button type="button" onclick="editAbrirModalProveedor()"
+                    class="btn btn-secondary" style="font-size:0.8rem">
+              ＋ Nuevo proveedor
+            </button>
+          </div>
+          {% endif %}
+
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+            <div style="flex:2;min-width:200px">
+              <label class="form-label">Proveedor *</label>
+              <select name="id_proveedor" id="select-proveedor"
+                      class="select-field" required
+                      onchange="onProveedorCambiado(this)">
+                <option value="">— Selecciona proveedor —</option>
+                {% for p in proveedores %}
+                <option value="{{ p.id_proveedor }}"
+                        data-cuenta="{{ p.cuenta_cliente or '' }}"
+                        {% if peg is defined and peg.id_proveedor == p.id_proveedor %}selected{% endif %}>
+                  {{ p.razon_social }} — {{ p.cif_nif }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+            <div style="flex:1;min-width:160px" id="bloque-cuenta-cliente">
+              <label class="form-label">Cuenta cliente</label>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input type="text" name="cuenta_cliente_proveedor"
+                       id="input-cuenta-cliente"
+                       class="select-field" style="width:120px"
+                       placeholder="4100000"
+                       value="{{ peg.cuenta_cliente_proveedor or cuenta_proveedor or '' }}">
+                <button type="button"
+                        onclick="usarCuentaSaco()"
+                        class="btn btn-secondary"
+                        style="font-size:0.75rem;white-space:nowrap;padding:4px 8px"
+                        title="Usar cuenta saco">
+                  Saco
+                </button>
+              </div>
+              <span style="font-size:0.75rem;color:#6b7280">
+                Cuenta propia, saco ({{ cuenta_saco }}) o nueva
+              </span>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Modal editar proveedor -->
+          <div id="modal-editar-proveedor"
+               style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);
+                      z-index:1000;align-items:center;justify-content:center">
+            <div style="background:white;border-radius:10px;padding:28px;
+                        width:100%;max-width:480px;max-height:90vh;overflow-y:auto">
+              <h3 style="margin:0 0 16px;font-size:1rem;font-weight:700">Editar proveedor</h3>
+              <div id="modal-editar-proveedor-contenido"></div>
+              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+                <button type="button" onclick="cerrarModalEditarProveedor()"
+                        class="btn btn-secondary">Cancelar</button>
+                <button type="button" onclick="guardarProveedorEditado()"
+                        class="btn btn-primary">Guardar cambios</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Editor de líneas IVA -->
+        <div style="margin-top:18px; border-top:1px solid var(--line); padding-top:16px;">
+          <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;color:#8a8691;font-weight:700;margin-bottom:10px;">Líneas de IVA</div>
+          <table class="edit-lineas-table">
+            <thead>
+              <tr>
+                <th style="width:160px;">Tipo IVA</th>
+                <th>Base imponible (€)</th>
+                <th class="r" style="width:120px;">IVA (€)</th>
+                <th class="r" style="width:130px;">Total línea (€)</th>
+                <th style="width:48px;"></th>
+              </tr>
+            </thead>
+            <tbody id="editLineasBody">
+              {% for linea in peg.lineas %}
+              <tr>
+                <td>
+                  <select name="lineas_tipo_iva" onchange="editRecalcular()">
+                    <option value="0"  {% if linea.tipo_iva == 0  %}selected{% endif %}>0%</option>
+                    <option value="5"  {% if linea.tipo_iva == 5  %}selected{% endif %}>5%</option>
+                    <option value="10" {% if linea.tipo_iva == 10 %}selected{% endif %}>10%</option>
+                    <option value="21" {% if linea.tipo_iva == 21 %}selected{% endif %}>21%</option>
+                  </select>
+                </td>
+                <td>
+                  <input type="number" name="lineas_base_imponible" step="0.01" min="0"
+                    value="{{ linea.base_imponible }}" oninput="editRecalcular()" required>
+                </td>
+                <td class="r col-iva">—</td>
+                <td class="r col-total">—</td>
+                <td style="text-align:center;">
+                  <button type="button" onclick="editEliminarFila(this)"
+                    style="background:transparent;border:1px solid rgba(194,27,132,0.25);color:var(--fgulem-magenta);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:0.85rem;font-weight:700;">✕</button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <button type="button" class="btn-add-linea" onclick="editAñadirLinea()">+ Añadir línea</button>
+
+          <div class="edit-totales">
+            <span class="lbl">Base imponible</span><span class="val" id="editResBase">0,00 €</span>
+            <span class="lbl">IVA total</span><span class="val" id="editResIva">0,00 €</span>
+            <span class="lbl-total">TOTAL</span><span class="val-total" id="editResTotal">0,00 €</span>
+          </div>
+        </div>
+
+        {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+        <!-- Cambio de estado -->
+        <div class="estado-box">
+          <div class="sec-label">Cambio de estado</div>
+          <div class="edit-field" style="margin-bottom:12px; max-width:280px;">
+            <label>Nuevo estado</label>
+            <select name="nuevo_estado" id="editNuevoEstado" onchange="editToggleMotivo()">
+              <option value="">— Sin cambio —</option>
+              {% if peg.codigo_estado == 'PENDIENTE' %}
+              <option value="2">→ Validado</option>
+              <option value="5">→ Incidencia</option>
+              {% elif peg.codigo_estado == 'VALIDADO' %}
+              <option value="1" data-motivo="1">→ Pendiente (requiere motivo)</option>
+              {% elif peg.codigo_estado == 'EN_REMESA' %}
+              <option value="2" data-motivo="1">→ Validado (requiere motivo)</option>
+              {% elif peg.codigo_estado == 'INCIDENCIA' %}
+              <option value="1">→ Pendiente</option>
+              {% endif %}
+            </select>
+          </div>
+          <div id="editMotivoWrap" style="display:none;" class="edit-field">
+            <label>Motivo <span style="color:var(--fgulem-magenta);">*</span></label>
+            <textarea name="motivo_cambio_estado" id="editMotivo" rows="2"
+              placeholder="Indique el motivo del cambio..."></textarea>
+          </div>
+        </div>
+        {% endif %}
+
+        <div style="display:flex; gap:10px; margin-top:18px;">
+          <button type="submit" class="btn btn-primary">Guardar cambios</button>
+          <button type="button" class="btn-cancelar-edicion" onclick="ocultarEdicion()">Cancelar</button>
+        </div>
+
+        <!-- Modal nuevo proveedor (completo, desde edición) -->
+        <div id="modalNuevoProveedor" class="modal-backdrop">
+          <div class="modal-panel" style="max-width:560px">
+            <div class="modal-header">
+              <h3 style="margin:0;">Nuevo proveedor</h3>
+              <button type="button" class="modal-close" onclick="cerrarModalProveedor()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px;">
+                <div class="field" style="margin:0;">
+                  <label>Tipo de persona</label>
+                  <select id="mp-tipo-persona">
+                    <option value="JURIDICA">Jurídica</option>
+                    <option value="FISICA">Física</option>
+                  </select>
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>CIF/NIF <span style="color:var(--fgulem-magenta)">*</span></label>
+                  <input type="text" id="mp-cif-nif" placeholder="B12345678">
+                </div>
+                <div class="field" style="grid-column:span 2;margin:0;">
+                  <label>Razón social <span style="color:var(--fgulem-magenta)">*</span></label>
+                  <input type="text" id="mp-razon-social" placeholder="Nombre o denominación social">
+                </div>
+                <div class="field" style="grid-column:span 2;margin:0;">
+                  <label>Nombre comercial</label>
+                  <input type="text" id="mp-nombre-comercial" placeholder="Si difiere de la razón social">
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>Teléfono</label>
+                  <input type="text" id="mp-telefono" placeholder="987 000 000">
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>Email</label>
+                  <input type="email" id="mp-email" placeholder="contacto@empresa.com">
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>IBAN</label>
+                  <input type="text" id="mp-iban" placeholder="ES00 0000 0000 0000 0000 0000">
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>Forma de pago habitual</label>
+                  <select id="mp-forma-pago">
+                    {% for fp in formas_pago %}
+                    <option value="{{ fp.id_forma_pago }}">{{ fp.nombre }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+                <div class="field" style="grid-column:span 2;margin:0;border-top:1px solid var(--line);padding-top:12px;">
+                  <label>Cuenta cliente (grupo 4)</label>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <input type="text" id="mp-cuenta-cliente" placeholder="Sin asignar"
+                           style="width:130px;font-family:monospace" maxlength="10">
+                    <button type="button" onclick="usarCuentaSacoMp()"
+                            class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px">
+                      Saco ({{ cuenta_saco }})
+                    </button>
+                    <button type="button" onclick="calcularNuevaCuentaMp()"
+                            class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px">
+                      Nueva correlativa
+                    </button>
+                  </div>
+                </div>
+                {% endif %}
+                <div style="grid-column:span 2;border-top:1px solid var(--line);padding-top:12px;
+                            font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;
+                            color:#8a8691;font-weight:700;">
+                  Dirección postal
+                </div>
+                <div class="field" style="grid-column:span 2;margin:0;">
+                  <label>Dirección</label>
+                  <input type="text" id="mp-direccion" placeholder="Calle, número, piso…">
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>Localidad</label>
+                  <input type="text" id="mp-localidad">
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>Provincia</label>
+                  <input type="text" id="mp-provincia">
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>Código postal</label>
+                  <input type="text" id="mp-codigo-postal" placeholder="24001" maxlength="5">
+                </div>
+                <div id="mp-error" style="grid-column:span 2;color:var(--fgulem-magenta);
+                     font-size:0.88rem;display:none;padding:8px 12px;
+                     background:rgba(194,27,132,0.07);border-radius:8px;margin:0;"></div>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+                <button type="button" onclick="cerrarModalProveedor()"
+                  style="background:transparent;border:1px solid #d8dce2;border-radius:10px;
+                         padding:9px 18px;cursor:pointer;font-size:0.9rem;">
+                  Cancelar
+                </button>
+                <button type="button" onclick="guardarProveedorRapido()"
+                  style="background:linear-gradient(135deg,var(--fgulem-magenta),var(--fgulem-magenta-soft));
+                         color:#fff;border:none;border-radius:10px;padding:9px 22px;
+                         cursor:pointer;font-weight:700;font-size:0.9rem;">
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </form>
+    </div>
+    </div>{# fin #vista-edicion #}
+    {% endif %}
+
+    <!-- Documentos adjuntos (dinámico) -->
+    <div class="card" id="card-adjuntos">
+      <h3 style="margin-top:0; margin-bottom:14px;">Documentos adjuntos</h3>
+
+      <!-- Lista de documentos -->
+      {% if peg.documentos %}
+      <ul class="adj-list">
+        {% for doc in peg.documentos %}
+        <li class="adj-item" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <a href="/pegs/{{ peg.id_peg }}/documentos/{{ doc.id_documento }}/descargar"
+             style="color:var(--ink);text-decoration:none;font-weight:600;font-size:0.93rem;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            📄 {{ doc.nombre_archivo }}
+          </a>
+          {% if doc.tipo == 'FACTURA' %}
+            <span class="doc-badge doc-badge-factura">Factura</span>
+          {% elif doc.tipo == 'FACTURA_PROFORMA' %}
+            <span class="doc-badge doc-badge-proforma">Factura proforma</span>
+          {% elif doc.tipo == 'PRESUPUESTO' %}
+            <span class="doc-badge doc-badge-presupuesto">Presupuesto</span>
+          {% else %}
+            <span class="doc-badge doc-badge-otros">Otros</span>
+          {% endif %}
+          {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] or
+                (usuario.rol == 'GESTOR_SERVICIO' and peg.codigo_estado == 'PENDIENTE') %}
+          <form method="POST"
+                action="/pegs/{{ peg.id_peg }}/documentos/{{ doc.id_documento }}/eliminar"
+                style="display:inline;margin:0"
+                onsubmit="return confirm('¿Eliminar este documento? Esta acción no se puede deshacer.')">
+            <button type="submit" class="btn-adj-del">Eliminar</button>
+          </form>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="muted" style="font-size:0.9rem; padding:6px 0;">Sin documentos adjuntos.</p>
+      {% endif %}
+
+      {% if peg.codigo_estado == "PAGADO" %}
+      <div class="factura-estado {{ 'ok' if peg.factura_recibida else 'pendiente' }}">
+        {% if peg.factura_recibida %}
+          ✓ Factura recibida
+        {% else %}
+          ⚠ Factura pendiente de recibir
+        {% endif %}
+        {% if usuario.rol in ["GESTOR_SERVICIO", "GESTOR_ECONOMICO", "ADMIN"] %}
+        <form method="POST" action="/pegs/{{ peg.id_peg }}/factura-recibida"
+              style="display:inline">
+          <button type="submit" class="btn-toggle-factura">
+            {% if peg.factura_recibida %}Marcar como no recibida
+            {% else %}Marcar como recibida{% endif %}
+          </button>
+        </form>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Formulario de subida -->
+      {% if not (peg.codigo_estado == 'PAGADO' and peg.factura_recibida) %}
+      <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--line);">
+        <form method="POST"
+              action="/pegs/{{ peg.id_peg }}/documentos/subir"
+              enctype="multipart/form-data"
+              style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <label class="adj-file-label" style="flex:none;font-size:0.88rem;align-self:stretch;display:inline-flex;align-items:center;">
+            📎 Seleccionar archivo
+            <input type="file" name="archivo" required
+                   accept=".pdf,.jpg,.jpeg,.png"
+                   onchange="this.closest('label').querySelector('span') && (this.closest('label').querySelector('span').textContent = this.files[0]?.name || ''); this.closest('label').title = this.files[0]?.name || ''">
+          </label>
+          <select name="tipo" required class="select-field"
+                  style="width:180px">
+            <option value="FACTURA_PROFORMA">Factura proforma</option>
+            <option value="PRESUPUESTO">Presupuesto</option>
+            <option value="FACTURA">Factura</option>
+            <option value="OTROS">Otros</option>
+          </select>
+          <button type="submit" class="btn btn-secondary"
+                  style="white-space:nowrap">
+            ＋ Adjuntar
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Incidencias -->
+    {% if peg.incidencias %}
+    <div class="card" style="border-left: 3px solid #e24b4a;">
+      <h3 style="margin-top:0; color:#a32d2d;">Incidencias</h3>
+      {% for inc in peg.incidencias %}
+      <div style="margin-bottom: 10px; padding: 10px 12px; background: rgba(226,75,74,0.06); border-radius: 8px;">
+        <div style="font-weight: 600; font-size: 0.93rem;">{{ inc.descripcion }}</div>
+        <div class="muted" style="font-size: 0.8rem; margin-top: 4px;">{{ inc.creada_por }} · {{ inc.fecha_creacion }} {% if inc.abierta %}<strong style="color:#a32d2d;">· Abierta</strong>{% else %}· Cerrada{% endif %}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+
+  </div>
+
+  <!-- COLUMNA LATERAL -->
+  <div>
+
+    <div class="card">
+      <h3 style="margin-top:0; margin-bottom:14px;">Acciones</h3>
+
+      <!-- ACCIÓN: EDITAR -->
+      {% if puede_editar %}
+      <div class="accion-bloque">
+        <button onclick="mostrarEdicion()" class="btn-accion btn-editar">
+          ✏️ Editar PEG
+        </button>
+      </div>
+      {% endif %}
+
+      <!-- ACCIÓN: VALIDAR (solo GESTOR_ECONOMICO/ADMIN, solo PENDIENTE) -->
+      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
+      <div class="accion-bloque panel-validacion">
+        <h3 class="panel-titulo">✅ Validar PEG</h3>
+        <form method="POST" action="/pegs/{{ peg.id_peg }}/validar">
+          <div class="campo-form">
+            <label>Cuenta cliente (grupo 4) <span class="obligatorio">*</span></label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input type="text" name="cuenta_cliente_proveedor" id="cuenta_cliente_validar" required
+                     class="select-field"
+                     value="{{ peg.cuenta_cliente_proveedor or cuenta_proveedor or '' }}"
+                     placeholder="4100000"
+                     style="font-family:monospace;width:130px;">
+              {% if not (peg.cuenta_cliente_proveedor or cuenta_proveedor) %}
+              <select onchange="aplicarOpcionCuentaValidar(this)"
+                      style="padding:9px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.95rem">
+                <option value="">— Elegir —</option>
+                <option value="saco">Cuenta saco ({{ cuenta_saco }})</option>
+                <option value="nueva">Nueva cuenta correlativa</option>
+              </select>
+              {% endif %}
+            </div>
+            <span style="font-size:0.75rem;color:#6b7280;margin-top:4px;display:block">
+              {% if peg.cuenta_cliente_proveedor or cuenta_proveedor %}
+                Cuenta del proveedor asignada. Modifícala si es necesario.
+              {% else %}
+                Sin cuenta asignada. Elige una opción o introduce el número manualmente.
+              {% endif %}
+            </span>
+          </div>
+          <div class="campo-form">
+            <label>Cuenta de gasto (grupo 6) <span class="obligatorio">*</span></label>
+            <select name="id_cuenta_gasto" required class="select-field">
+              <option value="">— Selecciona —</option>
+              {% for cg in cuentas_gasto %}
+              <option value="{{ cg.id_cuenta_gasto }}"
+                      {% if peg.id_cuenta_gasto == cg.id_cuenta_gasto %}selected{% endif %}>
+                {{ cg.codigo }} — {{ cg.descripcion }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="campo-form">
+            <label>Analítica contable <span class="obligatorio">*</span></label>
+            <select name="id_analitica" required class="select-field">
+              <option value="">— Selecciona —</option>
+              {% for a in analiticas %}
+              <option value="{{ a.id_analitica }}">
+                {{ a.nivel_1 }}{% if a.nivel_2 %} / {{ a.nivel_2 }}{% endif %}
+                — {{ a.descripcion }}
+              </option>
+              {% endfor %}
+            </select>
+            {% if not analiticas %}
+            <p class="aviso-warning">⚠️ Sin analíticas configuradas para este servicio.</p>
+            {% endif %}
+          </div>
+          <div class="campo-form">
+            <label>Observaciones</label>
+            <textarea name="observaciones" rows="3" class="textarea-field"
+                      placeholder="Opcional..."></textarea>
+          </div>
+          <button type="submit" class="btn-validar"
+                  {% if not analiticas %}disabled{% endif %}>
+            ✅ Confirmar validación
+          </button>
+          <p style="font-size:0.80rem; color:#4a7c59; margin:8px 0 0; line-height:1.4;">
+            Al validar se generará automáticamente el número de factura interno.
+          </p>
+        </form>
+      </div>
+      {% endif %}
+
+      <!-- Remesa (estado VALIDADO) -->
+      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'VALIDADO' %}
+      <div class="accion-bloque">
+        {% if peg.id_analitica %}
+        <button class="btn-remesa-active" onclick="abrirModalRemesa()">Añadir a Remesa</button>
+        {% else %}
+        <button class="btn-remesa-disabled" disabled title="Debe asignar una analítica al PEG antes de añadirlo a una remesa">Añadir a Remesa</button>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Incidencia (solo PENDIENTE) -->
+      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
+      <div class="accion-bloque">
+        <form method="post" action="/pegs/{{ peg.id_peg }}/incidencia">
+          <div style="margin-bottom:8px;">
+            <textarea name="comentario" rows="2" placeholder="Motivo de la incidencia..." style="width:100%; padding:8px; border:1px solid #d8dce2; border-radius:8px; font-size:0.88rem; resize:vertical; box-sizing:border-box;"></textarea>
+          </div>
+          <button class="btn-incidencia" type="submit">Marcar incidencia</button>
+        </form>
+      </div>
+      {% endif %}
+
+      <!-- Reabrir (INCIDENCIA) -->
+      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'INCIDENCIA' %}
+      <div class="accion-bloque">
+        <form method="post" action="/pegs/{{ peg.id_peg }}/reabrir">
+          <button class="btn btn-secondary" type="submit" style="width:100%;">Reabrir como pendiente</button>
+        </form>
+      </div>
+      {% endif %}
+
+      <!-- Badge remesa / pagado -->
+      {% if peg.codigo_estado == 'EN_REMESA' %}
+      <div class="accion-bloque">
+        <span class="badge-remesa">
+          En remesa: <a href="/remesas/{{ peg.id_remesa }}" style="font-weight:800;">{{ peg.codigo_remesa }}</a>
+        </span>
+      </div>
+      {% elif peg.codigo_estado == 'PAGADO' %}
+      <div class="accion-bloque">
+        <span class="badge-pagado">Pagado</span>
+      </div>
+      {% endif %}
+
+      <!-- ACCIÓN: ELIMINAR (solo GESTOR_ECONOMICO/ADMIN, estados permitidos) -->
+      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN']
+            and peg.codigo_estado in ['PENDIENTE', 'VALIDADO', 'INCIDENCIA'] %}
+      <div class="accion-bloque">
+        <button onclick="confirmarEliminar()" class="btn-accion btn-eliminar">
+          🗑️ Eliminar PEG
+        </button>
+        <form id="form-eliminar" method="POST"
+              action="/pegs/{{ peg.id_peg }}/eliminar" style="display:none">
+        </form>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <div class="actions" style="flex-direction: column;">
+      <a class="btn btn-secondary" href="/pegs/" style="width:100%; justify-content:center;">← Volver a todos los PEGs</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- Historial de cambios (full-width) -->
+<div class="card historial-section" style="margin-top:18px;">
+  <h3 style="margin-top:0; margin-bottom:16px;">Historial de cambios</h3>
+  {% if peg.historial %}
+  <div class="tl-grid">
+    <div class="tl-header">Fecha</div>
+    <div class="tl-header">Usuario</div>
+    <div class="tl-header">Cambio / Motivo</div>
+    {% for h in peg.historial %}
+    <div class="tl-row">
+      <div>{{ h.fecha_cambio }}</div>
+      <div style="color:var(--ink); font-weight:600;">{{ h.realizado_por }}</div>
+      <div>
+        <div class="tl-transicion">
+          {% if h.estado_origen %}{{ h.estado_origen }} → {% endif %}{{ h.estado_destino }}
+        </div>
+        {% if h.comentario %}
+        <div class="tl-motivo" style="margin-top:3px;">{{ h.comentario }}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="muted" style="font-size:0.9rem;">Sin historial registrado.</div>
+  {% endif %}
+</div>
+
+<!-- Modal: Seleccionar Remesa -->
+{% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'VALIDADO' and peg.id_analitica %}
+<div class="modal-backdrop" id="modalRemesa">
+  <div class="modal-panel" style="max-width:560px;">
+    <div class="modal-header">
+      <h3 style="margin:0; font-size:1.1rem;">Seleccionar Remesa</h3>
+      <button class="modal-close" onclick="cerrarModalRemesa()">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="modalRemesaContenido">
+        <div class="muted" style="text-align:center; padding:20px 0;">Cargando remesas...</div>
+      </div>
+      <div id="modalRemesaError" style="display:none; margin-top:12px; padding:10px 14px; border-radius:8px; background:rgba(226,75,74,0.10); border:1px solid rgba(226,75,74,0.28); color:#a32d2d; font-weight:600;"></div>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:18px; border-top:1px solid var(--line); padding-top:14px;">
+        <button class="btn btn-secondary" onclick="cerrarModalRemesa()">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmarRemesa" onclick="confirmarRemesa()" style="display:none;">Añadir a esta remesa</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>console.log('BLOQUE EXTRA_SCRIPTS CARGADO');</script>
+<script>
+function aplicarOpcionCuentaValidar(sel) {
+  const input = document.getElementById('cuenta_cliente_validar');
+  if (sel.value === 'saco') {
+    input.value = '{{ cuenta_saco }}';
+    sel.value = '';
+  } else if (sel.value === 'nueva') {
+    sel.value = '';
+    fetch('/proveedores/siguiente-cuenta-cliente')
+      .then(r => r.json())
+      .then(data => { input.value = data.cuenta; })
+      .catch(() => alert('Error al calcular la siguiente cuenta.'));
+  }
+}
+</script>
+<script>
+function confirmarEliminar() {
+  if (confirm('¿Seguro que quieres eliminar este PEG? Esta acción no se puede deshacer.')) {
+    document.getElementById('form-eliminar').submit();
+  }
+}
+</script>
+{% if puede_editar %}
+<script>
+function mostrarEdicion() {
+  document.getElementById('vista-lectura').style.display = 'none';
+  document.getElementById('vista-edicion').style.display = 'block';
+  editRecalcular();
+}
+function ocultarEdicion() {
+  document.getElementById('vista-edicion').style.display = 'none';
+  document.getElementById('vista-lectura').style.display = 'block';
+}
+
+// ── Editor de líneas IVA ──────────────────────────────────────────────────────
+const EDIT_MAX_LINEAS = 5;
+
+function editFmt(n) {
+  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+}
+
+function editCrearFila() {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>
+      <select name="lineas_tipo_iva" onchange="editRecalcular()">
+        <option value="0">0%</option>
+        <option value="5">5%</option>
+        <option value="10">10%</option>
+        <option value="21" selected>21%</option>
+      </select>
+    </td>
+    <td>
+      <input type="number" name="lineas_base_imponible" step="0.01" min="0"
+        placeholder="0.00" oninput="editRecalcular()" required>
+    </td>
+    <td class="r col-iva">—</td>
+    <td class="r col-total">—</td>
+    <td style="text-align:center;">
+      <button type="button" onclick="editEliminarFila(this)"
+        style="background:transparent;border:1px solid rgba(194,27,132,0.25);color:var(--fgulem-magenta);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:0.85rem;font-weight:700;">✕</button>
+    </td>`;
+  return tr;
+}
+
+function editAñadirLinea() {
+  const tbody = document.getElementById('editLineasBody');
+  if (tbody.rows.length >= EDIT_MAX_LINEAS) return;
+  tbody.appendChild(editCrearFila());
+  editActualizarBotones();
+  editRecalcular();
+}
+
+function editEliminarFila(btn) {
+  const tbody = document.getElementById('editLineasBody');
+  if (tbody.rows.length <= 1) return;
+  btn.closest('tr').remove();
+  editActualizarBotones();
+  editRecalcular();
+}
+
+function editActualizarBotones() {
+  const tbody = document.getElementById('editLineasBody');
+  tbody.querySelectorAll('button').forEach(b => b.disabled = tbody.rows.length <= 1);
+}
+
+function editRecalcular() {
+  const tbody = document.getElementById('editLineasBody');
+  let base = 0, iva = 0;
+  Array.from(tbody.rows).forEach(tr => {
+    const tipo = parseFloat(tr.querySelector('select').value) || 0;
+    const b    = parseFloat(tr.querySelector('input[type=number]').value) || 0;
+    const i    = Math.round(b * tipo * 100) / 10000;
+    tr.querySelector('.col-iva').textContent   = b > 0 ? i.toFixed(2) : '—';
+    tr.querySelector('.col-total').textContent = b > 0 ? (b + i).toFixed(2) : '—';
+    base += b; iva += i;
+  });
+  document.getElementById('editResBase').textContent  = editFmt(base);
+  document.getElementById('editResIva').textContent   = editFmt(iva);
+  document.getElementById('editResTotal').textContent = editFmt(base + iva);
+}
+
+// ── Cambio de estado: mostrar/ocultar campo motivo ────────────────────────────
+function editToggleMotivo() {
+  const sel  = document.getElementById('editNuevoEstado');
+  const wrap = document.getElementById('editMotivoWrap');
+  if (!sel || !wrap) return;
+  const opt = sel.options[sel.selectedIndex];
+  const requiere = opt && opt.dataset.motivo === '1';
+  wrap.style.display = requiere ? 'block' : 'none';
+  const ta = document.getElementById('editMotivo');
+  if (ta) ta.required = requiere;
+}
+
+// ── Proveedor (edición) ───────────────────────────────────────────────────────
+function editFiltrarProveedores() {
+  const termino = document.getElementById('editBuscadorProveedor').value.trim().toLowerCase();
+  const sel = document.getElementById('editIdProveedor');
+  Array.from(sel.options).forEach(opt => {
+    if (!opt.value) return;
+    opt.hidden = termino.length > 0 && !opt.text.toLowerCase().includes(termino);
+  });
+}
+
+async function editCargarDatosProveedor() {
+  const id = document.getElementById('editIdProveedor').value;
+  if (!id) return;
+  try {
+    const res  = await fetch(`/pegs/proveedor/${id}/json`);
+    const data = await res.json();
+    document.getElementById('editIbanProveedor').value = data.iban || '';
+    if (data.id_forma_pago_habitual) {
+      document.getElementById('editFormaPago').value = data.id_forma_pago_habitual;
+    }
+  } catch(e) {}
+}
+
+function editAbrirModalProveedor() {
+  abrirModalProveedor();
+}
+
+function abrirModalProveedor() {
+  ['mp-razon-social','mp-cif-nif','mp-nombre-comercial','mp-iban',
+   'mp-telefono','mp-email','mp-direccion','mp-localidad',
+   'mp-provincia','mp-codigo-postal','mp-cuenta-cliente']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const tp = document.getElementById('mp-tipo-persona');
+  if (tp) tp.value = 'JURIDICA';
+  document.getElementById('mp-error').style.display = 'none';
+  document.getElementById('modalNuevoProveedor').classList.add('active');
+  document.getElementById('mp-razon-social').focus();
+}
+
+function cerrarModalProveedor() {
+  document.getElementById('modalNuevoProveedor').classList.remove('active');
+}
+
+async function guardarProveedorRapido() {
+  const razonSocial     = document.getElementById('mp-razon-social').value.trim();
+  const cifNif          = document.getElementById('mp-cif-nif').value.trim();
+  const tipoPersona     = document.getElementById('mp-tipo-persona').value;
+  const nombreComercial = document.getElementById('mp-nombre-comercial').value.trim();
+  const iban            = document.getElementById('mp-iban').value.trim();
+  const formaPago       = document.getElementById('mp-forma-pago').value;
+  const telefono        = document.getElementById('mp-telefono').value.trim();
+  const email           = document.getElementById('mp-email').value.trim();
+  const direccion       = document.getElementById('mp-direccion').value.trim();
+  const localidad       = document.getElementById('mp-localidad').value.trim();
+  const provincia       = document.getElementById('mp-provincia').value.trim();
+  const codigoPostal    = document.getElementById('mp-codigo-postal').value.trim();
+  const cuentaEl        = document.getElementById('mp-cuenta-cliente');
+  const cuentaCliente   = cuentaEl ? cuentaEl.value.trim() : null;
+  const errEl           = document.getElementById('mp-error');
+
+  if (!razonSocial || !cifNif) {
+    errEl.textContent   = 'Razón social y CIF/NIF son obligatorios.';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  try {
+    const res = await fetch('/proveedores/rapido', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tipo_persona:           tipoPersona,
+        razon_social:           razonSocial,
+        cif_nif:                cifNif,
+        nombre_comercial:       nombreComercial || null,
+        iban:                   iban            || null,
+        id_forma_pago_habitual: parseInt(formaPago) || null,
+        telefono:               telefono        || null,
+        email:                  email           || null,
+        direccion:              direccion       || null,
+        localidad:              localidad       || null,
+        provincia:              provincia       || null,
+        codigo_postal:          codigoPostal    || null,
+        cuenta_cliente:         cuentaCliente   || null,
+      }),
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      errEl.textContent   = data.detail || data.error || 'Error al crear el proveedor.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // Añadir a select-proveedor y seleccionarlo
+    const sel = document.getElementById('select-proveedor');
+    const opt = new Option(`${data.razon_social} — ${data.cif_nif}`, data.id);
+    opt.dataset.cuenta = cuentaCliente || '';
+    sel.add(opt);
+    sel.value = data.id;
+
+    // Actualizar campo cuenta cliente del formulario de edición
+    const inputCuenta = document.getElementById('input-cuenta-cliente');
+    if (inputCuenta) inputCuenta.value = cuentaCliente || '';
+
+    // Habilitar botón editar proveedor
+    const btnEditar = document.getElementById('btn-editar-proveedor');
+    if (btnEditar) btnEditar.disabled = false;
+
+    cerrarModalProveedor();
+  } catch(e) {
+    errEl.textContent   = 'Error de red. Inténtelo de nuevo.';
+    errEl.style.display = 'block';
+  }
+}
+
+function usarCuentaSacoMp() {
+  const campo = document.getElementById('mp-cuenta-cliente');
+  if (campo) campo.value = '{{ cuenta_saco }}';
+}
+
+function calcularNuevaCuentaMp() {
+  fetch('/proveedores/siguiente-cuenta-cliente')
+    .then(r => r.json())
+    .then(data => {
+      const campo = document.getElementById('mp-cuenta-cliente');
+      if (campo) campo.value = data.cuenta;
+    })
+    .catch(() => alert('Error al calcular la siguiente cuenta.'));
+}
+
+document.getElementById('modalNuevoProveedor').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModalProveedor();
+});
+
+// Inicializar botones al cargar
+document.addEventListener('DOMContentLoaded', function () {
+  editActualizarBotones();
+  // Habilitar "Editar proveedor" si ya hay un proveedor seleccionado
+  const selProv  = document.getElementById('select-proveedor');
+  const btnEditar = document.getElementById('btn-editar-proveedor');
+  if (selProv && btnEditar) btnEditar.disabled = !selProv.value;
+});
+</script>
+{% endif %}
+{% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'VALIDADO' and peg.id_analitica %}
+<script>
+const PEG_ID = {{ peg.id_peg }};
+
+function abrirModalRemesa() {
+  document.getElementById('modalRemesa').classList.add('active');
+  document.body.style.overflow = 'hidden';
+  cargarRemesas();
+}
+
+function cerrarModalRemesa() {
+  document.getElementById('modalRemesa').classList.remove('active');
+  document.body.style.overflow = '';
+  document.getElementById('modalRemesaError').style.display = 'none';
+}
+
+async function cargarRemesas() {
+  const contenido = document.getElementById('modalRemesaContenido');
+  const btnConfirmar = document.getElementById('btnConfirmarRemesa');
+  contenido.innerHTML = '<div class="muted" style="text-align:center; padding:20px 0;">Cargando remesas...</div>';
+  btnConfirmar.style.display = 'none';
+
+  try {
+    const resp = await fetch('/remesas/abiertas');
+    if (!resp.ok) throw new Error('Error ' + resp.status);
+    const remesas = await resp.json();
+
+    if (!remesas || remesas.length === 0) {
+      contenido.innerHTML = '<div class="muted" style="padding:16px 0;">No hay remesas abiertas disponibles. Crea una nueva remesa primero.</div>';
+      return;
+    }
+
+    let html = '<div style="display:flex; flex-direction:column; gap:8px;">';
+    remesas.forEach(r => {
+      const nPegs = r.num_pegs ?? 0;
+      html += `<label class="modal-remesa-item">
+        <input type="radio" name="remesa_sel" value="${r.id_remesa}" style="width:auto; margin-top:3px;" onchange="document.getElementById('btnConfirmarRemesa').style.display='inline-flex';">
+        <div>
+          <div style="font-weight:700; color:var(--ink); font-size:0.95rem;">${r.nombre}</div>
+          <div class="muted" style="font-size:0.83rem; margin-top:2px;">Código: ${r.codigo_remesa} · Creada: ${r.fecha_creacion} · ${nPegs} PEG${nPegs !== 1 ? 's' : ''}</div>
+        </div>
+      </label>`;
+    });
+    html += '</div>';
+    contenido.innerHTML = html;
+
+  } catch(e) {
+    contenido.innerHTML = '<div class="muted" style="padding:16px 0;">Error al cargar las remesas. Inténtalo de nuevo.</div>';
+  }
+}
+
+async function confirmarRemesa() {
+  const sel = document.querySelector('input[name="remesa_sel"]:checked');
+  if (!sel) return;
+
+  const errorDiv = document.getElementById('modalRemesaError');
+  const btnConfirmar = document.getElementById('btnConfirmarRemesa');
+  errorDiv.style.display = 'none';
+  btnConfirmar.disabled = true;
+  btnConfirmar.textContent = 'Añadiendo...';
+
+  try {
+    const resp = await fetch(`/pegs/${PEG_ID}/asignar-remesa`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_remesa: parseInt(sel.value, 10) })
+    });
+
+    if (resp.ok) {
+      cerrarModalRemesa();
+      window.location.href = `/pegs/${PEG_ID}?msg=PEG+a%C3%B1adida+a+la+remesa+correctamente&msg_type=success`;
+    } else {
+      let msg = 'Error al añadir a la remesa';
+      try { const data = await resp.json(); msg = data.detail || data.error || msg; } catch(_) {}
+      errorDiv.textContent = '⚠ ' + msg;
+      errorDiv.style.display = 'block';
+      btnConfirmar.disabled = false;
+      btnConfirmar.textContent = 'Añadir a esta remesa';
+    }
+  } catch(e) {
+    errorDiv.textContent = '⚠ Error de conexión. Inténtalo de nuevo.';
+    errorDiv.style.display = 'block';
+    btnConfirmar.disabled = false;
+    btnConfirmar.textContent = 'Añadir a esta remesa';
+  }
+}
+
+document.getElementById('modalRemesa').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModalRemesa();
+});
+</script>
+{% endif %}
+
+<script>
+// ── Proveedor: editar / cuenta saco ──────────────────────────────────────
+const CUENTA_SACO = "{{ cuenta_saco }}";
+
+function onProveedorCambiado(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  const cuenta = opt.dataset.cuenta || "";
+  const inputCuenta = document.getElementById("input-cuenta-cliente");
+  if (inputCuenta) inputCuenta.value = cuenta;
+  const btnEditar = document.getElementById("btn-editar-proveedor");
+  if (btnEditar) btnEditar.disabled = !sel.value;
+}
+
+function usarCuentaSaco() {
+  document.getElementById("input-cuenta-cliente").value = CUENTA_SACO;
+}
+
+function abrirModalEditarProveedor() {
+  const idProv = document.getElementById("select-proveedor").value;
+  if (!idProv) return;
+  fetch(`/proveedores/${idProv}/datos-json`)
+    .then(r => r.json())
+    .then(p => {
+      {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+      const camposCuentaCliente = `
+        <div style="margin-top:8px">
+          <label class="form-label">Cuenta cliente</label>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <input type="text" id="ep-cuenta-cliente"
+                   class="select-field" style="width:120px"
+                   value="${p.cuenta_cliente || ''}">
+            <button type="button" onclick="usarCuentaSacoModal()"
+                    class="btn btn-secondary"
+                    style="font-size:0.75rem;padding:4px 8px">
+              Saco
+            </button>
+            <button type="button" onclick="calcularNuevaCuenta()"
+                    class="btn btn-secondary"
+                    style="font-size:0.75rem;padding:4px 8px">
+              Nueva cuenta
+            </button>
+          </div>
+          <span style="font-size:0.75rem;color:#6b7280">
+            Saco: {{ cuenta_saco }} · o introduce una nueva
+          </span>
+        </div>
+      `;
+      {% else %}
+      const camposCuentaCliente = '';
+      {% endif %}
+      document.getElementById("modal-editar-proveedor-contenido").innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div><label class="form-label">Razón social</label>
+            <input type="text" id="ep-razon" class="select-field" value="${p.razon_social || ''}"></div>
+          <div><label class="form-label">NIF</label>
+            <input type="text" id="ep-nif" class="select-field" value="${p.nif || p.cif_nif || ''}"></div>
+          <div><label class="form-label">IBAN</label>
+            <input type="text" id="ep-iban" class="select-field" value="${p.iban || ''}"></div>
+          <div><label class="form-label">Email</label>
+            <input type="text" id="ep-email" class="select-field" value="${p.email || ''}"></div>
+          <div><label class="form-label">Teléfono</label>
+            <input type="text" id="ep-telefono" class="select-field" value="${p.telefono || ''}"></div>
+          <input type="hidden" id="ep-id" value="${p.id_proveedor}">
+          ${camposCuentaCliente}
+        </div>`;
+      document.getElementById("modal-editar-proveedor").style.display = "flex";
+    });
+}
+
+function cerrarModalEditarProveedor() {
+  document.getElementById("modal-editar-proveedor").style.display = "none";
+}
+
+function guardarProveedorEditado() {
+  const id = document.getElementById("ep-id").value;
+  const datos = {
+    razon_social: document.getElementById("ep-razon").value,
+    nif:          document.getElementById("ep-nif").value,
+    iban:         document.getElementById("ep-iban").value,
+    email:        document.getElementById("ep-email").value,
+    telefono:     document.getElementById("ep-telefono").value,
+  };
+  {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+  const epCuenta = document.getElementById("ep-cuenta-cliente");
+  if (epCuenta) datos.cuenta_cliente = epCuenta.value;
+  {% endif %}
+  fetch(`/proveedores/${id}/editar-json`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(datos),
+  }).then(r => {
+    if (r.ok) {
+      cerrarModalEditarProveedor();
+      const opt = document.querySelector(`#select-proveedor option[value="${id}"]`);
+      if (opt) opt.textContent = datos.razon_social + " — " + datos.nif;
+      if (opt) {
+        opt.dataset.cuenta = datos.cuenta_cliente || "";
+        const inputCuenta = document.getElementById("input-cuenta-cliente");
+        if (inputCuenta) inputCuenta.value = datos.cuenta_cliente || "";
+      }
+    } else {
+      alert("Error al guardar el proveedor.");
+    }
+  });
+}
+
+function usarCuentaSacoModal() {
+  const campo = document.getElementById("ep-cuenta-cliente");
+  if (campo) campo.value = "{{ cuenta_saco }}";
+}
+
+function calcularNuevaCuenta() {
+  fetch("/proveedores/siguiente-cuenta-cliente")
+    .then(r => r.json())
+    .then(data => {
+      const campo = document.getElementById("ep-cuenta-cliente");
+      if (campo) campo.value = data.cuenta;
+    })
+    .catch(() => alert("Error al calcular la siguiente cuenta."));
+}
+</script>
+{% endblock %}

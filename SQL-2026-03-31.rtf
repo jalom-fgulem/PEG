@@ -1,0 +1,447 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2868
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 -- ============================================================\
+-- SGPEG - Sistema de Gesti\'f3n de Propuestas Espec\'edficas de Gasto\
+-- FGULEM\
+-- Script completo v2 - Incluye: peg_linea, remesa, ajustes\
+-- ============================================================\
+\
+-- Borrar tablas en orden inverso de dependencias\
+IF OBJECT_ID('peg_incidencia',   'U') IS NOT NULL DROP TABLE peg_incidencia;\
+IF OBJECT_ID('peg_historial',    'U') IS NOT NULL DROP TABLE peg_historial;\
+IF OBJECT_ID('peg_documento',    'U') IS NOT NULL DROP TABLE peg_documento;\
+IF OBJECT_ID('peg_linea',        'U') IS NOT NULL DROP TABLE peg_linea;\
+IF OBJECT_ID('peg',              'U') IS NOT NULL DROP TABLE peg;\
+IF OBJECT_ID('remesa',           'U') IS NOT NULL DROP TABLE remesa;\
+IF OBJECT_ID('proveedor_servicio','U') IS NOT NULL DROP TABLE proveedor_servicio;\
+IF OBJECT_ID('proveedor',        'U') IS NOT NULL DROP TABLE proveedor;\
+IF OBJECT_ID('analitica',        'U') IS NOT NULL DROP TABLE analitica;\
+IF OBJECT_ID('proyecto',         'U') IS NOT NULL DROP TABLE proyecto;\
+IF OBJECT_ID('usuario',          'U') IS NOT NULL DROP TABLE usuario;\
+IF OBJECT_ID('banco',            'U') IS NOT NULL DROP TABLE banco;\
+IF OBJECT_ID('forma_pago',       'U') IS NOT NULL DROP TABLE forma_pago;\
+IF OBJECT_ID('peg_estado',       'U') IS NOT NULL DROP TABLE peg_estado;\
+IF OBJECT_ID('peg_tipo',         'U') IS NOT NULL DROP TABLE peg_tipo;\
+IF OBJECT_ID('tipo_documento',   'U') IS NOT NULL DROP TABLE tipo_documento;\
+IF OBJECT_ID('servicio',         'U') IS NOT NULL DROP TABLE servicio;\
+IF OBJECT_ID('rol',              'U') IS NOT NULL DROP TABLE rol;\
+IF OBJECT_ID('email_envio',      'U') IS NOT NULL DROP TABLE email_envio;\
+IF OBJECT_ID('plantilla_email',  'U') IS NOT NULL DROP TABLE plantilla_email;\
+IF OBJECT_ID('parametro_sistema','U') IS NOT NULL DROP TABLE parametro_sistema;\
+GO\
+\
+-- ============================================================\
+-- TABLAS DE CAT\'c1LOGO / CONFIGURACI\'d3N\
+-- ============================================================\
+\
+CREATE TABLE rol (\
+    id_rol       INT IDENTITY(1,1) PRIMARY KEY,\
+    codigo       NVARCHAR(50)  NOT NULL UNIQUE,\
+    nombre       NVARCHAR(100) NOT NULL,\
+    descripcion  NVARCHAR(255) NULL,\
+    activo       BIT           NOT NULL DEFAULT 1\
+);\
+GO\
+\
+-- Datos iniciales de roles\
+INSERT INTO rol (codigo, nombre, descripcion) VALUES\
+    ('GESTOR_SERVICIO',  'Gestor de Servicio',  'Crea PEGs y proveedores de su propio servicio'),\
+    ('GESTOR_ECONOMICO', 'Gestor Econ\'f3mico',    'Valida PEGs y gestiona remesas'),\
+    ('ADMIN',            'Administrador',        'Gesti\'f3n de usuarios, servicios y configuraci\'f3n');\
+GO\
+\
+-- ------------------------------------------------------------\
+\
+CREATE TABLE servicio (\
+    id_servicio  INT IDENTITY(1,1) PRIMARY KEY,\
+    codigo       NVARCHAR(50)  NOT NULL UNIQUE,\
+    nombre       NVARCHAR(150) NOT NULL,\
+    descripcion  NVARCHAR(255) NULL,\
+    -- Cuentas contables A3Con (se configuran desde el panel de administraci\'f3n)\
+    cuenta_gasto         NVARCHAR(20) NULL,\
+    cuenta_iva_soportado NVARCHAR(20) NULL,\
+    cuenta_tesoreria     NVARCHAR(20) NULL,\
+    activo       BIT           NOT NULL DEFAULT 1\
+);\
+GO\
+\
+-- ------------------------------------------------------------\
+\
+CREATE TABLE proyecto (\
+    id_proyecto  INT IDENTITY(1,1) PRIMARY KEY,\
+    id_servicio  INT           NOT NULL,\
+    codigo       NVARCHAR(50)  NOT NULL,\
+    nombre       NVARCHAR(150) NOT NULL,\
+    descripcion  NVARCHAR(255) NULL,\
+    activo       BIT           NOT NULL DEFAULT 1,\
+    CONSTRAINT UQ_proyecto_servicio_codigo UNIQUE (id_servicio, codigo),\
+    CONSTRAINT FK_proyecto_servicio FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio)\
+);\
+GO\
+\
+-- ------------------------------------------------------------\
+\
+CREATE TABLE analitica (\
+    id_analitica INT IDENTITY(1,1) PRIMARY KEY,\
+    id_servicio  INT           NOT NULL,\
+    id_proyecto  INT           NULL,\
+    nivel_1      NVARCHAR(20)  NOT NULL,\
+    nivel_2      NVARCHAR(20)  NULL,   -- NULL si el servicio no tiene nivel 2\
+    descripcion  NVARCHAR(255) NOT NULL,\
+    activo       BIT           NOT NULL DEFAULT 1,\
+    CONSTRAINT FK_analitica_servicio FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio),\
+    CONSTRAINT FK_analitica_proyecto FOREIGN KEY (id_proyecto) REFERENCES proyecto(id_proyecto)\
+);\
+GO\
+\
+-- ------------------------------------------------------------\
+\
+CREATE TABLE usuario (\
+    id_usuario                  INT IDENTITY(1,1) PRIMARY KEY,\
+    login                       NVARCHAR(100) NOT NULL UNIQUE,\
+    nombre                      NVARCHAR(100) NOT NULL,\
+    apellidos                   NVARCHAR(150) NOT NULL,\
+    email                       NVARCHAR(150) NOT NULL,\
+    password_hash               NVARCHAR(255) NOT NULL,\
+    id_rol                      INT           NOT NULL,\
+    -- NULL para ADMIN y GESTOR_ECONOMICO; obligatorio para GESTOR_SERVICIO\
+    id_servicio                 INT           NULL,\
+    activo                      BIT           NOT NULL DEFAULT 1,\
+    recibe_notificaciones       BIT           NOT NULL DEFAULT 1,\
+    recibe_notificaciones_peg   BIT           NOT NULL DEFAULT 1,\
+    fecha_alta                  DATETIME2     NOT NULL DEFAULT SYSDATETIME(),\
+    CONSTRAINT FK_usuario_rol      FOREIGN KEY (id_rol)      REFERENCES rol(id_rol),\
+    CONSTRAINT FK_usuario_servicio FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio)\
+);\
+GO\
+\
+-- ------------------------------------------------------------\
+\
+CREATE TABLE forma_pago (\
+    id_forma_pago INT IDENTITY(1,1) PRIMARY KEY,\
+    codigo        NVARCHAR(50)  NOT NULL UNIQUE,\
+    nombre        NVARCHAR(100) NOT NULL,\
+    activo        BIT           NOT NULL DEFAULT 1\
+);\
+GO\
+\
+INSERT INTO forma_pago (codigo, nombre) VALUES\
+    ('TRANSFERENCIA', 'Transferencia bancaria'),\
+    ('DOMICILIACION', 'Domiciliaci\'f3n bancaria'),\
+    ('CHEQUE',        'Cheque'),\
+    ('PAGARE',        'Pagar\'e9'),\
+    ('METALICO',      'En met\'e1lico');\
+GO\
+\
+-- ------------------------------------------------------------\
+\
+CREATE TABLE banco (\
+    id_banco        INT IDENTITY(1,1) PRIMARY KEY,\
+    codigo          NVARCHAR(50)  NOT NULL UNIQUE,\
+    nombre          NVARCHAR(150) NOT NULL,\
+    iban_ordenante  NVARCHAR(34)  NULL,\
+    bic             NVARCHAR(20)  NULL,\
+    cuenta_contable NVARCHAR(20)  NULL,\
+    activo          BIT           NOT NULL DEFAULT 1\
+);\
+GO\
+\
+-- ------------------------------------------------------------\
+\
+CREATE TABLE peg_tipo (\
+    id_peg_tipo INT IDENTITY(1,1) PRIMARY KEY,\
+    codigo      NVARCHAR(50)  NOT NULL UNIQUE,\
+    nombre      NVARCHAR(100) NOT NULL,\
+    activo      BIT           NOT NULL DEFAULT 1\
+);\
+GO\
+\
+INSERT INTO peg_tipo (codigo, nombre) VALUES\
+    ('FACTURA',      'Factura'),\
+    ('PRESUPUESTO',  'Presupuesto'),\
+    ('CONTRATO',     'Contrato');\
+GO\
+\
+-- ------------------------------------------------------------\
+\
+CREATE TABLE peg_estado (\
+    id_peg_estado INT IDENTITY(1,1) PRIMARY KEY,\
+    codigo        NVARCHAR(50)  NOT NULL UNIQUE,\
+    nombre        NVARCHAR(100) NOT NULL,\
+    orden_estado  INT           NOT NULL,\
+    activo        BIT           NOT NULL DEFAULT 1\
+);\
+GO\
+\
+INSERT INTO peg_estado (codigo, nombre, orden_estado) VALUES\
+    ('PENDIENTE',   'Pendiente de validaci\'f3n',  1),\
+    ('VALIDADO',    'Validado',                 2),\
+    ('EN_REMESA',   'En remesa',                3),\
+    ('PAGADO',      'Pagado',                   4),\
+    ('INCIDENCIA',  'Con incidencia',           5);\
+GO\
+\
+-- ------------------------------------------------------------\
+\
+CREATE TABLE tipo_documento (\
+    id_tipo_documento       INT IDENTITY(1,1) PRIMARY KEY,\
+    codigo                  NVARCHAR(50)  NOT NULL UNIQUE,\
+    nombre                  NVARCHAR(100) NOT NULL,\
+    obligatorio_por_defecto BIT           NOT NULL DEFAULT 0,\
+    activo                  BIT           NOT NULL DEFAULT 1\
+);\
+GO\
+\
+INSERT INTO tipo_documento (codigo, nombre, obligatorio_por_defecto) VALUES\
+    ('FACTURA',      'Factura',      1),\
+    ('PRESUPUESTO',  'Presupuesto',  0),\
+    ('OTRO',         'Otro',         0);\
+GO\
+\
+-- ============================================================\
+-- PROVEEDORES\
+-- ============================================================\
+\
+CREATE TABLE proveedor (\
+    id_proveedor          INT IDENTITY(1,1) PRIMARY KEY,\
+    tipo_persona          NVARCHAR(20)  NOT NULL,   -- FISICA / JURIDICA\
+    cif_nif               NVARCHAR(20)  NOT NULL UNIQUE,\
+    razon_social          NVARCHAR(200) NOT NULL,\
+    nombre_comercial      NVARCHAR(200) NULL,\
+    direccion             NVARCHAR(255) NULL,\
+    codigo_postal         NVARCHAR(10)  NULL,\
+    telefono              NVARCHAR(30)  NULL,\
+    email                 NVARCHAR(150) NULL,\
+    web                   NVARCHAR(150) NULL,\
+    persona_contacto      NVARCHAR(150) NULL,\
+    -- IBAN espa\'f1ol (ES + 22 d\'edgitos = 24 caracteres)\
+    iban                  NVARCHAR(24)  NULL,\
+    bic                   NVARCHAR(20)  NULL,\
+    id_forma_pago_habitual INT          NULL,\
+    retencion_aplicable   DECIMAL(5,2)  NULL,\
+    tipo_iva_habitual     DECIMAL(5,2)  NULL,\
+    observaciones         NVARCHAR(500) NULL,\
+    activo                BIT           NOT NULL DEFAULT 1,\
+    fecha_alta            DATETIME2     NOT NULL DEFAULT SYSDATETIME(),\
+    CONSTRAINT FK_proveedor_forma_pago FOREIGN KEY (id_forma_pago_habitual)\
+        REFERENCES forma_pago(id_forma_pago)\
+);\
+GO\
+\
+-- Relaci\'f3n muchos a muchos proveedor <-> servicio\
+CREATE TABLE proveedor_servicio (\
+    id_proveedor_servicio INT IDENTITY(1,1) PRIMARY KEY,\
+    id_proveedor          INT  NOT NULL,\
+    id_servicio           INT  NOT NULL,\
+    habitual              BIT  NOT NULL DEFAULT 0,\
+    activo                BIT  NOT NULL DEFAULT 1,\
+    fecha_alta            DATETIME2 NOT NULL DEFAULT SYSDATETIME(),\
+    CONSTRAINT UQ_proveedor_servicio          UNIQUE (id_proveedor, id_servicio),\
+    CONSTRAINT FK_proveedor_servicio_prov     FOREIGN KEY (id_proveedor) REFERENCES proveedor(id_proveedor),\
+    CONSTRAINT FK_proveedor_servicio_servicio FOREIGN KEY (id_servicio)  REFERENCES servicio(id_servicio)\
+);\
+GO\
+\
+-- ============================================================\
+-- REMESAS\
+-- ============================================================\
+\
+CREATE TABLE remesa (\
+    id_remesa      INT IDENTITY(1,1) PRIMARY KEY,\
+    codigo_remesa  NVARCHAR(50)  NOT NULL UNIQUE,\
+    nombre         NVARCHAR(150) NOT NULL,\
+    id_banco       INT           NOT NULL,\
+    -- Estados: ABIERTA | ENVIADA | PAGADA\
+    estado         NVARCHAR(20)  NOT NULL DEFAULT 'ABIERTA',\
+    fecha_creacion DATETIME2     NOT NULL DEFAULT SYSDATETIME(),\
+    fecha_envio    DATETIME2     NULL,\
+    fecha_pago     DATETIME2     NULL,\
+    creada_por     INT           NOT NULL,\
+    -- Rutas a los archivos generados\
+    archivo_cuaderno34  NVARCHAR(500) NULL,\
+    archivo_a3con       NVARCHAR(500) NULL,\
+    observaciones       NVARCHAR(1000) NULL,\
+    CONSTRAINT FK_remesa_banco   FOREIGN KEY (id_banco)   REFERENCES banco(id_banco),\
+    CONSTRAINT FK_remesa_usuario FOREIGN KEY (creada_por) REFERENCES usuario(id_usuario)\
+);\
+GO\
+\
+-- ============================================================\
+-- PEGs\
+-- ============================================================\
+\
+CREATE TABLE peg (\
+    id_peg                INT IDENTITY(1,1) PRIMARY KEY,\
+    codigo_peg            NVARCHAR(50)   NOT NULL UNIQUE,\
+    id_servicio           INT            NOT NULL,\
+    id_proyecto           INT            NULL,\
+    id_proveedor          INT            NOT NULL,\
+    id_peg_tipo           INT            NOT NULL,\
+    numero_documento      NVARCHAR(100)  NOT NULL,\
+    fecha_documento       DATE           NOT NULL,\
+    fecha_recepcion       DATE           NOT NULL,\
+    fecha_vencimiento     DATE           NULL,\
+    -- Campo \'fanico de descripci\'f3n/concepto (no se repite por l\'ednea)\
+    descripcion_gasto     NVARCHAR(500)  NOT NULL,\
+    observaciones         NVARCHAR(1000) NULL,\
+    id_forma_pago_prevista INT           NOT NULL,\
+    -- Totales consolidados (suma de l\'edneas)\
+    base_imponible_total  DECIMAL(18,2)  NOT NULL DEFAULT 0,\
+    importe_iva_total     DECIMAL(18,2)  NOT NULL DEFAULT 0,\
+    importe_irpf          DECIMAL(18,2)  NOT NULL DEFAULT 0,\
+    importe_total         DECIMAL(18,2)  NOT NULL DEFAULT 0,\
+    -- Estado y remesa\
+    id_peg_estado         INT            NOT NULL,\
+    id_remesa             INT            NULL,\
+    id_analitica          INT            NULL,\
+    -- Control de bloqueo e incidencias\
+    bloqueado_pago        BIT            NOT NULL DEFAULT 0,\
+    motivo_bloqueo        NVARCHAR(500)  NULL,\
+    motivo_anulacion      NVARCHAR(500)  NULL,\
+    -- Auditor\'eda\
+    creado_por            INT            NOT NULL,\
+    fecha_creacion        DATETIME2      NOT NULL DEFAULT SYSDATETIME(),\
+    fecha_validacion      DATETIME2      NULL,\
+    validado_por          INT            NULL,\
+    fecha_pago            DATETIME2      NULL,\
+    fecha_actualizacion   DATETIME2      NOT NULL DEFAULT SYSDATETIME(),\
+    CONSTRAINT FK_peg_servicio    FOREIGN KEY (id_servicio)          REFERENCES servicio(id_servicio),\
+    CONSTRAINT FK_peg_proyecto    FOREIGN KEY (id_proyecto)          REFERENCES proyecto(id_proyecto),\
+    CONSTRAINT FK_peg_proveedor   FOREIGN KEY (id_proveedor)         REFERENCES proveedor(id_proveedor),\
+    CONSTRAINT FK_peg_tipo        FOREIGN KEY (id_peg_tipo)          REFERENCES peg_tipo(id_peg_tipo),\
+    CONSTRAINT FK_peg_forma_pago  FOREIGN KEY (id_forma_pago_prevista) REFERENCES forma_pago(id_forma_pago),\
+    CONSTRAINT FK_peg_estado      FOREIGN KEY (id_peg_estado)        REFERENCES peg_estado(id_peg_estado),\
+    CONSTRAINT FK_peg_remesa      FOREIGN KEY (id_remesa)            REFERENCES remesa(id_remesa),\
+    CONSTRAINT FK_peg_analitica   FOREIGN KEY (id_analitica)         REFERENCES analitica(id_analitica),\
+    CONSTRAINT FK_peg_creado_por  FOREIGN KEY (creado_por)           REFERENCES usuario(id_usuario),\
+    CONSTRAINT FK_peg_validado_por FOREIGN KEY (validado_por)        REFERENCES usuario(id_usuario)\
+);\
+GO\
+\
+-- ------------------------------------------------------------\
+-- L\'cdNEAS DE IVA DEL PEG (subformulario)\
+-- ------------------------------------------------------------\
+\
+CREATE TABLE peg_linea (\
+    id_peg_linea   INT IDENTITY(1,1) PRIMARY KEY,\
+    id_peg         INT           NOT NULL,\
+    orden          INT           NOT NULL DEFAULT 1,\
+    -- Tipos de IVA oficiales: 0, 5, 10, 21\
+    tipo_iva       DECIMAL(5,2)  NOT NULL,\
+    base_imponible DECIMAL(18,2) NOT NULL,\
+    -- Calculados y persistidos\
+    importe_iva    AS (CAST(base_imponible * tipo_iva / 100 AS DECIMAL(18,2))) PERSISTED,\
+    total_linea    AS (CAST(base_imponible + base_imponible * tipo_iva / 100 AS DECIMAL(18,2))) PERSISTED,\
+    CONSTRAINT FK_peg_linea_peg FOREIGN KEY (id_peg) REFERENCES peg(id_peg)\
+);\
+GO\
+\
+-- ------------------------------------------------------------\
+-- DOCUMENTOS ADJUNTOS AL PEG (m\'e1ximo 3-5 por PEG)\
+-- ------------------------------------------------------------\
+\
+CREATE TABLE peg_documento (\
+    id_peg_documento  INT IDENTITY(1,1) PRIMARY KEY,\
+    id_peg            INT           NOT NULL,\
+    id_tipo_documento INT           NOT NULL,\
+    nombre_fichero    NVARCHAR(255) NOT NULL,\
+    ruta_fichero      NVARCHAR(500) NOT NULL,\
+    es_principal      BIT           NOT NULL DEFAULT 0,\
+    activo            BIT           NOT NULL DEFAULT 1,\
+    subido_por        INT           NOT NULL,\
+    fecha_subida      DATETIME2     NOT NULL DEFAULT SYSDATETIME(),\
+    CONSTRAINT FK_peg_documento_peg     FOREIGN KEY (id_peg)            REFERENCES peg(id_peg),\
+    CONSTRAINT FK_peg_documento_tipo    FOREIGN KEY (id_tipo_documento)  REFERENCES tipo_documento(id_tipo_documento),\
+    CONSTRAINT FK_peg_documento_usuario FOREIGN KEY (subido_por)         REFERENCES usuario(id_usuario)\
+);\
+GO\
+\
+-- ------------------------------------------------------------\
+-- HISTORIAL DE CAMBIOS DE ESTADO\
+-- ------------------------------------------------------------\
+\
+CREATE TABLE peg_historial (\
+    id_peg_historial      INT IDENTITY(1,1) PRIMARY KEY,\
+    id_peg                INT            NOT NULL,\
+    id_peg_estado_origen  INT            NULL,\
+    id_peg_estado_destino INT            NOT NULL,\
+    comentario            NVARCHAR(1000) NULL,\
+    realizado_por         INT            NOT NULL,\
+    fecha_cambio          DATETIME2      NOT NULL DEFAULT SYSDATETIME(),\
+    CONSTRAINT FK_peg_historial_peg     FOREIGN KEY (id_peg)                 REFERENCES peg(id_peg),\
+    CONSTRAINT FK_peg_historial_origen  FOREIGN KEY (id_peg_estado_origen)   REFERENCES peg_estado(id_peg_estado),\
+    CONSTRAINT FK_peg_historial_destino FOREIGN KEY (id_peg_estado_destino)  REFERENCES peg_estado(id_peg_estado),\
+    CONSTRAINT FK_peg_historial_usuario FOREIGN KEY (realizado_por)          REFERENCES usuario(id_usuario)\
+);\
+GO\
+\
+-- ------------------------------------------------------------\
+-- INCIDENCIAS\
+-- ------------------------------------------------------------\
+\
+CREATE TABLE peg_incidencia (\
+    id_peg_incidencia INT IDENTITY(1,1) PRIMARY KEY,\
+    id_peg            INT            NOT NULL,\
+    descripcion       NVARCHAR(1000) NOT NULL,\
+    abierta           BIT            NOT NULL DEFAULT 1,\
+    creada_por        INT            NOT NULL,\
+    fecha_alta        DATETIME2      NOT NULL DEFAULT SYSDATETIME(),\
+    fecha_cierre      DATETIME2      NULL,\
+    cerrada_por       INT            NULL,\
+    CONSTRAINT FK_peg_incidencia_peg     FOREIGN KEY (id_peg)       REFERENCES peg(id_peg),\
+    CONSTRAINT FK_peg_incidencia_creada  FOREIGN KEY (creada_por)   REFERENCES usuario(id_usuario),\
+    CONSTRAINT FK_peg_incidencia_cerrada FOREIGN KEY (cerrada_por)  REFERENCES usuario(id_usuario)\
+);\
+GO\
+\
+-- ============================================================\
+-- EMAIL Y CONFIGURACI\'d3N\
+-- ============================================================\
+\
+CREATE TABLE plantilla_email (\
+    id_plantilla_email INT IDENTITY(1,1) PRIMARY KEY,\
+    codigo             NVARCHAR(100) NOT NULL UNIQUE,\
+    nombre             NVARCHAR(150) NOT NULL,\
+    asunto             NVARCHAR(255) NOT NULL,\
+    cuerpo_html        NVARCHAR(MAX) NOT NULL,\
+    cuerpo_texto       NVARCHAR(MAX) NULL,\
+    activo             BIT           NOT NULL DEFAULT 1\
+);\
+GO\
+\
+CREATE TABLE email_envio (\
+    id_email_envio    INT IDENTITY(1,1) PRIMARY KEY,\
+    tipo_entidad      NVARCHAR(50)  NOT NULL,\
+    id_entidad        INT           NOT NULL,\
+    codigo_plantilla  NVARCHAR(100) NOT NULL,\
+    destinatario      NVARCHAR(255) NOT NULL,\
+    cc                NVARCHAR(500) NULL,\
+    asunto_generado   NVARCHAR(255) NOT NULL,\
+    cuerpo_generado   NVARCHAR(MAX) NOT NULL,\
+    estado_envio      NVARCHAR(50)  NOT NULL DEFAULT 'PENDIENTE',\
+    fecha_creacion    DATETIME2     NOT NULL DEFAULT SYSDATETIME(),\
+    fecha_envio       DATETIME2     NULL,\
+    mensaje_error     NVARCHAR(1000) NULL,\
+    reintentos        INT           NOT NULL DEFAULT 0\
+);\
+GO\
+\
+CREATE TABLE parametro_sistema (\
+    id_parametro INT IDENTITY(1,1) PRIMARY KEY,\
+    clave        NVARCHAR(100)  NOT NULL UNIQUE,\
+    valor        NVARCHAR(1000) NOT NULL,\
+    descripcion  NVARCHAR(255)  NULL\
+);\
+GO\
+\
+-- Par\'e1metros iniciales\
+INSERT INTO parametro_sistema (clave, valor, descripcion) VALUES\
+    ('A3CON_CODIGO_EMPRESA', '00001', 'C\'f3digo de empresa en A3Con (5 d\'edgitos)'),\
+    ('PEG_MAX_DOCUMENTOS',   '5',     'N\'famero m\'e1ximo de documentos adjuntos por PEG'),\
+    ('IBAN_PAIS',            'ES',    'Pa\'eds por defecto para validaci\'f3n de IBAN');\
+GO}

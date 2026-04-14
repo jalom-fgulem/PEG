@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar sesión — SGPEG</title>
+    <link rel="icon" type="image/jpeg" href="/static/favicon.jpg">
+    <style>
+        :root {
+            --fgulem-magenta: #c21b84;
+            --fgulem-magenta-soft: #d94da0;
+            --fgulem-blue: #5a9fd3;
+            --ink: #4f4c55;
+            --ink-soft: #6e6a73;
+            --line: #e5e7eb;
+            --shadow: 0 12px 30px rgba(42, 46, 56, 0.08);
+            --radius: 18px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(194, 27, 132, 0.10), transparent 24%),
+                radial-gradient(circle at top right, rgba(95, 159, 211, 0.12), transparent 22%),
+                linear-gradient(180deg, #f7f7f8 0%, #f1f3f5 100%);
+            color: var(--ink);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .login-wrap {
+            width: min(420px, 100%);
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .brand-logo {
+            width: 160px;
+            height: auto;
+            margin-bottom: 16px;
+            mix-blend-mode: multiply;
+        }
+
+        .brand-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--ink);
+            letter-spacing: -0.02em;
+            margin: 0 0 6px;
+        }
+
+        .brand-subtitle {
+            color: var(--ink-soft);
+            font-size: 0.92rem;
+            margin: 0;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.96);
+            border: 1px solid rgba(229, 231, 235, 0.95);
+            border-radius: var(--radius);
+            padding: 32px 30px;
+            box-shadow: var(--shadow);
+        }
+
+        .card h2 {
+            margin: 0 0 24px;
+            font-size: 1.15rem;
+            color: var(--ink);
+        }
+
+        .field {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--ink);
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #d8dce2;
+            border-radius: 12px;
+            background: white;
+            color: var(--ink);
+            font-size: 0.97rem;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--fgulem-blue);
+            box-shadow: 0 0 0 4px rgba(95, 159, 211, 0.14);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 13px 16px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--fgulem-magenta) 0%, var(--fgulem-magenta-soft) 100%);
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 8px;
+            box-shadow: 0 12px 22px rgba(194, 27, 132, 0.20);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 28px rgba(194, 27, 132, 0.28);
+        }
+
+        .error-box {
+            background: rgba(194, 27, 132, 0.08);
+            border: 1px solid rgba(194, 27, 132, 0.22);
+            border-radius: 12px;
+            padding: 12px 14px;
+            color: var(--fgulem-magenta);
+            font-size: 0.93rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .footer-note {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.84rem;
+            color: var(--ink-soft);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-wrap">
+        <div class="brand">
+            <img class="brand-logo" src="/static/logo-fgulem.jpg" alt="FGULEM">
+            <h1 class="brand-title">SGPEG</h1>
+            <p class="brand-subtitle">Sistema de Gestión de Propuestas Específicas de Gasto</p>
+        </div>
+
+        <div class="card">
+            <h2>Iniciar sesión</h2>
+
+            {% if error %}
+            <div class="error-box">{{ error }}</div>
+            {% endif %}
+
+            <form method="post" action="/login">
+                <div class="field">
+                    <label for="username">Usuario</label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        value="{{ username or '' }}"
+                        autocomplete="username"
+                        autofocus
+                        required
+                    >
+                </div>
+                <div class="field">
+                    <label for="password">Contraseña</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
+                <button type="submit" class="btn-primary">Entrar</button>
+            </form>
+        </div>
+
+        <p class="footer-note">FGULEM &mdash; Fundación General de la Universidad de León</p>
+    </div>
+</body>
+</html>
