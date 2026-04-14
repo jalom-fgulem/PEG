@@ -153,7 +153,7 @@
              style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);
                     z-index:1000;align-items:center;justify-content:center">
           <div style="background:white;border-radius:10px;padding:28px;
-                      width:100%;max-width:480px;max-height:90vh;overflow-y:auto">
+                      width:100%;max-width:640px;max-height:90vh;overflow-y:auto">
             <h3 style="margin:0 0 16px;font-size:1rem;font-weight:700">Editar proveedor</h3>
             <div id="modal-editar-proveedor-contenido"></div>
             <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
@@ -289,6 +289,11 @@
             <div class="field" style="margin:0;">
               <label>Código postal</label>
               <input type="text" id="mp-codigo-postal" placeholder="24001" maxlength="5">
+            </div>
+
+            <div class="field" style="margin:0;">
+              <label>País</label>
+              <select id="mp-pais"></select>
             </div>
 
             <div id="mp-error" style="grid-column:span 2;color:var(--fgulem-magenta);
@@ -512,6 +517,36 @@
     });
   }
 
+  // ── Lista de países (ISO 3166-1 alpha-2) ─────────────────────────────────
+  const PAISES = [
+    ["ES","España"],["","──────────"],
+    ["DE","Alemania"],["AT","Austria"],["BE","Bélgica"],["BG","Bulgaria"],
+    ["HR","Croacia"],["CY","Chipre"],["CZ","Chequia"],["DK","Dinamarca"],
+    ["SK","Eslovaquia"],["SI","Eslovenia"],["EE","Estonia"],["FI","Finlandia"],
+    ["FR","Francia"],["GR","Grecia"],["HU","Hungría"],["IE","Irlanda"],
+    ["IT","Italia"],["LV","Letonia"],["LT","Lituania"],["LU","Luxemburgo"],
+    ["MT","Malta"],["NL","Países Bajos"],["PL","Polonia"],["PT","Portugal"],
+    ["RO","Rumanía"],["SE","Suecia"],["","──────────"],
+    ["CH","Suiza"],["NO","Noruega"],["IS","Islandia"],["GB","Reino Unido"],
+    ["TR","Turquía"],["UA","Ucrania"],["","──────────"],
+    ["US","Estados Unidos"],["CA","Canadá"],["MX","México"],["BR","Brasil"],
+    ["AR","Argentina"],["CO","Colombia"],["CL","Chile"],["PE","Perú"],["VE","Venezuela"],
+    ["","──────────"],
+    ["CN","China"],["JP","Japón"],["KR","Corea del Sur"],["IN","India"],
+    ["MA","Marruecos"],["ZA","Sudáfrica"],["OTHER","Otro"],
+  ];
+
+  function poblarSelectPais(el, valorActual) {
+    el.innerHTML = PAISES.map(([v, t]) =>
+      v === ""
+        ? `<option value="" disabled>${t}</option>`
+        : `<option value="${v}"${v === (valorActual||"ES") ? " selected" : ""}>${t}</option>`
+    ).join("");
+  }
+
+  // Poblar selector del modal "Nuevo proveedor"
+  poblarSelectPais(document.getElementById("mp-pais"), "ES");
+
   // ── Modal nuevo proveedor ─────────────────────────────────────────────────
   function abrirModalProveedor() {
     const ids = ["mp-razon-social","mp-cif-nif","mp-nombre-comercial","mp-iban",
@@ -519,6 +554,7 @@
                  "mp-provincia","mp-codigo-postal","mp-cuenta-cliente"];
     ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
     document.getElementById("mp-tipo-persona").value  = "JURIDICA";
+    poblarSelectPais(document.getElementById("mp-pais"), "ES");
     document.getElementById("mp-error").style.display = "none";
     document.getElementById("modalNuevoProveedor").classList.add("active");
     document.getElementById("mp-razon-social").focus();
@@ -574,6 +610,7 @@
           localidad:              localidad  || null,
           provincia:              provincia  || null,
           codigo_postal:          codigoPostal || null,
+          pais:                   document.getElementById("mp-pais").value || "ES",
           cuenta_cliente:         cuentaCliente || null,
         }),
       });
@@ -780,21 +817,68 @@
         {% else %}
         const camposCuentaCliente = '';
         {% endif %}
+        const fs = "width:100%;padding:8px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.93rem;box-sizing:border-box;";
+        const lb = "display:block;font-size:0.85rem;font-weight:600;color:#374151;margin-bottom:4px;";
         document.getElementById("modal-editar-proveedor-contenido").innerHTML = `
-          <div style="display:flex;flex-direction:column;gap:10px">
-            <div><label class="form-label">Razón social</label>
-              <input type="text" id="ep-razon" class="select-field" value="${p.razon_social || ''}"></div>
-            <div><label class="form-label">NIF</label>
-              <input type="text" id="ep-nif" class="select-field" value="${p.nif || p.cif_nif || ''}"></div>
-            <div><label class="form-label">IBAN</label>
-              <input type="text" id="ep-iban" class="select-field" value="${p.iban || ''}"></div>
-            <div><label class="form-label">Email</label>
-              <input type="text" id="ep-email" class="select-field" value="${p.email || ''}"></div>
-            <div><label class="form-label">Teléfono</label>
-              <input type="text" id="ep-telefono" class="select-field" value="${p.telefono || ''}"></div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px 16px;">
+            <div>
+              <label style="${lb}">Tipo de persona</label>
+              <select id="ep-tipo" style="${fs}">
+                <option value="JURIDICA" ${p.tipo_persona==="JURIDICA"?"selected":""}>Jurídica</option>
+                <option value="FISICA"   ${p.tipo_persona==="FISICA"?"selected":""}>Física</option>
+              </select>
+            </div>
+            <div>
+              <label style="${lb}">CIF/NIF</label>
+              <input type="text" id="ep-nif" style="${fs}" value="${p.nif||p.cif_nif||''}">
+            </div>
+            <div style="grid-column:span 2">
+              <label style="${lb}">Razón social <span style="color:#c21b84">*</span></label>
+              <input type="text" id="ep-razon" style="${fs}" value="${p.razon_social||''}">
+            </div>
+            <div style="grid-column:span 2">
+              <label style="${lb}">Nombre comercial</label>
+              <input type="text" id="ep-nombre-comercial" style="${fs}" value="${p.nombre_comercial||''}">
+            </div>
+            <div>
+              <label style="${lb}">Teléfono</label>
+              <input type="text" id="ep-telefono" style="${fs}" value="${p.telefono||''}">
+            </div>
+            <div>
+              <label style="${lb}">Email</label>
+              <input type="text" id="ep-email" style="${fs}" value="${p.email||''}">
+            </div>
+            <div style="grid-column:span 2">
+              <label style="${lb}">IBAN</label>
+              <input type="text" id="ep-iban" style="${fs}" value="${p.iban||''}">
+            </div>
+            <div style="grid-column:span 2;border-top:1px solid #e8ecf0;padding-top:10px;
+                        font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;
+                        color:#8a8691;font-weight:700;">Dirección postal</div>
+            <div style="grid-column:span 2">
+              <label style="${lb}">Dirección</label>
+              <input type="text" id="ep-direccion" style="${fs}" value="${p.direccion||''}">
+            </div>
+            <div>
+              <label style="${lb}">Localidad</label>
+              <input type="text" id="ep-localidad" style="${fs}" value="${p.localidad||''}">
+            </div>
+            <div>
+              <label style="${lb}">Código postal</label>
+              <input type="text" id="ep-cp" style="${fs}" value="${p.codigo_postal||''}">
+            </div>
+            <div>
+              <label style="${lb}">Provincia</label>
+              <input type="text" id="ep-provincia" style="${fs}" value="${p.provincia||''}">
+            </div>
+            <div>
+              <label style="${lb}">País</label>
+              <select id="ep-pais" style="${fs}"></select>
+            </div>
             <input type="hidden" id="ep-id" value="${p.id_proveedor}">
             ${camposCuentaCliente}
           </div>`;
+        poblarSelectPais(document.getElementById("ep-pais"), p.pais || "ES");
         document.getElementById("modal-editar-proveedor").style.display = "flex";
       });
   }
@@ -806,11 +890,18 @@
   function guardarProveedorEditado() {
     const id = document.getElementById("ep-id").value;
     const datos = {
-      razon_social: document.getElementById("ep-razon").value,
-      nif:          document.getElementById("ep-nif").value,
-      iban:         document.getElementById("ep-iban").value,
-      email:        document.getElementById("ep-email").value,
-      telefono:     document.getElementById("ep-telefono").value,
+      tipo_persona:     document.getElementById("ep-tipo").value,
+      nif:              document.getElementById("ep-nif").value,
+      razon_social:     document.getElementById("ep-razon").value,
+      nombre_comercial: document.getElementById("ep-nombre-comercial").value,
+      telefono:         document.getElementById("ep-telefono").value,
+      email:            document.getElementById("ep-email").value,
+      iban:             document.getElementById("ep-iban").value,
+      direccion:        document.getElementById("ep-direccion").value,
+      localidad:        document.getElementById("ep-localidad").value,
+      codigo_postal:    document.getElementById("ep-cp").value,
+      provincia:        document.getElementById("ep-provincia").value,
+      pais:             document.getElementById("ep-pais").value,
     };
     {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
     const epCuenta = document.getElementById("ep-cuenta-cliente");

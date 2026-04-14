@@ -196,14 +196,20 @@ def proveedor_datos_json(
     if not p:
         raise HTTPException(status_code=404, detail="No encontrado")
     return JSONResponse(content={
-        "id_proveedor":   p["id_proveedor"],
-        "razon_social":   p.get("razon_social", ""),
-        "nif":            p.get("cif_nif", ""),
-        "iban":           p.get("iban", ""),
-        "email":          p.get("email", ""),
-        "telefono":       p.get("telefono", ""),
-        "cuenta_cliente": p.get("cuenta_cliente", ""),
-        "pais":           p.get("pais", "ES"),
+        "id_proveedor":    p["id_proveedor"],
+        "tipo_persona":    p.get("tipo_persona", "JURIDICA"),
+        "razon_social":    p.get("razon_social", ""),
+        "nif":             p.get("cif_nif", ""),
+        "nombre_comercial":p.get("nombre_comercial", ""),
+        "iban":            p.get("iban", ""),
+        "email":           p.get("email", ""),
+        "telefono":        p.get("telefono", ""),
+        "cuenta_cliente":  p.get("cuenta_cliente", ""),
+        "direccion":       p.get("direccion", ""),
+        "localidad":       p.get("localidad", ""),
+        "codigo_postal":   p.get("codigo_postal", ""),
+        "provincia":       p.get("provincia", ""),
+        "pais":            p.get("pais", "ES"),
     })
 
 
@@ -218,9 +224,14 @@ async def proveedor_editar_json(
     if not p:
         raise HTTPException(status_code=404, detail="No encontrado")
     # Mapear nif → cif_nif (nombre real del campo)
-    mapeo = {"razon_social": "razon_social", "nif": "cif_nif",
-             "iban": "iban", "email": "email", "telefono": "telefono",
-             "cuenta_cliente": "cuenta_cliente"}
+    mapeo = {
+        "razon_social": "razon_social", "nif": "cif_nif",
+        "iban": "iban", "email": "email", "telefono": "telefono",
+        "cuenta_cliente": "cuenta_cliente", "tipo_persona": "tipo_persona",
+        "nombre_comercial": "nombre_comercial", "direccion": "direccion",
+        "localidad": "localidad", "codigo_postal": "codigo_postal",
+        "provincia": "provincia", "pais": "pais",
+    }
     for campo_entrada, campo_real in mapeo.items():
         if campo_entrada in datos:
             p[campo_real] = datos[campo_entrada]

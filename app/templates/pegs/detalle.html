@@ -325,7 +325,7 @@
                style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);
                       z-index:1000;align-items:center;justify-content:center">
             <div style="background:white;border-radius:10px;padding:28px;
-                        width:100%;max-width:480px;max-height:90vh;overflow-y:auto">
+                        width:100%;max-width:640px;max-height:90vh;overflow-y:auto">
               <h3 style="margin:0 0 16px;font-size:1rem;font-weight:700">Editar proveedor</h3>
               <div id="modal-editar-proveedor-contenido"></div>
               <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
@@ -1210,6 +1210,32 @@ function usarCuentaSaco() {
   document.getElementById("input-cuenta-cliente").value = CUENTA_SACO;
 }
 
+const PAISES = [
+  ["ES","España"],["","──────────"],
+  ["DE","Alemania"],["AT","Austria"],["BE","Bélgica"],["BG","Bulgaria"],
+  ["HR","Croacia"],["CY","Chipre"],["CZ","Chequia"],["DK","Dinamarca"],
+  ["SK","Eslovaquia"],["SI","Eslovenia"],["EE","Estonia"],["FI","Finlandia"],
+  ["FR","Francia"],["GR","Grecia"],["HU","Hungría"],["IE","Irlanda"],
+  ["IT","Italia"],["LV","Letonia"],["LT","Lituania"],["LU","Luxemburgo"],
+  ["MT","Malta"],["NL","Países Bajos"],["PL","Polonia"],["PT","Portugal"],
+  ["RO","Rumanía"],["SE","Suecia"],["","──────────"],
+  ["CH","Suiza"],["NO","Noruega"],["IS","Islandia"],["GB","Reino Unido"],
+  ["TR","Turquía"],["UA","Ucrania"],["","──────────"],
+  ["US","Estados Unidos"],["CA","Canadá"],["MX","México"],["BR","Brasil"],
+  ["AR","Argentina"],["CO","Colombia"],["CL","Chile"],["PE","Perú"],["VE","Venezuela"],
+  ["","──────────"],
+  ["CN","China"],["JP","Japón"],["KR","Corea del Sur"],["IN","India"],
+  ["MA","Marruecos"],["ZA","Sudáfrica"],["OTHER","Otro"],
+];
+
+function poblarSelectPais(el, valorActual) {
+  el.innerHTML = PAISES.map(([v, t]) =>
+    v === ""
+      ? `<option value="" disabled>${t}</option>`
+      : `<option value="${v}"${v === (valorActual||"ES") ? " selected" : ""}>${t}</option>`
+  ).join("");
+}
+
 function abrirModalEditarProveedor() {
   const idProv = document.getElementById("select-proveedor").value;
   if (!idProv) return;
@@ -1218,46 +1244,85 @@ function abrirModalEditarProveedor() {
     .then(p => {
       {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
       const camposCuentaCliente = `
-        <div style="margin-top:8px">
-          <label class="form-label">Cuenta cliente</label>
+        <div style="grid-column:span 2;margin-top:4px;border-top:1px solid #e8ecf0;padding-top:10px;">
+          <label style="display:block;font-size:0.85rem;font-weight:600;color:#374151;margin-bottom:4px;">Cuenta cliente</label>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
             <input type="text" id="ep-cuenta-cliente"
-                   class="select-field" style="width:120px"
+                   style="width:120px;padding:8px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.93rem;"
                    value="${p.cuenta_cliente || ''}">
             <button type="button" onclick="usarCuentaSacoModal()"
-                    class="btn btn-secondary"
-                    style="font-size:0.75rem;padding:4px 8px">
-              Saco
-            </button>
+                    class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px">Saco</button>
             <button type="button" onclick="calcularNuevaCuenta()"
-                    class="btn btn-secondary"
-                    style="font-size:0.75rem;padding:4px 8px">
-              Nueva cuenta
-            </button>
+                    class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px">Nueva cuenta</button>
           </div>
-          <span style="font-size:0.75rem;color:#6b7280">
-            Saco: {{ cuenta_saco }} · o introduce una nueva
-          </span>
+          <span style="font-size:0.75rem;color:#6b7280">Saco: {{ cuenta_saco }} · o introduce una nueva</span>
         </div>
       `;
       {% else %}
       const camposCuentaCliente = '';
       {% endif %}
+      const fs = "width:100%;padding:8px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.93rem;box-sizing:border-box;";
+      const lb = "display:block;font-size:0.85rem;font-weight:600;color:#374151;margin-bottom:4px;";
       document.getElementById("modal-editar-proveedor-contenido").innerHTML = `
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div><label class="form-label">Razón social</label>
-            <input type="text" id="ep-razon" class="select-field" value="${p.razon_social || ''}"></div>
-          <div><label class="form-label">NIF</label>
-            <input type="text" id="ep-nif" class="select-field" value="${p.nif || p.cif_nif || ''}"></div>
-          <div><label class="form-label">IBAN</label>
-            <input type="text" id="ep-iban" class="select-field" value="${p.iban || ''}"></div>
-          <div><label class="form-label">Email</label>
-            <input type="text" id="ep-email" class="select-field" value="${p.email || ''}"></div>
-          <div><label class="form-label">Teléfono</label>
-            <input type="text" id="ep-telefono" class="select-field" value="${p.telefono || ''}"></div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px 16px;">
+          <div>
+            <label style="${lb}">Tipo de persona</label>
+            <select id="ep-tipo" style="${fs}">
+              <option value="JURIDICA" ${p.tipo_persona==="JURIDICA"?"selected":""}>Jurídica</option>
+              <option value="FISICA"   ${p.tipo_persona==="FISICA"?"selected":""}>Física</option>
+            </select>
+          </div>
+          <div>
+            <label style="${lb}">CIF/NIF</label>
+            <input type="text" id="ep-nif" style="${fs}" value="${p.nif||p.cif_nif||''}">
+          </div>
+          <div style="grid-column:span 2">
+            <label style="${lb}">Razón social <span style="color:#c21b84">*</span></label>
+            <input type="text" id="ep-razon" style="${fs}" value="${p.razon_social||''}">
+          </div>
+          <div style="grid-column:span 2">
+            <label style="${lb}">Nombre comercial</label>
+            <input type="text" id="ep-nombre-comercial" style="${fs}" value="${p.nombre_comercial||''}">
+          </div>
+          <div>
+            <label style="${lb}">Teléfono</label>
+            <input type="text" id="ep-telefono" style="${fs}" value="${p.telefono||''}">
+          </div>
+          <div>
+            <label style="${lb}">Email</label>
+            <input type="text" id="ep-email" style="${fs}" value="${p.email||''}">
+          </div>
+          <div style="grid-column:span 2">
+            <label style="${lb}">IBAN</label>
+            <input type="text" id="ep-iban" style="${fs}" value="${p.iban||''}">
+          </div>
+          <div style="grid-column:span 2;border-top:1px solid #e8ecf0;padding-top:10px;
+                      font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;
+                      color:#8a8691;font-weight:700;">Dirección postal</div>
+          <div style="grid-column:span 2">
+            <label style="${lb}">Dirección</label>
+            <input type="text" id="ep-direccion" style="${fs}" value="${p.direccion||''}">
+          </div>
+          <div>
+            <label style="${lb}">Localidad</label>
+            <input type="text" id="ep-localidad" style="${fs}" value="${p.localidad||''}">
+          </div>
+          <div>
+            <label style="${lb}">Código postal</label>
+            <input type="text" id="ep-cp" style="${fs}" value="${p.codigo_postal||''}">
+          </div>
+          <div>
+            <label style="${lb}">Provincia</label>
+            <input type="text" id="ep-provincia" style="${fs}" value="${p.provincia||''}">
+          </div>
+          <div>
+            <label style="${lb}">País</label>
+            <select id="ep-pais" style="${fs}"></select>
+          </div>
           <input type="hidden" id="ep-id" value="${p.id_proveedor}">
           ${camposCuentaCliente}
         </div>`;
+      poblarSelectPais(document.getElementById("ep-pais"), p.pais || "ES");
       document.getElementById("modal-editar-proveedor").style.display = "flex";
     });
 }
@@ -1269,11 +1334,18 @@ function cerrarModalEditarProveedor() {
 function guardarProveedorEditado() {
   const id = document.getElementById("ep-id").value;
   const datos = {
-    razon_social: document.getElementById("ep-razon").value,
-    nif:          document.getElementById("ep-nif").value,
-    iban:         document.getElementById("ep-iban").value,
-    email:        document.getElementById("ep-email").value,
-    telefono:     document.getElementById("ep-telefono").value,
+    tipo_persona:     document.getElementById("ep-tipo").value,
+    nif:              document.getElementById("ep-nif").value,
+    razon_social:     document.getElementById("ep-razon").value,
+    nombre_comercial: document.getElementById("ep-nombre-comercial").value,
+    telefono:         document.getElementById("ep-telefono").value,
+    email:            document.getElementById("ep-email").value,
+    iban:             document.getElementById("ep-iban").value,
+    direccion:        document.getElementById("ep-direccion").value,
+    localidad:        document.getElementById("ep-localidad").value,
+    codigo_postal:    document.getElementById("ep-cp").value,
+    provincia:        document.getElementById("ep-provincia").value,
+    pais:             document.getElementById("ep-pais").value,
   };
   {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
   const epCuenta = document.getElementById("ep-cuenta-cliente");
