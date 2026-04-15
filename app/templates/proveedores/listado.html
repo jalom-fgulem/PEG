@@ -536,6 +536,7 @@
                 const ESTADO_BADGE = {1:"Pendiente",2:"Validado",3:"En remesa",4:"Pagado",5:"Incidencia"};
                 const ESTADO_COLOR = {1:"#92400e",2:"#1d4ed8",3:"#5b21b6",4:"#166534",5:"#991b1b"};
                 const ESTADO_BG    = {1:"#fef3c7",2:"#dbeafe",3:"#ede9fe",4:"#dcfce7",5:"#fee2e2"};
+                const totalPegs = pegs.reduce((s, p) => s + (p.importe_total || 0), 0);
                 const pegsHtml = pegs.length
                     ? `<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
                        <thead><tr style="border-bottom:2px solid #e8ecf0;">
@@ -554,7 +555,13 @@
                                <td style="padding:6px 8px;"><span style="background:${ESTADO_BG[est]};color:${ESTADO_COLOR[est]};padding:2px 8px;border-radius:20px;font-size:0.78rem;font-weight:600;">${ESTADO_BADGE[est]||""}</span></td>
                                <td style="padding:6px 8px;text-align:center;"><a href="#" onclick="abrirPeg(${p.id_peg},${p.id_servicio},event)" style="text-decoration:none;font-size:1rem;">✏️</a></td>
                            </tr>`;
-                       }).join("")}</tbody></table>`
+                       }).join("")}</tbody>
+                       <tfoot><tr style="border-top:2px solid #e8ecf0;background:#f9fafb;">
+                           <td colspan="2" style="padding:8px;font-weight:700;font-size:0.88rem;">Total acumulado</td>
+                           <td style="padding:8px;text-align:right;font-weight:700;color:var(--fgulem-magenta);">${totalPegs.toLocaleString("es-ES",{style:"currency",currency:"EUR"})}</td>
+                           <td colspan="2"></td>
+                       </tr></tfoot>
+                       </table>`
                     : `<div class="empty-state" style="padding:18px 0;">Sin PEGs asociados.</div>`;
 
                 const inputStyle  = "width:100%;padding:8px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.93rem;box-sizing:border-box;";

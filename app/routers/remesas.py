@@ -303,5 +303,8 @@ def remesas_listado(
     usuario: dict = Depends(require_rol("GESTOR_ECONOMICO", "ADMIN")),
 ):
     items = remesas_service.listar_remesas(estado=estado)
+    for item in items:
+        pegs = [pegs_service.get_peg_raw(id_peg) for id_peg in item.get("pagos", [])]
+        item["importe_total"] = sum((p.get("importe_total") or 0) for p in pegs if p)
     return templates.TemplateResponse(request=request, name="remesas/listado.html",
         context={"items": items, "usuario": usuario, "filtro_estado": estado, "msg": msg, "msg_type": msg_type})
