@@ -30,6 +30,7 @@
         <th>Analítica niv. 1</th>
         <th>Proyectos</th>
         <th>Cuenta bancaria por defecto</th>
+        <th>Autorización previa</th>
         <th>Estado</th>
         <th></th>
       </tr>
@@ -57,6 +58,22 @@
             {{ bancos[s.id_banco_defecto].alias }}
           {% else %}
             <span style="color:#aaa;">Sin asignar</span>
+          {% endif %}
+        </td>
+        <td style="text-align:center;">
+          {% if s.requiere_autorizacion %}
+            <span style="display:inline-flex;align-items:center;gap:5px;
+                         padding:3px 10px;border-radius:999px;font-size:0.78rem;font-weight:700;
+                         background:rgba(239,159,39,0.14);color:#854f0b;"
+                  title="Las solicitudes de este servicio requieren aprobación previa">
+              🔒 Sí
+            </span>
+          {% else %}
+            <span style="display:inline-flex;align-items:center;gap:5px;
+                         padding:3px 10px;border-radius:999px;font-size:0.78rem;font-weight:700;
+                         background:rgba(150,150,150,0.10);color:#888;">
+              No
+            </span>
           {% endif %}
         </td>
         <td>

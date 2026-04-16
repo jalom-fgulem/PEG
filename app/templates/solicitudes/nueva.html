@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block title %}Nueva solicitud de autorización{% endblock %}
+{% block page_title %}Nueva solicitud de autorización{% endblock %}
+{% block page_subtitle %}Solicita aprobación previa antes de incurrir en el gasto{% endblock %}
+
+{% block extra_head %}
+<style>
+  .grid-form { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px 18px; }
+  .col-4  { grid-column: span 4; }
+  .col-6  { grid-column: span 6; }
+  .col-12 { grid-column: span 12; }
+  .section-title {
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: #8a8691; font-weight: 700; margin: 8px 0 4px;
+    grid-column: span 12; border-top: 1px solid var(--line); padding-top: 14px;
+  }
+  @media (max-width: 780px) { .col-4,.col-6 { grid-column: span 12; } }
+
+  .adj-slot { display: flex; flex-direction: column; gap: 6px; }
+  .adj-file-label {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 14px;
+    background: rgba(160,32,100,0.07); border: 1px solid rgba(160,32,100,0.22);
+    border-radius: 10px; color: var(--fgulem-magenta);
+    font-weight: 700; font-size: 0.88rem; cursor: pointer;
+    position: relative; overflow: hidden;
+  }
+  .adj-file-label:hover { background: rgba(160,32,100,0.14); }
+  .adj-file-label input[type=file] {
+    position: absolute; top: 0; left: 0; opacity: 0;
+    width: 100%; height: 100%; cursor: pointer; font-size: 0;
+  }
+  .adj-file-label span { font-weight: 400; color: var(--ink-soft);
+    max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+
+  {% if error %}
+  <div style="padding:12px 16px;border-radius:10px;background:rgba(226,75,74,0.10);
+              border:1px solid rgba(226,75,74,0.28);color:#a32d2d;font-weight:600;margin-bottom:16px;">
+    ⚠ {{ error }}
+  </div>
+  {% endif %}
+
+  <form method="post" action="/solicitudes/nueva" enctype="multipart/form-data" novalidate>
+
+    <!-- ── SECCIÓN: SERVICIO ── -->
+    <div class="grid-form">
+      <div class="section-title">Servicio</div>
+
+      {% if usuario.rol == 'GESTOR_SERVICIO' %}
+      <div class="col-6 field">
+        <label>Servicio</label>
+        <input type="text" readonly tabindex="-1"
+               style="background:#f7f7f8;color:var(--ink-soft);"
+               value="{{ servicios[0].nombre if servicios else '' }}">
+        <input type="hidden" name="id_servicio" value="{{ servicios[0].id_servicio if servicios else '' }}">
+      </div>
+      {% else %}
+      <div class="col-6 field">
+        <label for="id_servicio">Servicio <span style="color:var(--fgulem-magenta)">*</span></label>
+        <select id="id_servicio" name="id_servicio" required>
+          <option value="">— Seleccionar —</option>
+          {% for s in servicios %}
+          <option value="{{ s.id_servicio }}">{{ s.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── SECCIÓN: PROVEEDOR ── -->
+    <div class="grid-form" style="margin-top:4px;">
+      <div class="section-title">Proveedor</div>
+
+      <div class="col-12 field">
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button type="button" onclick="abrirModalNuevoProveedor()"
+                  class="btn btn-secondary" style="font-size:0.8rem">
+            ＋ Nuevo proveedor
+          </button>
+        </div>
+
+        <label for="id_proveedor">Proveedor <span style="color:var(--fgulem-magenta)">*</span></label>
+        <select id="id_proveedor" name="id_proveedor" required style="max-width:520px;">
+          <option value="">— Seleccionar proveedor —</option>
+          {% for p in proveedores %}
+          <option value="{{ p.id_proveedor }}">
+            {{ p.razon_social }} — {{ p.cif_nif }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- ── SECCIÓN: DATOS DEL GASTO ── -->
+    <div class="grid-form" style="margin-top:4px;">
+      <div class="section-title">Datos del gasto previsto</div>
+
+      <div class="col-6 field">
+        <label for="importe_estimado">Importe estimado (€) <span style="color:var(--fgulem-magenta)">*</span></label>
+        <input id="importe_estimado" name="importe_estimado" type="number"
+               step="0.01" min="0.01" required placeholder="0.00">
+      </div>
+
+      <div class="col-6 field">
+        <label for="fecha_estimada_gasto">Fecha estimada del gasto <span style="color:var(--fgulem-magenta)">*</span></label>
+        <input id="fecha_estimada_gasto" name="fecha_estimada_gasto" type="date" required>
+      </div>
+
+      <div class="col-12 field">
+        <label for="concepto">Concepto <span style="color:var(--fgulem-magenta)">*</span></label>
+        <textarea id="concepto" name="concepto" rows="3" required
+                  placeholder="Describe el gasto que necesitas autorizar…"></textarea>
+      </div>
+    </div>
+
+    <!-- ── SECCIÓN: ADJUNTOS ── -->
+    <div class="grid-form" style="margin-top:4px;">
+      <div class="section-title">Documentación justificativa (opcional)</div>
+
+      <div class="col-4 adj-slot">
+        <label>Adjunto 1</label>
+        <label class="adj-file-label">
+          📎 Seleccionar archivo
+          <input type="file" name="adjunto_1" accept=".pdf,.jpg,.jpeg,.png"
+                 onchange="this.parentElement.querySelector('span').textContent = this.files[0]?.name || ''">
+          <span></span>
+        </label>
+        <span style="font-size:0.75rem;color:#6b7280">PDF, JPG o PNG</span>
+      </div>
+
+      <div class="col-4 adj-slot">
+        <label>Adjunto 2</label>
+        <label class="adj-file-label">
+          📎 Seleccionar archivo
+          <input type="file" name="adjunto_2" accept=".pdf,.jpg,.jpeg,.png"
+                 onchange="this.parentElement.querySelector('span').textContent = this.files[0]?.name || ''">
+          <span></span>
+        </label>
+        <span style="font-size:0.75rem;color:#6b7280">PDF, JPG o PNG</span>
+      </div>
+
+      <div class="col-4 adj-slot">
+        <label>Adjunto 3</label>
+        <label class="adj-file-label">
+          📎 Seleccionar archivo
+          <input type="file" name="adjunto_3" accept=".pdf,.jpg,.jpeg,.png"
+                 onchange="this.parentElement.querySelector('span').textContent = this.files[0]?.name || ''">
+          <span></span>
+        </label>
+        <span style="font-size:0.75rem;color:#6b7280">PDF, JPG o PNG</span>
+      </div>
+    </div>
+
+    <!-- ── ACCIONES ── -->
+    <div style="display:flex;gap:12px;margin-top:28px;justify-content:flex-end;">
+      <a href="/solicitudes/" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary">Enviar solicitud</button>
+    </div>
+
+  </form>
+</div>
+
+<!-- ── MODAL: NUEVO PROVEEDOR RÁPIDO ── -->
+<div id="modalNuevoProveedor" class="modal-backdrop">
+  <div class="modal-panel" style="max-width:560px">
+    <div class="modal-header">
+      <h3 style="margin:0;">Nuevo proveedor</h3>
+      <button type="button" class="modal-close" onclick="cerrarModalProveedor()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px;">
+
+        <div class="field" style="margin:0;">
+          <label>Tipo de persona</label>
+          <select id="mp-tipo-persona">
+            <option value="JURIDICA">Jurídica</option>
+            <option value="FISICA">Física</option>
+          </select>
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>CIF/NIF <span style="color:var(--fgulem-magenta)">*</span></label>
+          <input type="text" id="mp-cif-nif" placeholder="B12345678">
+        </div>
+
+        <div class="field" style="grid-column:span 2;margin:0;">
+          <label>Razón social <span style="color:var(--fgulem-magenta)">*</span></label>
+          <input type="text" id="mp-razon-social" placeholder="Nombre o denominación social">
+        </div>
+
+        <div class="field" style="grid-column:span 2;margin:0;">
+          <label>Nombre comercial</label>
+          <input type="text" id="mp-nombre-comercial" placeholder="Si difiere de la razón social">
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>Teléfono</label>
+          <input type="text" id="mp-telefono" placeholder="987 000 000">
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>Email</label>
+          <input type="email" id="mp-email" placeholder="contacto@empresa.com">
+        </div>
+
+        <div class="field" style="grid-column:span 2;margin:0;">
+          <label>IBAN</label>
+          <input type="text" id="mp-iban" placeholder="ES00 0000 0000 0000 0000 0000">
+        </div>
+
+        <div style="grid-column:span 2;border-top:1px solid var(--line);padding-top:12px;
+                    font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;
+                    color:#8a8691;font-weight:700;">
+          Dirección postal
+        </div>
+
+        <div class="field" style="grid-column:span 2;margin:0;">
+          <label>Dirección</label>
+          <input type="text" id="mp-direccion" placeholder="Calle, número, piso…">
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>Localidad</label>
+          <input type="text" id="mp-localidad">
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>Provincia</label>
+          <input type="text" id="mp-provincia">
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>Código postal</label>
+          <input type="text" id="mp-codigo-postal" placeholder="24001" maxlength="5">
+        </div>
+
+        <div id="mp-error" style="grid-column:span 2;color:var(--fgulem-magenta);
+             font-size:0.88rem;display:none;padding:8px 12px;
+             background:rgba(194,27,132,0.07);border-radius:8px;margin:0;"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+        <button type="button" onclick="cerrarModalProveedor()"
+          style="background:transparent;border:1px solid #d8dce2;border-radius:10px;
+                 padding:9px 18px;cursor:pointer;font-size:0.9rem;">
+          Cancelar
+        </button>
+        <button type="button" onclick="guardarProveedorRapido()"
+          style="background:linear-gradient(135deg,var(--fgulem-magenta),var(--fgulem-magenta-soft));
+                 color:#fff;border:none;border-radius:10px;padding:9px 22px;
+                 cursor:pointer;font-weight:700;font-size:0.9rem;">
+          Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // ── Modal nuevo proveedor ──────────────────────────────────────────────────
+  function abrirModalNuevoProveedor() {
+    document.getElementById("modalNuevoProveedor").classList.add("active");
+  }
+  function cerrarModalProveedor() {
+    document.getElementById("modalNuevoProveedor").classList.remove("active");
+    document.getElementById("mp-error").style.display = "none";
+  }
+
+  async function guardarProveedorRapido() {
+    const cif       = document.getElementById("mp-cif-nif").value.trim();
+    const razon     = document.getElementById("mp-razon-social").value.trim();
+    const errEl     = document.getElementById("mp-error");
+    errEl.style.display = "none";
+
+    if (!cif || !razon) {
+      errEl.textContent = "CIF/NIF y Razón social son obligatorios.";
+      errEl.style.display = "block";
+      return;
+    }
+
+    const payload = {
+      tipo_persona:     document.getElementById("mp-tipo-persona").value,
+      cif_nif:          cif,
+      razon_social:     razon,
+      nombre_comercial: document.getElementById("mp-nombre-comercial").value.trim() || null,
+      telefono:         document.getElementById("mp-telefono").value.trim() || null,
+      email:            document.getElementById("mp-email").value.trim() || null,
+      iban:             document.getElementById("mp-iban").value.trim() || null,
+      direccion:        document.getElementById("mp-direccion").value.trim() || null,
+      localidad:        document.getElementById("mp-localidad").value.trim() || null,
+      provincia:        document.getElementById("mp-provincia").value.trim() || null,
+      codigo_postal:    document.getElementById("mp-codigo-postal").value.trim() || null,
+      pais:             "ES",
+      servicios:        [],
+    };
+
+    try {
+      const res  = await fetch("/proveedores/api/crear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        errEl.textContent = data.error || "Error al guardar el proveedor.";
+        errEl.style.display = "block";
+        return;
+      }
+      // Añadir al select y seleccionar
+      const sel = document.getElementById("id_proveedor");
+      const opt = document.createElement("option");
+      opt.value = data.id_proveedor;
+      opt.textContent = `${data.razon_social} — ${data.cif_nif}`;
+      opt.selected = true;
+      sel.appendChild(opt);
+      cerrarModalProveedor();
+    } catch (e) {
+      errEl.textContent = "Error de conexión.";
+      errEl.style.display = "block";
+    }
+  }
+
+  // Cerrar modal al pulsar fuera
+  document.getElementById("modalNuevoProveedor").addEventListener("click", function(e) {
+    if (e.target === this) cerrarModalProveedor();
+  });
+</script>
+{% endblock %}

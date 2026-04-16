@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block title %}Solicitud #{{ solicitud.id_solicitud }}{% endblock %}
+{% block page_title %}Solicitud #{{ solicitud.id_solicitud }}{% endblock %}
+{% block page_subtitle %}{{ solicitud.concepto }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .estado-badge {
+    display: inline-flex; align-items: center;
+    padding: 6px 16px; border-radius: 999px;
+    font-size: 0.88rem; font-weight: 700;
+  }
+  .estado-pendiente  { background: rgba(239,159,39,0.14); color: #854f0b; }
+  .estado-autorizada { background: rgba(99,153,34,0.14);  color: #3b6d11; }
+  .estado-denegada   { background: rgba(226,75,74,0.13);  color: #a32d2d; }
+
+  .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .info-item label {
+    display: block; font-size: 0.78rem; text-transform: uppercase;
+    letter-spacing: 0.08em; color: #8a8691; font-weight: 700; margin-bottom: 4px;
+  }
+  .info-item span { font-size: 0.97rem; color: var(--ink); font-weight: 600; }
+
+  .importe-grande { font-size: 1.8rem; font-weight: 800; color: var(--fgulem-magenta); }
+
+  .panel-accion {
+    padding: 16px 18px; border-radius: 12px; margin-bottom: 14px;
+  }
+  .panel-autorizar { background: #f0fdf4; border: 1.5px solid #86efac; }
+  .panel-denegar   { background: #fff7ed; border: 1.5px solid #fed7aa; }
+  .panel-titulo { font-size: 0.9rem; font-weight: 700; margin: 0 0 12px; }
+  .panel-autorizar .panel-titulo { color: #166534; }
+  .panel-denegar   .panel-titulo { color: #9a3412; }
+
+  .btn-autorizar {
+    width: 100%; padding: 10px 14px; border: none; border-radius: 8px;
+    font-size: 0.88rem; font-weight: 700; cursor: pointer;
+    background: #16a34a; color: white; transition: background 0.15s;
+  }
+  .btn-autorizar:hover { background: #15803d; }
+
+  .btn-denegar {
+    width: 100%; padding: 10px 14px; border: none; border-radius: 8px;
+    font-size: 0.88rem; font-weight: 700; cursor: pointer;
+    background: #ea580c; color: white; transition: background 0.15s;
+  }
+  .btn-denegar:hover { background: #c2410c; }
+
+  .btn-convertir {
+    width: 100%; padding: 10px 14px; border: none; border-radius: 8px;
+    font-size: 0.88rem; font-weight: 700; cursor: pointer;
+    background: linear-gradient(135deg, var(--fgulem-magenta), var(--fgulem-magenta-soft));
+    color: white; box-shadow: 0 4px 14px rgba(194,27,132,0.20);
+    transition: opacity 0.15s;
+  }
+  .btn-convertir:hover { opacity: 0.88; }
+
+  .denegacion-box {
+    padding: 14px 16px; border-radius: 10px;
+    background: rgba(226,75,74,0.07); border: 1px solid rgba(226,75,74,0.22);
+    color: #7f1d1d; font-size: 0.93rem; margin-top: 10px;
+  }
+  .denegacion-box strong { display: block; font-size: 0.78rem; text-transform: uppercase;
+    letter-spacing: 0.07em; color: #a32d2d; margin-bottom: 5px; }
+
+  .adj-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .adj-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border: 1px solid var(--line);
+    border-radius: 10px; background: #fafafa;
+  }
+  .adj-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .adj-nombre { font-size: 0.9rem; font-weight: 600; color: var(--ink); }
+
+  .flash-success { padding: 12px 16px; border-radius: 10px; background: rgba(99,153,34,0.12); border: 1px solid rgba(99,153,34,0.28); color: #2f6b10; font-weight: 600; margin-bottom: 16px; }
+  .flash-error   { padding: 12px 16px; border-radius: 10px; background: rgba(226,75,74,0.10); border: 1px solid rgba(226,75,74,0.28); color: #a32d2d; font-weight: 600; margin-bottom: 16px; }
+
+  @media (max-width: 780px) { .info-grid { grid-template-columns: 1fr 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# Flash messages desde session #}
+{% if request.session.get('flash_success') %}
+  <div class="flash-success">✓ {{ request.session.pop('flash_success') }}</div>
+{% endif %}
+{% if request.session.get('flash_error') %}
+  <div class="flash-error">⚠ {{ request.session.pop('flash_error') }}</div>
+{% endif %}
+
+<div style="display: grid; grid-template-columns: 1fr 300px; gap: 18px; align-items: start;">
+
+  <!-- ── COLUMNA PRINCIPAL ── -->
+  <div>
+
+    <!-- Cabecera: estado e importe -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+        <div>
+          <span class="estado-badge estado-{{ solicitud.badge_clase }}">
+            {% if solicitud.estado == 'PENDIENTE_AUTORIZACION' %}⏳ Pendiente de autorización
+            {% elif solicitud.estado == 'AUTORIZADA' %}✓ Autorizada
+            {% else %}✗ Denegada{% endif %}
+          </span>
+        </div>
+        <div class="importe-grande">{{ "%.2f"|format(solicitud.importe_estimado) }} €</div>
+      </div>
+
+      <!-- Grid de datos principales -->
+      <div class="info-grid">
+        <div class="info-item">
+          <label>Servicio</label>
+          <span>{{ solicitud.nombre_servicio }}</span>
+        </div>
+        <div class="info-item">
+          <label>Proveedor</label>
+          <span>{{ solicitud.nombre_proveedor }}</span>
+        </div>
+        <div class="info-item">
+          <label>Fecha estimada del gasto</label>
+          <span>{{ solicitud.fecha_estimada_gasto.strftime('%d/%m/%Y') if solicitud.fecha_estimada_gasto else '—' }}</span>
+        </div>
+        <div class="info-item">
+          <label>Solicitante</label>
+          <span>{{ solicitud.nombre_solicitante }}</span>
+        </div>
+        <div class="info-item">
+          <label>Fecha creación</label>
+          <span>{{ solicitud.fecha_creacion.strftime('%d/%m/%Y %H:%M') if solicitud.fecha_creacion else '—' }}</span>
+        </div>
+        {% if solicitud.nombre_autorizador %}
+        <div class="info-item">
+          <label>{{ 'Autorizado' if solicitud.estado == 'AUTORIZADA' else 'Resuelto' }} por</label>
+          <span>{{ solicitud.nombre_autorizador }}</span>
+        </div>
+        {% endif %}
+        {% if solicitud.fecha_resolucion %}
+        <div class="info-item">
+          <label>Fecha resolución</label>
+          <span>{{ solicitud.fecha_resolucion.strftime('%d/%m/%Y %H:%M') }}</span>
+        </div>
+        {% endif %}
+        {% if solicitud.id_peg_generado %}
+        <div class="info-item">
+          <label>PEG generado</label>
+          <span><a href="/pegs/{{ solicitud.id_peg_generado }}" style="color:var(--fgulem-magenta);">Ver PEG #{{ solicitud.id_peg_generado }}</a></span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Concepto -->
+      <div style="margin-top:18px;">
+        <label style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;color:#8a8691;font-weight:700;">Concepto</label>
+        <p style="margin:6px 0 0;font-size:0.97rem;color:var(--ink);line-height:1.55;">{{ solicitud.concepto }}</p>
+      </div>
+
+      <!-- Motivo denegación -->
+      {% if solicitud.estado == 'DENEGADA' and solicitud.motivo_denegacion %}
+      <div class="denegacion-box" style="margin-top:18px;">
+        <strong>Motivo de denegación</strong>
+        {{ solicitud.motivo_denegacion }}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Adjuntos -->
+    {% if solicitud.adjuntos %}
+    <div class="card">
+      <h3 style="margin-top:0;font-size:1rem;">Documentación adjunta</h3>
+      <ul class="adj-list">
+        {% for ruta in solicitud.adjuntos %}
+        <li class="adj-item">
+          <span class="adj-icon">📄</span>
+          <span class="adj-nombre">{{ ruta.split('/')[-1] }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ── COLUMNA LATERAL: ACCIONES ── -->
+  <div>
+
+    <!-- Volver al listado -->
+    <div class="card" style="margin-bottom:14px;">
+      <a href="/solicitudes/" class="btn btn-secondary" style="width:100%;text-align:center;display:block;">
+        ← Volver al listado
+      </a>
+    </div>
+
+    {# ── Botones de resolución: solo GE y Admin, solo si PENDIENTE ── #}
+    {% if solicitud.estado == 'PENDIENTE_AUTORIZACION' and usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+
+    <!-- Autorizar -->
+    <div class="panel-accion panel-autorizar">
+      <p class="panel-titulo">✓ Autorizar solicitud</p>
+      <p style="font-size:0.82rem;color:#166534;margin:0 0 12px;">
+        Se aprobará el gasto por <strong>{{ "%.2f"|format(solicitud.importe_estimado) }} €</strong>.
+      </p>
+      <form method="post" action="/solicitudes/{{ solicitud.id_solicitud }}/autorizar">
+        <button type="submit" class="btn-autorizar"
+                onclick="return confirm('¿Confirmas la autorización de esta solicitud?')">
+          Autorizar
+        </button>
+      </form>
+    </div>
+
+    <!-- Denegar -->
+    <div class="panel-accion panel-denegar">
+      <p class="panel-titulo">✗ Denegar solicitud</p>
+      <form method="post" action="/solicitudes/{{ solicitud.id_solicitud }}/denegar">
+        <div class="field" style="margin-bottom:10px;">
+          <label for="motivo" style="font-size:0.82rem;font-weight:700;color:#9a3412;margin-bottom:5px;display:block;">
+            Motivo <span style="color:#dc2626">*</span>
+          </label>
+          <textarea id="motivo" name="motivo" rows="3" required
+                    style="width:100%;padding:8px 10px;border:1px solid #fed7aa;border-radius:8px;font-size:0.88rem;resize:vertical;"
+                    placeholder="Explica el motivo de denegación…"></textarea>
+        </div>
+        <button type="submit" class="btn-denegar"
+                onclick="return confirm('¿Confirmas la denegación?')">
+          Denegar
+        </button>
+      </form>
+    </div>
+
+    {% endif %}
+
+    {# ── Convertir en PEG: solo si AUTORIZADA y sin PEG generado ── #}
+    {% if solicitud.estado == 'AUTORIZADA' and solicitud.id_peg_generado is none %}
+    <div class="card">
+      <p style="font-size:0.88rem;color:var(--ink-soft);margin:0 0 12px;">
+        Esta solicitud está autorizada. Cuando recibas el documento crea el PEG correspondiente; se pre-rellenará con los datos de la solicitud.
+      </p>
+      <form method="post" action="/solicitudes/{{ solicitud.id_solicitud }}/convertir-en-peg">
+        <button type="submit" class="btn-convertir"
+                style="display:block;width:100%;text-align:center;"
+                onclick="return confirm('Se creará un PEG en estado Pendiente con los datos de esta solicitud. ¿Continuar?')">
+          Crear PEG a partir de esta solicitud
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+    {# ── PEG ya generado ── #}
+    {% if solicitud.id_peg_generado %}
+    <div class="card" style="background:rgba(99,153,34,0.07);border-color:rgba(99,153,34,0.25);">
+      <p style="font-size:0.88rem;color:#3b6d11;font-weight:600;margin:0 0 10px;">PEG ya generado</p>
+      <a href="/pegs/{{ solicitud.id_peg_generado }}"
+         class="btn btn-secondary" style="width:100%;text-align:center;display:block;font-size:0.85rem;">
+        Ver PEG #{{ solicitud.id_peg_generado }}
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

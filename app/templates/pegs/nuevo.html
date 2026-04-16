@@ -167,10 +167,16 @@
       </div>
 
       <div class="col-3 field">
-        <label>IBAN (del proveedor)</label>
-        <input id="iban_proveedor" type="text" readonly tabindex="-1"
-          style="background: #f7f7f8; color: var(--ink-soft);"
-          value="{{ proveedor_preseleccionado.iban if proveedor_preseleccionado else '' }}">
+        <label for="iban_proveedor">
+          IBAN del proveedor
+          <span id="iban-obligatorio-badge" style="display:none;color:var(--fgulem-magenta)">*</span>
+        </label>
+        <input id="iban_proveedor" name="iban_proveedor" type="text"
+          placeholder="ES00 0000 0000 0000 0000 0000"
+          value="{{ proveedor_preseleccionado.iban if proveedor_preseleccionado and proveedor_preseleccionado.iban else '' }}">
+        <span id="iban-aviso" style="font-size:0.75rem;color:#dc2626;display:none;">
+          IBAN obligatorio para este proveedor
+        </span>
       </div>
 
       <div class="col-3 field">
@@ -547,6 +553,9 @@
   // Poblar selector del modal "Nuevo proveedor"
   poblarSelectPais(document.getElementById("mp-pais"), "ES");
 
+  // Inicializar estado IBAN según el proveedor preseleccionado (si lo hay)
+  _actualizarEstadoIban(document.getElementById("iban_proveedor")?.value || "");
+
   // ── Modal nuevo proveedor ─────────────────────────────────────────────────
   function abrirModalProveedor() {
     const ids = ["mp-razon-social","mp-cif-nif","mp-nombre-comercial","mp-iban",
@@ -647,7 +656,9 @@
     try {
       const res  = await fetch(`/pegs/proveedor/${id}/json`);
       const data = await res.json();
-      document.getElementById("iban_proveedor").value = data.iban || "";
+      const iban = data.iban || "";
+      document.getElementById("iban_proveedor").value = iban;
+      _actualizarEstadoIban(iban);
       if (data.id_forma_pago_habitual) {
         document.getElementById("id_forma_pago_prevista").value = data.id_forma_pago_habitual;
       }
@@ -758,6 +769,18 @@
   // ── Proveedor: editar / nuevo / cuenta saco ──────────────────────────────
   const CUENTA_SACO = "{{ cuenta_saco }}";
 
+  function _actualizarEstadoIban(ibanActual) {
+    const inputIban  = document.getElementById("iban_proveedor");
+    const badge      = document.getElementById("iban-obligatorio-badge");
+    const aviso      = document.getElementById("iban-aviso");
+    if (!inputIban) return;
+    const sinIban = !ibanActual;
+    if (badge) badge.style.display  = sinIban ? "" : "none";
+    if (aviso) aviso.style.display  = "none";   // se mostrará solo en validación
+    inputIban.style.borderColor = sinIban ? "#f97316" : "";
+    inputIban.style.boxShadow   = sinIban ? "0 0 0 3px rgba(249,115,22,0.15)" : "";
+  }
+
   function onProveedorCambiado(sel) {
     const opt = sel.options[sel.selectedIndex];
 
@@ -770,6 +793,7 @@
     const iban = opt.dataset.iban || "";
     const inputIban = document.getElementById("iban_proveedor");
     if (inputIban) inputIban.value = iban;
+    _actualizarEstadoIban(iban);
 
     // Botón editar proveedor
     const btnEditar = document.getElementById("btn-editar-proveedor");
@@ -1000,6 +1024,16 @@
 
     if (!document.getElementById("select-proveedor").value)
       errores.push("Selecciona un proveedor.");
+
+    // IBAN obligatorio cuando el proveedor no lo tiene en el mock (badge visible)
+    const ibanBadge = document.getElementById("iban-obligatorio-badge");
+    const ibanInput = document.getElementById("iban_proveedor");
+    if (ibanBadge && ibanBadge.style.display !== "none" && ibanInput && !ibanInput.value.trim()) {
+      errores.push("El proveedor no tiene IBAN registrado. Introdúcelo para poder guardar el PEG.");
+      const aviso = document.getElementById("iban-aviso");
+      if (aviso) aviso.style.display = "";
+      if (ibanInput) ibanInput.focus();
+    }
 
     if (!document.getElementById("numero_documento").value.trim())
       errores.push("Introduce el número de documento.");

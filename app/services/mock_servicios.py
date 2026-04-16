@@ -10,6 +10,7 @@ _servicios: List[Dict[str, Any]] = [
         "analitica_nivel_1": 6,
         "id_banco_defecto": 1,
         "gestores_ids": [2],
+        "requiere_autorizacion": True,
     },
     {
         "id_servicio": 2,
@@ -20,16 +21,18 @@ _servicios: List[Dict[str, Any]] = [
         "analitica_nivel_1": 2,
         "id_banco_defecto": 1,
         "gestores_ids": [3],
+        "requiere_autorizacion": False,
     },
     {
         "id_servicio": 3,
-        "codigo": "CP",
-        "nombre": "Clínica de Podología",
-        "descripcion": "Servicio de podología universitaria",
+        "codigo": "DP",
+        "nombre": "Desarrollo Profesional",
+        "descripcion": "Servicio de formación y desarrollo profesional",
         "activo": True,
         "analitica_nivel_1": 6,
         "id_banco_defecto": 1,
         "gestores_ids": [],
+        "requiere_autorizacion": False,
     },
 ]
 
