@@ -10,6 +10,7 @@ from app.schemas.pegs import PegCrear, PegCambioEstado, LineaIVA
 from app.services import pegs_service, remesas_service
 from app.services import proveedores_service
 from app.services import email_service
+from app.services.mock_servicios import obtener_servicio as _obtener_servicio
 
 router = APIRouter(prefix="/pegs", tags=["PEGs"])
 
@@ -70,6 +71,16 @@ def pegs_nuevo(
     proveedor_id: Optional[int] = None,
     usuario: dict = Depends(require_login),
 ):
+    # Guard: GESTOR_SERVICIO cuyo servicio requiere autorización previa
+    if usuario["rol"] == "GESTOR_SERVICIO":
+        srv = _obtener_servicio(usuario.get("id_servicio"))
+        if srv and srv.get("requiere_autorizacion"):
+            request.session["flash_error"] = (
+                "Este servicio requiere autorización previa al gasto. "
+                "Crea primero una solicitud de autorización."
+            )
+            return RedirectResponse(url="/solicitudes/nueva", status_code=303)
+
     datos = pegs_service.obtener_datos_formulario()
 
     # SOLICITANTE solo puede crear PEGs de su servicio: filtrar la lista
@@ -111,6 +122,7 @@ async def pegs_nuevo_post(
     archivos: List[UploadFile] = File(default=[]),
     tipos_documento: List[str] = Form(default=[]),
     cuenta_cliente_proveedor: Optional[str] = Form(None),
+    iban_proveedor: Optional[str] = Form(None),
     usuario: dict = Depends(require_login),
 ):
     from datetime import date
@@ -122,6 +134,33 @@ async def pegs_nuevo_post(
     # GESTOR_SERVICIO no puede crear PEGs para otros servicios
     if usuario["rol"] == "GESTOR_SERVICIO" and id_servicio != usuario["id_servicio"]:
         return HTMLResponse("Sin permisos para crear PEGs en este servicio", status_code=403)
+
+    # Guard: GESTOR_SERVICIO cuyo servicio requiere autorización previa
+    if usuario["rol"] == "GESTOR_SERVICIO":
+        srv = _obtener_servicio(id_servicio)
+        if srv and srv.get("requiere_autorizacion"):
+            request.session["flash_error"] = (
+                "Este servicio requiere autorización previa al gasto. "
+                "Crea primero una solicitud de autorización."
+            )
+            return RedirectResponse(url="/solicitudes/nueva", status_code=303)
+
+    # Validar IBAN obligatorio cuando el proveedor no lo tiene registrado
+    prov = proveedores_service.obtener_proveedor(id_proveedor)
+    iban_limpio = (iban_proveedor or "").strip()
+    if prov and not prov.get("iban") and not iban_limpio:
+        datos = pegs_service.obtener_datos_formulario()
+        if usuario["rol"] == "GESTOR_SERVICIO":
+            datos["servicios"] = [
+                s for s in datos["servicios"] if s["id_servicio"] == usuario["id_servicio"]
+            ]
+        return templates.TemplateResponse(
+            request=request,
+            name="pegs/nuevo.html",
+            context={**datos, "proveedor_preseleccionado": prov, "usuario": usuario,
+                     "cuenta_saco": pegs_service.get_parametro("cuenta_saco"),
+                     "error": "El proveedor no tiene IBAN registrado. Introdúcelo antes de guardar."},
+        )
 
     # Validar que se ha adjuntado al menos un archivo
     archivos_con_nombre = [a for a in archivos if a.filename]
@@ -187,9 +226,13 @@ async def pegs_nuevo_post(
         )
 
     if cuenta_cliente_proveedor and usuario["rol"] in ["GESTOR_ECONOMICO", "ADMIN"]:
-        prov = proveedores_service.obtener_proveedor(id_proveedor)
-        if prov:
-            prov["cuenta_cliente"] = cuenta_cliente_proveedor
+        prov_upd = proveedores_service.obtener_proveedor(id_proveedor)
+        if prov_upd:
+            prov_upd["cuenta_cliente"] = cuenta_cliente_proveedor
+
+    # Guardar IBAN si se ha introducido y el proveedor aún no lo tenía
+    if iban_limpio:
+        proveedores_service.actualizar_iban(id_proveedor, iban_limpio)
 
     peg_creada = pegs_service.obtener_peg(resultado["id_peg"])
     email_service.notificar_peg_creada(peg_creada, usuario)

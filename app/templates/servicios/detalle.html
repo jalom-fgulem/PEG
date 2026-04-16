@@ -30,6 +30,50 @@
           <span class="estado-badge" style="background:rgba(150,150,150,0.14);color:#666;">Inactivo</span>
         {% endif %}
       </td></tr>
+      <tr>
+        <td style="color:#888; vertical-align:middle; padding-top:14px;">Autorización previa</td>
+        <td style="padding-top:14px;">
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            {% if servicio.requiere_autorizacion %}
+              <span style="display:inline-flex;align-items:center;gap:5px;
+                           padding:4px 12px;border-radius:999px;font-size:0.82rem;font-weight:700;
+                           background:rgba(239,159,39,0.14);color:#854f0b;">
+                🔒 Requerida
+              </span>
+            {% else %}
+              <span style="display:inline-flex;align-items:center;gap:5px;
+                           padding:4px 12px;border-radius:999px;font-size:0.82rem;font-weight:700;
+                           background:rgba(150,150,150,0.10);color:#888;">
+                Sin restricción
+              </span>
+            {% endif %}
+            {% if usuario.rol == 'ADMIN' %}
+            <form method="post"
+                  action="/servicios/{{ servicio.id_servicio }}/toggle-autorizacion"
+                  onsubmit="return confirm('¿Cambiar el requisito de autorización previa para este servicio?')"
+                  style="margin:0;">
+              <button type="submit"
+                style="padding:5px 14px; border-radius:8px; font-size:0.82rem; font-weight:700;
+                       cursor:pointer; border:1px solid;
+                       {% if servicio.requiere_autorizacion %}
+                         background:rgba(150,150,150,0.08); color:#555; border-color:#d1d5db;
+                       {% else %}
+                         background:rgba(239,159,39,0.10); color:#854f0b; border-color:rgba(239,159,39,0.35);
+                       {% endif %}">
+                {% if servicio.requiere_autorizacion %}Desactivar{% else %}Activar{% endif %}
+              </button>
+            </form>
+            {% endif %}
+          </div>
+          <p style="margin:5px 0 0; font-size:0.78rem; color:#8a8691; line-height:1.4;">
+            {% if servicio.requiere_autorizacion %}
+              Los gestores de este servicio deben obtener autorización del gestor económico antes de crear un PEG.
+            {% else %}
+              Los gestores pueden crear PEGs directamente sin autorización previa.
+            {% endif %}
+          </p>
+        </td>
+      </tr>
     </table>
   </div>
 

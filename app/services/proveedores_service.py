@@ -41,7 +41,7 @@ proveedores_db = [
         "nombre_comercial": "VetTécnica Noroeste",
         "email": "contacto@vettecnica.com",
         "telefono": "987111222",
-        "iban": "ES1111111111111111111111",
+        "iban": None,
         "servicios": [1],
         "direccion": "Polígono Industrial El Jano, nave 7",
         "localidad": "Benavente",

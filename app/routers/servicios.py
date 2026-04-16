@@ -125,6 +125,23 @@ def desactivar_servicio(request: Request, id_servicio: int):
     return RedirectResponse(url="/servicios/?msg=Servicio+desactivado&msg_type=success", status_code=303)
 
 
+@router.post("/{id_servicio}/toggle-autorizacion")
+def toggle_autorizacion(request: Request, id_servicio: int):
+    """Activa / desactiva requiere_autorizacion. Solo ADMIN."""
+    usuario = get_usuario_actual(request)
+    require_rol(usuario, ["ADMIN"])
+    servicio = mock_servicios.obtener_servicio(id_servicio)
+    if not servicio:
+        return RedirectResponse(url="/servicios/", status_code=302)
+    nuevo_valor = not servicio.get("requiere_autorizacion", False)
+    mock_servicios.actualizar_servicio(id_servicio, {"requiere_autorizacion": nuevo_valor})
+    estado_txt = "activada" if nuevo_valor else "desactivada"
+    return RedirectResponse(
+        url=f"/servicios/{id_servicio}?msg=Autorización+previa+{estado_txt}&msg_type=success",
+        status_code=303,
+    )
+
+
 # ─── PROYECTOS ────────────────────────────────────────────────────────────────
 
 @router.get("/{id_servicio}/proyectos/nuevo", response_class=HTMLResponse)

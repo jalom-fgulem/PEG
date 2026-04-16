@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Solicitudes de autorización{% endblock %}
+{% block page_title %}Solicitudes de autorización{% endblock %}
+{% block page_subtitle %}Gastos que requieren aprobación previa antes de emitir el PEG{% endblock %}
+
+{% block extra_head %}
+<style>
+  .estado-badge {
+    display: inline-flex; align-items: center;
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 0.8rem; font-weight: 700; white-space: nowrap;
+  }
+  .estado-pendiente  { background: rgba(239,159,39,0.14); color: #854f0b; }
+  .estado-autorizada { background: rgba(99,153,34,0.14);  color: #3b6d11; }
+  .estado-denegada   { background: rgba(226,75,74,0.13);  color: #a32d2d; }
+
+  .filtros-inline { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 20px; }
+  .filtros-inline > div { display: flex; flex-direction: column; gap: 6px; }
+  .filtros-inline label { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; color: #86828b; font-weight: 700; }
+  .filtros-inline input, .filtros-inline select { padding: 9px 12px; border: 1px solid #d8dce2; border-radius: 10px; font-size: 0.95rem; color: var(--ink); background: white; }
+  .filtros-inline input:focus, .filtros-inline select:focus { outline: none; border-color: var(--fgulem-blue); box-shadow: 0 0 0 3px rgba(95,159,211,0.14); }
+
+  .btn-filtro-estado {
+    background: #f3f4f6; color: #374151; border: 1.5px solid #e5e7eb;
+    border-radius: 20px; padding: 4px 14px; font-size: 0.8rem;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-filtro-estado:hover { background: #e5e7eb; }
+  .btn-filtro-estado.activo { background: #1d4ed8; color: white; border-color: #1d4ed8; }
+
+  #sinResultados { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% with msgs = request.session.pop('flash_success', None) %}{% if msgs %}
+  <div style="padding:12px 16px;border-radius:10px;background:rgba(99,153,34,0.12);border:1px solid rgba(99,153,34,0.28);color:#2f6b10;font-weight:600;margin-bottom:16px;">
+    ✓ {{ msgs }}
+  </div>
+{% endif %}{% endwith %}
+{% with msgs = request.session.pop('flash_error', None) %}{% if msgs %}
+  <div style="padding:12px 16px;border-radius:10px;background:rgba(226,75,74,0.10);border:1px solid rgba(226,75,74,0.28);color:#a32d2d;font-weight:600;margin-bottom:16px;">
+    ⚠ {{ msgs }}
+  </div>
+{% endif %}{% endwith %}
+
+<div class="card">
+  <div class="toolbar">
+    <div>
+      <h2 style="margin-bottom:4px;">Solicitudes de autorización</h2>
+      <div class="muted" id="contadorResultados">{{ items|length }} solicitud{{ 'es' if items|length != 1 }}</div>
+    </div>
+    <div class="actions">
+      {% if usuario.rol == 'GESTOR_SERVICIO' %}
+      <a class="btn btn-primary" href="/solicitudes/nueva">Nueva solicitud</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Filtros por estado -->
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+    <button type="button" class="btn-filtro-estado activo"
+            data-valor="" onclick="filtrarEstado(this)">Todas</button>
+    <button type="button" class="btn-filtro-estado"
+            data-valor="pendiente" onclick="filtrarEstado(this)">Pendiente</button>
+    <button type="button" class="btn-filtro-estado"
+            data-valor="autorizada" onclick="filtrarEstado(this)">Autorizada</button>
+    <button type="button" class="btn-filtro-estado"
+            data-valor="denegada" onclick="filtrarEstado(this)">Denegada</button>
+  </div>
+
+  <!-- Buscador -->
+  <div class="filtros-inline" style="margin-bottom:16px">
+    <div style="flex:1;min-width:200px">
+      <label for="filtroBusqueda">Buscar</label>
+      <input id="filtroBusqueda" type="text"
+             placeholder="Proveedor, concepto..."
+             autocomplete="off">
+    </div>
+  </div>
+
+  {% if items %}
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha creación</th>
+        <th>Servicio</th>
+        <th>Proveedor</th>
+        <th>Concepto</th>
+        <th style="text-align:right">Importe est.</th>
+        <th>Fecha gasto</th>
+        <th>Estado</th>
+        <th style="text-align:center">Acción</th>
+      </tr>
+    </thead>
+    <tbody id="tablaBody">
+      {% for item in items %}
+      <tr class="fila-sol"
+          data-busqueda="{{ (item.nombre_proveedor ~ ' ' ~ item.concepto ~ ' ' ~ item.nombre_servicio)|lower }}"
+          data-estado="{{ item.badge_clase }}">
+        <td style="white-space:nowrap">{{ item.fecha_creacion.strftime('%d/%m/%Y') if item.fecha_creacion else '—' }}</td>
+        <td>{{ item.nombre_servicio }}</td>
+        <td>{{ item.nombre_proveedor }}</td>
+        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+            title="{{ item.concepto }}">{{ item.concepto }}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums;">{{ "%.2f"|format(item.importe_estimado) }} €</td>
+        <td style="white-space:nowrap">{{ item.fecha_estimada_gasto.strftime('%d/%m/%Y') if item.fecha_estimada_gasto else '—' }}</td>
+        <td>
+          <span class="estado-badge estado-{{ item.badge_clase }}">
+            {% if item.estado == 'PENDIENTE_AUTORIZACION' %}Pendiente
+            {% elif item.estado == 'AUTORIZADA' %}Autorizada
+            {% else %}Denegada{% endif %}
+          </span>
+        </td>
+        <td style="text-align:center">
+          <a href="/solicitudes/{{ item.id_solicitud }}"
+             title="Ver detalle" style="font-size:1.2rem;text-decoration:none">🔍</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div id="sinResultados" class="empty-state" style="padding:24px 0;">
+    No hay solicitudes que coincidan con los filtros aplicados.
+  </div>
+  {% else %}
+  <div class="empty-state">
+    No hay solicitudes registradas.
+    {% if usuario.rol == 'GESTOR_SERVICIO' %}
+    <a href="/solicitudes/nueva">Crear la primera</a>.
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const filas       = document.querySelectorAll(".fila-sol");
+  const sinResult   = document.getElementById("sinResultados");
+  const contador    = document.getElementById("contadorResultados");
+  const inputBusq   = document.getElementById("filtroBusqueda");
+  let filtroEstado  = "";
+
+  function aplicarFiltros() {
+    const texto = inputBusq.value.trim().toLowerCase();
+    let vis = 0;
+    filas.forEach(fila => {
+      const okText   = !texto       || fila.dataset.busqueda.includes(texto);
+      const okEstado = !filtroEstado || fila.dataset.estado === filtroEstado;
+      const mostrar  = okText && okEstado;
+      fila.style.display = mostrar ? "" : "none";
+      if (mostrar) vis++;
+    });
+    sinResult.style.display = vis === 0 && filas.length > 0 ? "block" : "none";
+    contador.textContent = vis + " solicitud" + (vis !== 1 ? "es" : "");
+  }
+
+  function filtrarEstado(btn) {
+    document.querySelectorAll(".btn-filtro-estado").forEach(b => b.classList.remove("activo"));
+    btn.classList.add("activo");
+    filtroEstado = btn.dataset.valor;
+    aplicarFiltros();
+  }
+
+  inputBusq.addEventListener("input", aplicarFiltros);
+</script>
+{% endblock %}

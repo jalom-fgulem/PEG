@@ -9,7 +9,7 @@ from app.core.config import settings
 from typing import Optional
 from app.core.auth import get_usuario_actual, NoAutenticado
 from app.core.templating import templates
-from app.routers import servicios, proveedores, pegs, remesas
+from app.routers import servicios, proveedores, pegs, remesas, solicitudes as solicitudes_router
 from app.services import pegs_service
 from app.routers import auth as auth_router
 from app.routers import bancos as bancos_router
@@ -36,6 +36,7 @@ app.include_router(bancos_router.router)
 app.include_router(usuarios_router.router)
 app.include_router(adjuntos_router.router)
 app.include_router(admin_router.router)
+app.include_router(solicitudes_router.router)
 
 
 @app.exception_handler(NoAutenticado)
