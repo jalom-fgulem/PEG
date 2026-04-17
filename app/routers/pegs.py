@@ -44,7 +44,11 @@ def pegs_listado(
     if proveedor_id:
         items = [i for i in items if i["id_proveedor"] == proveedor_id]
     estados = pegs_service.obtener_estados()
-    servicios = pegs_service.obtener_servicios()
+    todos_servicios = pegs_service.obtener_servicios()
+    if usuario["rol"] == "GESTOR_SERVICIO":
+        servicios = [s for s in todos_servicios if s["id_servicio"] == usuario.get("id_servicio")]
+    else:
+        servicios = todos_servicios
     return templates.TemplateResponse(
         request=request,
         name="pegs/listado.html",
