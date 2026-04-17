@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Nuevo gasto directo{% endblock %}
+{% block page_title %}Nuevo gasto directo{% endblock %}
+{% block page_subtitle %}Registro de domiciliación o cargo en tarjeta corporativa{% endblock %}
+
+{% block extra_head %}
+<style>
+  .form-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+  .col-4  { grid-column: span 4; }
+  .col-6  { grid-column: span 6; }
+  .col-8  { grid-column: span 8; }
+  .col-12 { grid-column: span 12; }
+  @media (max-width: 780px) {
+    .col-4, .col-6, .col-8 { grid-column: span 12; }
+  }
+  .section-sep {
+    grid-column: span 12;
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+    margin-top: 4px;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #8a8691;
+    font-weight: 700;
+  }
+  #bloque-tarjeta { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2 style="margin-bottom:6px;">Nuevo gasto directo</h2>
+  <p class="muted" style="margin-top:0;">Registra una domiciliación bancaria o un cargo en tarjeta corporativa.</p>
+
+  <form method="POST" action="/gastos/nuevo">
+    <div class="form-grid">
+
+      <!-- Tipo -->
+      <div class="col-4 field">
+        <label for="tipo">Tipo de gasto</label>
+        <select id="tipo" name="tipo" required onchange="onTipoCambiado(this)">
+          <option value="DOMICILIACION">Domiciliación</option>
+          <option value="TARJETA">Tarjeta corporativa</option>
+        </select>
+      </div>
+
+      <!-- Proveedor -->
+      <div class="col-8 field">
+        <label for="proveedor_id">Proveedor</label>
+        <select id="proveedor_id" name="proveedor_id" required>
+          <option value="">— Selecciona proveedor —</option>
+          {% for p in proveedores %}
+          <option value="{{ p.id_proveedor }}">{{ p.razon_social }} — {{ p.cif_nif }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Campos tarjeta (visibles solo si tipo=TARJETA) -->
+      <div id="bloque-tarjeta" class="col-12" style="display:none;">
+        <div class="form-grid" style="padding:0; gap:14px;">
+          <div class="col-6 field" style="margin-bottom:0;">
+            <label for="tarjeta_id">Tarjeta</label>
+            <select id="tarjeta_id" name="tarjeta_id">
+              <option value="">— Selecciona tarjeta —</option>
+              {% for t in tarjetas %}
+              <option value="{{ t.id_tarjeta }}">{{ t.nombre }} ···{{ t.ultimos_4 }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-6 field" style="margin-bottom:0;">
+            <label for="empleado_id">Empleado responsable</label>
+            <select id="empleado_id" name="empleado_id">
+              <option value="">— Selecciona empleado —</option>
+              {% for u in usuarios %}
+              <option value="{{ u.id_usuario }}">{{ u.nombre }} {{ u.apellidos }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fechas -->
+      <div class="col-6 field">
+        <label for="fecha_documento">Fecha documento</label>
+        <input id="fecha_documento" type="date" name="fecha_documento" required>
+      </div>
+
+      <div class="col-6 field">
+        <label for="fecha_cargo_real">Fecha cargo real</label>
+        <input id="fecha_cargo_real" type="date" name="fecha_cargo_real">
+      </div>
+
+      <!-- Referencia y concepto -->
+      <div class="col-4 field">
+        <label for="referencia_factura">Referencia / nº factura</label>
+        <input id="referencia_factura" type="text" name="referencia_factura" placeholder="F-2026-0001">
+      </div>
+
+      <div class="col-8 field">
+        <label for="concepto">Concepto <span style="color:var(--fgulem-magenta)">*</span></label>
+        <input id="concepto" type="text" name="concepto" required placeholder="Descripción del gasto">
+      </div>
+
+      <!-- Importes -->
+      <div class="section-sep">Importes</div>
+
+      <div class="col-4 field">
+        <label for="importe_base">Base imponible (€)</label>
+        <input id="importe_base" type="number" name="importe_base" step="0.01" min="0.01" required
+               placeholder="0.00" oninput="calcularImportes()">
+      </div>
+
+      <div class="col-4 field">
+        <label for="porcentaje_iva">IVA</label>
+        <select id="porcentaje_iva" name="porcentaje_iva" onchange="calcularImportes()">
+          <option value="0">0%</option>
+          <option value="5">5%</option>
+          <option value="10">10%</option>
+          <option value="21" selected>21%</option>
+        </select>
+      </div>
+
+      <div class="col-4 field">
+        <label>Importe total</label>
+        <input id="importe_total_display" type="text" readonly value="—"
+               style="background:#f9fafb; color:var(--fgulem-magenta); font-weight:700;">
+      </div>
+
+      <!-- Servicio -->
+      <div class="section-sep">Clasificación</div>
+
+      <div class="col-6 field">
+        <label for="servicio_id">Servicio</label>
+        <select id="servicio_id" name="servicio_id" required>
+          <option value="">— Selecciona servicio —</option>
+          {% for s in servicios %}
+          <option value="{{ s.id_servicio }}">{{ s.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+    </div>
+
+    <div class="actions" style="margin-top:18px;">
+      <button class="btn btn-primary" type="submit">Guardar gasto</button>
+      <a class="btn btn-secondary" href="/gastos/">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function onTipoCambiado(sel) {
+  const bloque = document.getElementById('bloque-tarjeta');
+  bloque.style.display = sel.value === 'TARJETA' ? 'block' : 'none';
+}
+
+function calcularImportes() {
+  const base = parseFloat(document.getElementById('importe_base').value) || 0;
+  const pct  = parseFloat(document.getElementById('porcentaje_iva').value) || 0;
+  const iva  = Math.round(base * pct) / 100;
+  const total = Math.round((base + iva) * 100) / 100;
+  document.getElementById('importe_total_display').value = total > 0 ? total.toFixed(2) + ' €' : '—';
+}
+</script>
+{% endblock %}

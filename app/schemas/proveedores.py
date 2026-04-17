@@ -10,6 +10,7 @@ class ProveedorBase(BaseModel):
     email: Optional[EmailStr] = None
     telefono: Optional[str] = None
     iban: Optional[str] = None
+    tipo_proveedor: Optional[str] = "TRANSFERENCIA"   # TRANSFERENCIA | DOMICILIACION | TARJETA | MIXTO
     direccion: Optional[str] = None
     localidad: Optional[str] = None
     codigo_postal: Optional[str] = None

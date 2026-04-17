@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Remesas Directas{% endblock %}
+{% block page_title %}Remesas Directas{% endblock %}
+{% block page_subtitle %}Domiciliaciones y cargos en tarjeta agrupados para su exportación contable{% endblock %}
+
+{% block extra_head %}
+<style>
+  .estado-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+  .estado-abierta  { background: rgba(239,159,39,0.14);  color: #854f0b; }
+  .estado-cerrada  { background: rgba(99,153,34,0.14);   color: #3b6d11; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { padding: 6px 16px; border-radius: 20px; border: 1.5px solid #e5e7eb; background: #f3f4f6; color: #374151; font-size: 0.82rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: all 0.15s; }
+  .tab:hover { background: #e5e7eb; }
+  .tab.activo { background: var(--fgulem-magenta); color: white; border-color: var(--fgulem-magenta); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="toolbar">
+    <div>
+      <h2 style="margin-bottom:4px;">Remesas Directas</h2>
+      <div class="muted">{{ items|length }} remesa{% if items|length != 1 %}s{% endif %}</div>
+    </div>
+    <div class="actions">
+      <a class="btn btn-primary" href="/remesas-directas/nueva">Nueva remesa</a>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <a class="tab {% if not filtro_tipo %}activo{% endif %}" href="/remesas-directas/">Todas</a>
+    <a class="tab {% if filtro_tipo == 'DOMICILIACIONES' %}activo{% endif %}" href="/remesas-directas/?tipo=DOMICILIACIONES">Domiciliaciones</a>
+    <a class="tab {% if filtro_tipo == 'TARJETAS' %}activo{% endif %}" href="/remesas-directas/?tipo=TARJETAS">Tarjetas</a>
+  </div>
+
+  {% if items %}
+  <table>
+    <thead>
+      <tr>
+        <th>Nº</th>
+        <th>Tipo</th>
+        <th>Período</th>
+        <th style="text-align:center;">Gastos</th>
+        <th style="text-align:right;">Total</th>
+        <th>Estado</th>
+        <th>Fecha creación</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in items %}
+      <tr>
+        <td style="font-family:monospace; font-weight:700;">RD-{{ "%04d"|format(r.numero) }}</td>
+        <td>{{ r.tipo }}</td>
+        <td>{{ r.periodo }}</td>
+        <td style="text-align:center; font-weight:700;">{{ r.num_gastos }}</td>
+        <td style="text-align:right; font-weight:700;">{{ "%.2f"|format(r.total) }} €</td>
+        <td>
+          <span class="estado-badge estado-{{ r.estado|lower }}">
+            {% if r.estado == 'ABIERTA' %}Abierta{% elif r.estado == 'CERRADA' %}Cerrada{% else %}{{ r.estado }}{% endif %}
+          </span>
+        </td>
+        <td class="muted" style="font-size:0.88rem;">{{ r.fecha_creacion }}</td>
+        <td>
+          <a href="/remesas-directas/{{ r.id_remesa_directa }}"
+             style="font-size:0.85rem; font-weight:700; color:var(--fgulem-magenta); text-decoration:none;">
+            Ver →
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">No hay remesas directas para los filtros seleccionados.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Nueva remesa directa{% endblock %}
+{% block page_title %}Nueva remesa directa{% endblock %}
+{% block page_subtitle %}Agrupa gastos cotejados para su exportación contable{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:540px;">
+  <h2 style="margin-bottom:6px;">Nueva remesa directa</h2>
+  <p class="muted" style="margin-top:0; margin-bottom:24px;">
+    La remesa se creará en estado <strong>ABIERTA</strong>. Añade gastos cotejados antes de cerrarla.
+  </p>
+
+  <form method="POST" action="/remesas-directas/nueva">
+
+    <div class="field">
+      <label for="tipo">Tipo de remesa</label>
+      <select id="tipo" name="tipo" required>
+        <option value="DOMICILIACIONES">Domiciliaciones</option>
+        <option value="TARJETAS">Tarjetas corporativas</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="periodo">Período (AAAA-MM)</label>
+      <input id="periodo" type="text" name="periodo" required
+             pattern="\d{4}-\d{2}"
+             placeholder="2026-04"
+             style="max-width:140px; font-family:monospace;">
+      <span style="font-size:0.78rem; color:#6b7280; display:block; margin-top:4px;">
+        Formato: año-mes, ej. 2026-04
+      </span>
+    </div>
+
+    <div class="field">
+      <label for="servicio_id">Servicio</label>
+      <select id="servicio_id" name="servicio_id" required>
+        <option value="">— Selecciona servicio —</option>
+        {% for s in servicios %}
+        <option value="{{ s.id_servicio }}">{{ s.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="cuenta_bancaria_id">Cuenta bancaria (id)</label>
+      <input id="cuenta_bancaria_id" type="number" name="cuenta_bancaria_id"
+             value="1" min="1" style="max-width:100px;">
+      <span style="font-size:0.78rem; color:#6b7280; display:block; margin-top:4px;">
+        Identificador interno de la cuenta bancaria de cargo.
+      </span>
+    </div>
+
+    <div class="actions" style="margin-top:20px;">
+      <button class="btn btn-primary" type="submit">Crear remesa</button>
+      <a class="btn btn-secondary" href="/remesas-directas/">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -253,6 +253,10 @@
   .kpi-abierta    .kpi-valor { color: #185fa5; }
   .kpi-alerta     { border-top-color: #ef4444; background: rgba(226,75,74,0.04); }
   .kpi-alerta     .kpi-valor { color: #a32d2d; }
+  .kpi-revision   { border-top-color: #f97316; }
+  .kpi-revision   .kpi-valor { color: #9a3412; }
+  .kpi-cotejado   { border-top-color: #22c55e; }
+  .kpi-cotejado   .kpi-valor { color: #15803d; }
 
   /* Desglose por servicio */
   .kpi-desglose {
@@ -451,6 +455,40 @@
     {% endif %}
 
   </div>
+
+  {# ── KPIs Gastos Directos y Remesas Directas (solo GE/ADMIN) ── #}
+  {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and gastos_resumen is defined %}
+  {% set n_gastos_revision = gastos_resumen | selectattr("estado", "equalto", "EN_REVISION") | list | length %}
+  {% set n_gastos_cotejados = gastos_resumen | selectattr("estado", "equalto", "COTEJADO") | rejectattr("remesa_directa_id") | list | length %}
+  {% set n_remesas_abiertas = remesas_directas_resumen | selectattr("estado", "equalto", "ABIERTA") | list | length %}
+  <div class="kpi-grid" style="margin-top:10px;">
+
+    {# 1. PEGs pendientes de validar #}
+    <a class="kpi-card kpi-pendiente" href="/pegs/?estado=1" title="PEGs pendientes de validar">
+      <div class="kpi-valor">⏳ {{ kpis.pendiente }}</div>
+      <div class="kpi-label">PEGs pendientes</div>
+    </a>
+
+    {# 2. Gastos directos en revisión #}
+    <a class="kpi-card kpi-revision" href="/gastos/?estado=EN_REVISION" title="Gastos directos en revisión">
+      <div class="kpi-valor">🔍 {{ n_gastos_revision }}</div>
+      <div class="kpi-label">Gastos en revisión</div>
+    </a>
+
+    {# 3. Remesas directas abiertas #}
+    <a class="kpi-card kpi-abierta" href="/remesas-directas/" title="Remesas directas abiertas">
+      <div class="kpi-valor">📂 {{ n_remesas_abiertas }}</div>
+      <div class="kpi-label">Remesas directas abiertas</div>
+    </a>
+
+    {# 4. Gastos cotejados sin remesa asignada #}
+    <a class="kpi-card kpi-cotejado" href="/gastos/?estado=COTEJADO" title="Gastos cotejados sin remesa">
+      <div class="kpi-valor">✅ {{ n_gastos_cotejados }}</div>
+      <div class="kpi-label">Cotejados sin remesa</div>
+    </a>
+
+  </div>
+  {% endif %}
 
   {# ── Desglose PENDIENTES por servicio (solo GESTOR_ECONOMICO + ADMIN) ── #}
   {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and kpis.pendiente_por_servicio %}

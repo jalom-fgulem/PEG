@@ -62,7 +62,7 @@ _pegs = [
         "id_forma_pago_prevista": 1,
         "lineas": [{"tipo_iva": 21, "base_imponible": 1000.00}],
         "base_imponible": 1000.00, "importe_iva": 210.00, "importe_irpf": 0.00, "importe_total": 1210.00,
-        "id_peg_estado": 4, "id_analitica": 1, "id_remesa": None, "creado_por": 1,
+        "id_peg_estado": 4, "lineas_analitica": [{"id_analitica": 1, "porcentaje": 100.0}], "id_remesa": None, "creado_por": 1,
         "fecha_creacion": "2026-01-16", "fecha_actualizacion": "2026-01-22", "fecha_pago": "2026-01-22",
         "numero_factura_interno": "F6001ENE", "id_cuenta_gasto": 3, "cuenta_cliente_proveedor": "4100003", "factura_recibida": True,
     },
@@ -76,7 +76,7 @@ _pegs = [
         "id_forma_pago_prevista": 1,
         "lineas": [{"tipo_iva": 21, "base_imponible": 500.00}],
         "base_imponible": 500.00, "importe_iva": 105.00, "importe_irpf": 0.00, "importe_total": 605.00,
-        "id_peg_estado": 3, "id_analitica": 2, "id_remesa": 2, "creado_por": 2,
+        "id_peg_estado": 3, "lineas_analitica": [{"id_analitica": 2, "porcentaje": 100.0}], "id_remesa": 2, "creado_por": 2,
         "fecha_creacion": "2026-02-10", "fecha_actualizacion": "2026-02-10", "fecha_pago": None,
         "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_cliente_proveedor": "", "factura_recibida": False,
     },
@@ -90,7 +90,7 @@ _pegs = [
         "id_forma_pago_prevista": 1,
         "lineas": [{"tipo_iva": 21, "base_imponible": 320.00}],
         "base_imponible": 320.00, "importe_iva": 67.20, "importe_irpf": 0.00, "importe_total": 387.20,
-        "id_peg_estado": 3, "id_analitica": 3, "id_remesa": 2, "creado_por": 2,
+        "id_peg_estado": 3, "lineas_analitica": [{"id_analitica": 3, "porcentaje": 100.0}], "id_remesa": 2, "creado_por": 2,
         "fecha_creacion": "2026-02-21", "fecha_actualizacion": "2026-02-22", "fecha_pago": None,
         "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_cliente_proveedor": "", "factura_recibida": False,
     },
@@ -107,7 +107,7 @@ _pegs = [
             {"tipo_iva": 10, "base_imponible": 200.00},
         ],
         "base_imponible": 700.00, "importe_iva": 125.00, "importe_irpf": 0.00, "importe_total": 825.00,
-        "id_peg_estado": 5, "id_analitica": 4, "id_remesa": None, "creado_por": 3,
+        "id_peg_estado": 5, "lineas_analitica": [{"id_analitica": 4, "porcentaje": 100.0}], "id_remesa": None, "creado_por": 3,
         "fecha_creacion": "2026-03-02", "fecha_actualizacion": "2026-03-03", "fecha_pago": None,
         "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_cliente_proveedor": "", "factura_recibida": False,
     },
@@ -121,7 +121,7 @@ _pegs = [
         "id_forma_pago_prevista": 1,
         "lineas": [{"tipo_iva": 21, "base_imponible": 750.00}],
         "base_imponible": 750.00, "importe_iva": 157.50, "importe_irpf": 0.00, "importe_total": 907.50,
-        "id_peg_estado": 2, "id_analitica": 1, "id_remesa": None, "creado_por": 1,
+        "id_peg_estado": 2, "lineas_analitica": [{"id_analitica": 1, "porcentaje": 100.0}], "id_remesa": None, "creado_por": 1,
         "fecha_creacion": "2026-03-11", "fecha_actualizacion": "2026-03-12", "fecha_pago": None,
         "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_cliente_proveedor": "", "factura_recibida": False,
     },
@@ -599,7 +599,7 @@ def get_pegs_validados_sin_remesa() -> list[dict]:
             continue
         if p.get("id_remesa") is not None:    # ya en una remesa
             continue
-        if not p.get("id_analitica"):          # sin analítica
+        if not p.get("lineas_analitica"):      # sin analítica
             continue
         proveedor = _proveedor_por_id(p["id_proveedor"])
         servicio  = _servicio_por_id(p["id_servicio"])
@@ -688,7 +688,7 @@ def obtener_analiticas_servicio(id_servicio: int) -> list:
 
 def validar_peg(
     id_peg: int,
-    id_analitica: int,
+    lineas_analitica: list,
     observaciones: str,
     usuario: dict,
     id_cuenta_gasto: int | None = None,
@@ -700,8 +700,15 @@ def validar_peg(
     estado = _estado_por_id(peg["id_peg_estado"])
     if estado.get("codigo") != "PENDIENTE":
         return {"ok": False, "error": "Solo se pueden validar PEGs en estado PENDIENTE"}
-    if not id_analitica:
-        return {"ok": False, "error": "La analítica es obligatoria"}
+    if not lineas_analitica:
+        return {"ok": False, "error": "Debe asignar al menos una analítica"}
+    if len(lineas_analitica) > 3:
+        return {"ok": False, "error": "Máximo 3 analíticas permitidas"}
+    if any(l["porcentaje"] <= 0 for l in lineas_analitica):
+        return {"ok": False, "error": "Todos los porcentajes deben ser positivos"}
+    suma = sum(l["porcentaje"] for l in lineas_analitica)
+    if abs(suma - 100.0) > 0.01:
+        return {"ok": False, "error": f"La suma de porcentajes debe ser 100 (actual: {suma:.2f})"}
     if not id_cuenta_gasto or not get_cuenta_gasto_por_id(id_cuenta_gasto):
         return {"ok": False, "error": "La cuenta de gasto no es válida"}
     if not cuenta_cliente_proveedor.strip():
@@ -711,12 +718,12 @@ def validar_peg(
     numero = generar_numero_factura()
 
     estado_origen = estado.get("nombre")
-    peg["id_peg_estado"]           = 2  # VALIDADO
-    peg["id_analitica"]            = id_analitica
-    peg["id_cuenta_gasto"]         = id_cuenta_gasto
+    peg["id_peg_estado"]            = 2  # VALIDADO
+    peg["lineas_analitica"]         = lineas_analitica
+    peg["id_cuenta_gasto"]          = id_cuenta_gasto
     peg["cuenta_cliente_proveedor"] = cuenta_cliente_proveedor.strip()
-    peg["numero_factura_interno"]  = numero
-    peg["fecha_actualizacion"]     = datetime.now().strftime("%Y-%m-%d")
+    peg["numero_factura_interno"]   = numero
+    peg["fecha_actualizacion"]      = datetime.now().strftime("%Y-%m-%d")
 
     # Actualizar cuenta_cliente en el proveedor si ha cambiado
     proveedor = _proveedor_por_id(peg["id_proveedor"])
@@ -732,6 +739,16 @@ def validar_peg(
         "realizado_por":   usuario.get("nombre_completo", usuario.get("login", "")),
     })
     return {"ok": True, "numero_factura_interno": numero}
+
+
+def obtener_lineas_analitica_peg(id_peg: int) -> list:
+    peg = next((p for p in _pegs if p["id_peg"] == id_peg), None)
+    if not peg:
+        return []
+    return [
+        {**l, **next((a for a in _analiticas if a["id_analitica"] == l["id_analitica"]), {})}
+        for l in peg.get("lineas_analitica", [])
+    ]
 
 
 # ──────────────────────────────────────────────────────────────────────────────

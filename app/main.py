@@ -10,6 +10,8 @@ from typing import Optional
 from app.core.auth import get_usuario_actual, NoAutenticado
 from app.core.templating import templates
 from app.routers import servicios, proveedores, pegs, remesas, solicitudes as solicitudes_router
+from app.routers import gastos as gastos_router
+from app.routers import remesas_directas as remesas_directas_router
 from app.services import pegs_service
 from app.routers import auth as auth_router
 from app.routers import bancos as bancos_router
@@ -37,6 +39,8 @@ app.include_router(usuarios_router.router)
 app.include_router(adjuntos_router.router)
 app.include_router(admin_router.router)
 app.include_router(solicitudes_router.router)
+app.include_router(gastos_router.router)
+app.include_router(remesas_directas_router.router)
 
 
 @app.exception_handler(NoAutenticado)
@@ -50,6 +54,8 @@ def inicio(request: Request, servicio: Optional[int] = None):
     if not usuario:
         return RedirectResponse(url="/login", status_code=302)
     from app.services.pegs_service import obtener_servicios
+    from app.services.gastos_service import listar_gastos
+    from app.services.remesas_directas_service import listar_remesas
     kpis = pegs_service.obtener_kpis_dashboard(usuario, id_servicio_filtro=servicio)
     return templates.TemplateResponse(
         request=request,
@@ -60,6 +66,8 @@ def inicio(request: Request, servicio: Optional[int] = None):
             "kpis": kpis,
             "servicios": obtener_servicios(),
             "filtro_servicio": servicio,
+            "gastos_resumen": listar_gastos(),
+            "remesas_directas_resumen": listar_remesas(),
         },
     )
 

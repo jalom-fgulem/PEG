@@ -219,6 +219,18 @@
         <div class="info-item"><label>IRPF</label><span>–{{ "%.2f"|format(peg.importe_irpf) }} €</span></div>
         <div class="info-item"><label>Total</label><span style="color:var(--fgulem-magenta); font-size:1.1rem;">{{ "%.2f"|format(peg.importe_total) }} €</span></div>
       </div>
+
+      {% if lineas_analitica_completas %}
+      <div style="margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px;">
+        <div style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em; color:#8a8691; font-weight:700; margin-bottom:8px;">Analíticas contables</div>
+        {% for la in lineas_analitica_completas %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-size:0.9rem; border-bottom:1px solid var(--line);">
+          <span style="color:var(--ink); font-weight:600;">{{ la.nivel_1 }}{% if la.nivel_2 %} / {{ la.nivel_2 }}{% endif %} — {{ la.descripcion }}</span>
+          <span style="font-weight:700; color:var(--fgulem-magenta);">{{ "%.2f"|format(la.porcentaje) }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
 
     </div>{# fin #vista-lectura #}
@@ -533,17 +545,38 @@
               {% endfor %}
             </select>
           </div>
-          <div class="campo-form">
-            <label>Analítica contable <span class="obligatorio">*</span></label>
-            <select name="id_analitica" required class="select-field">
-              <option value="">— Selecciona —</option>
-              {% for a in analiticas %}
-              <option value="{{ a.id_analitica }}">
-                {{ a.nivel_1 }}{% if a.nivel_2 %} / {{ a.nivel_2 }}{% endif %}
-                — {{ a.descripcion }}
-              </option>
-              {% endfor %}
-            </select>
+          <div class="campo-form" id="panel-analiticas">
+            <label>Analíticas contables <span class="obligatorio">*</span></label>
+            {% macro analitica_select(name) %}
+              <select name="{{ name }}" class="select-field analitica-sel" style="flex:2;" onchange="recalcSuma()">
+                <option value="">— Selecciona —</option>
+                {% for a in analiticas %}
+                <option value="{{ a.id_analitica }}">{{ a.nivel_1 }}{% if a.nivel_2 %} / {{ a.nivel_2 }}{% endif %} — {{ a.descripcion }}</option>
+                {% endfor %}
+              </select>
+            {% endmacro %}
+            <div id="analitica-row-1" style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+              {{ analitica_select("analitica_id_1") }}
+              <input type="number" name="analitica_porcentaje_1" class="select-field analitica-pct" step="0.01" min="0.01" max="100" placeholder="%" style="width:70px;" oninput="recalcSuma()" value="100">
+              <span style="font-size:0.8rem;color:#6b7280">%</span>
+            </div>
+            <div id="analitica-row-2" style="display:none; gap:8px; align-items:center; margin-bottom:6px;">
+              {{ analitica_select("analitica_id_2") }}
+              <input type="number" name="analitica_porcentaje_2" class="select-field analitica-pct" step="0.01" min="0.01" max="100" placeholder="%" style="width:70px;" oninput="recalcSuma()">
+              <span style="font-size:0.8rem;color:#6b7280">%</span>
+            </div>
+            <div id="analitica-row-3" style="display:none; gap:8px; align-items:center; margin-bottom:6px;">
+              {{ analitica_select("analitica_id_3") }}
+              <input type="number" name="analitica_porcentaje_3" class="select-field analitica-pct" step="0.01" min="0.01" max="100" placeholder="%" style="width:70px;" oninput="recalcSuma()">
+              <span style="font-size:0.8rem;color:#6b7280">%</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
+              <button type="button" id="btn-aniadir-analitica" onclick="mostrarSiguienteFilaAnalitica()"
+                      style="background:transparent;border:1px dashed rgba(22,163,74,0.4);color:#16a34a;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:0.83rem;font-weight:700;">
+                + Añadir analítica
+              </button>
+              <span id="suma-analiticas" style="font-size:0.83rem;color:#6b7280;">Suma: <strong style="color:#16a34a">100.00%</strong></span>
+            </div>
             {% if not analiticas %}
             <p class="aviso-warning">⚠️ Sin analíticas configuradas para este servicio.</p>
             {% endif %}
@@ -567,7 +600,7 @@
       <!-- Remesa (estado VALIDADO) -->
       {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'VALIDADO' %}
       <div class="accion-bloque">
-        {% if peg.id_analitica %}
+        {% if peg.lineas_analitica %}
         <button class="btn-remesa-active" onclick="abrirModalRemesa()">Añadir a Remesa</button>
         {% else %}
         <button class="btn-remesa-disabled" disabled title="Debe asignar una analítica al PEG antes de añadirlo a una remesa">Añadir a Remesa</button>
@@ -660,7 +693,7 @@
 </div>
 
 <!-- Modal: Seleccionar Remesa -->
-{% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'VALIDADO' and peg.id_analitica %}
+{% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'VALIDADO' and peg.lineas_analitica %}
 <div class="modal-backdrop" id="modalRemesa">
   <div class="modal-panel" style="max-width:560px;">
     <div class="modal-header">
@@ -804,7 +837,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 {% endif %}
-{% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'VALIDADO' and peg.id_analitica %}
+{% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'VALIDADO' and peg.lineas_analitica %}
 <script>
 const PEG_ID = {{ peg.id_peg }};
 
@@ -908,4 +941,44 @@ function usarCuentaSaco() {
   document.getElementById("input-cuenta-cliente").value = "{{ cuenta_saco }}";
 }
 </script>
+{% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
+<script>
+let _filaAnalitica = 1;
+
+function mostrarSiguienteFilaAnalitica() {
+  if (_filaAnalitica >= 3) return;
+  _filaAnalitica++;
+  const row = document.getElementById('analitica-row-' + _filaAnalitica);
+  if (row) row.style.display = 'flex';
+  if (_filaAnalitica >= 3) {
+    document.getElementById('btn-aniadir-analitica').style.display = 'none';
+  }
+  recalcSuma();
+}
+
+function recalcSuma() {
+  let suma = 0;
+  let alguno = false;
+  for (let i = 1; i <= 3; i++) {
+    const row = document.getElementById('analitica-row-' + i);
+    if (!row || row.style.display === 'none') continue;
+    const sel = row.querySelector('.analitica-sel');
+    const pct = row.querySelector('.analitica-pct');
+    if (sel && sel.value && pct && pct.value) {
+      suma += parseFloat(pct.value) || 0;
+      alguno = true;
+    }
+  }
+  const sumaEl = document.getElementById('suma-analiticas');
+  const ok = alguno && Math.abs(suma - 100) < 0.01;
+  if (sumaEl) {
+    sumaEl.innerHTML = `Suma: <strong style="color:${ok ? '#16a34a' : '#dc2626'}">${suma.toFixed(2)}%</strong>`;
+  }
+  const btnValidar = document.querySelector('.btn-validar');
+  if (btnValidar) btnValidar.disabled = !ok;
+}
+
+document.addEventListener('DOMContentLoaded', recalcSuma);
+</script>
+{% endif %}
 {% endblock %}

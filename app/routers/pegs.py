@@ -149,10 +149,11 @@ async def pegs_nuevo_post(
             )
             return RedirectResponse(url="/solicitudes/nueva", status_code=303)
 
-    # Validar IBAN obligatorio cuando el proveedor no lo tiene registrado
+    # Validar IBAN obligatorio solo para proveedores de tipo TRANSFERENCIA o MIXTO
     prov = proveedores_service.obtener_proveedor(id_proveedor)
     iban_limpio = (iban_proveedor or "").strip()
-    if prov and not prov.get("iban") and not iban_limpio:
+    tipo_prov = (prov or {}).get("tipo_proveedor", "TRANSFERENCIA")
+    if prov and tipo_prov in ("TRANSFERENCIA", "MIXTO") and not prov.get("iban") and not iban_limpio:
         datos = pegs_service.obtener_datos_formulario()
         if usuario["rol"] == "GESTOR_SERVICIO":
             datos["servicios"] = [
@@ -163,7 +164,7 @@ async def pegs_nuevo_post(
             name="pegs/nuevo.html",
             context={**datos, "proveedor_preseleccionado": prov, "usuario": usuario,
                      "cuenta_saco": pegs_service.get_parametro("cuenta_saco"),
-                     "error": "El proveedor no tiene IBAN registrado. Introdúcelo antes de guardar."},
+                     "error": "El proveedor requiere IBAN para PEGs por transferencia. Introdúcelo antes de guardar."},
         )
 
     # Validar que se ha adjuntado al menos un archivo
@@ -424,7 +425,8 @@ def peg_detalle(
         name="pegs/detalle.html",
         context={"peg": peg, "estados": estados, "formas_pago": formas_pago, "proveedores": proveedores, "analiticas": analiticas, "cuentas_gasto": cuentas_gasto, "usuario": usuario, "msg": msg, "msg_type": msg_type,
                  "cuenta_saco": pegs_service.get_parametro("cuenta_saco"),
-                 "cuenta_proveedor": cuenta_proveedor},
+                 "cuenta_proveedor": cuenta_proveedor,
+                 "lineas_analitica_completas": pegs_service.obtener_lineas_analitica_peg(id_peg)},
     )
 
 
@@ -460,7 +462,7 @@ def peg_asignar_remesa(
         return JSONResponse({"ok": False, "error": "PEG no encontrado"}, status_code=404)
     if peg["id_peg_estado"] != 2:
         return JSONResponse({"ok": False, "error": "El PEG no está en estado Validado"})
-    if not peg.get("id_analitica"):
+    if not peg.get("lineas_analitica"):
         return JSONResponse({"ok": False, "error": "El PEG no tiene analítica asignada"})
     if peg.get("id_remesa") is not None:
         return JSONResponse({"ok": False, "error": "El PEG ya está en una remesa"})
@@ -635,7 +637,12 @@ def post_eliminar_peg(
 @router.post("/{id_peg}/validar")
 def post_validar_peg(
     id_peg: int,
-    id_analitica: int = Form(...),
+    analitica_id_1: Optional[int] = Form(None),
+    analitica_porcentaje_1: Optional[str] = Form(None),
+    analitica_id_2: Optional[int] = Form(None),
+    analitica_porcentaje_2: Optional[str] = Form(None),
+    analitica_id_3: Optional[int] = Form(None),
+    analitica_porcentaje_3: Optional[str] = Form(None),
     observaciones: str = Form(""),
     id_cuenta_gasto: Optional[int] = Form(None),
     cuenta_cliente_proveedor: str = Form(""),
@@ -647,8 +654,19 @@ def post_validar_peg(
         return HTMLResponse("Campo obligatorio: cuenta de gasto", status_code=400)
     if not cuenta_cliente_proveedor.strip():
         return HTMLResponse("Campo obligatorio: cuenta del proveedor (cliente A3Con)", status_code=400)
+    lineas_analitica = []
+    for id_a, pct_s in [
+        (analitica_id_1, analitica_porcentaje_1),
+        (analitica_id_2, analitica_porcentaje_2),
+        (analitica_id_3, analitica_porcentaje_3),
+    ]:
+        if id_a and pct_s:
+            try:
+                lineas_analitica.append({"id_analitica": id_a, "porcentaje": float(pct_s)})
+            except ValueError:
+                pass
     resultado = pegs_service.validar_peg(
-        id_peg, id_analitica, observaciones, usuario,
+        id_peg, lineas_analitica, observaciones, usuario,
         id_cuenta_gasto=id_cuenta_gasto,
         cuenta_cliente_proveedor=cuenta_cliente_proveedor,
     )

@@ -155,6 +155,58 @@ def next_adj_id() -> int:
     return current
 
 
+TARJETAS: list[dict] = [
+    {"id_tarjeta": 1, "nombre": "Visa FGULEM Principal",
+     "ultimos_4": "4521", "titular_defecto_id": 1, "activa": True},
+    {"id_tarjeta": 2, "nombre": "Visa FGULEM Secundaria",
+     "ultimos_4": "8834", "titular_defecto_id": 1, "activa": True},
+]
+
+GASTOS_DIRECTOS: list[dict] = [
+    {"id_gasto": 1, "codigo": "GD-2026-001",
+     "tipo": "DOMICILIACION",
+     "proveedor_id": 1,
+     "tarjeta_id": None, "empleado_id": None,
+     "fecha_documento": "2026-03-01",
+     "fecha_cargo_real": "2026-03-03",
+     "importe_base": 850.00, "importe_iva": 178.50, "importe_total": 1028.50,
+     "irpf": 0.0,
+     "referencia_factura": "F-2026-0123",
+     "concepto": "Servicio mantenimiento web",
+     "estado": "COTEJADO",
+     "remesa_directa_id": None,
+     "servicio_id": 1,
+     "lineas_analitica": [{"id_analitica": 1, "porcentaje": 100.0}],
+     "lineas_iva": [{"porcentaje_iva": 21.0, "base": 850.00, "cuota": 178.50}]},
+    {"id_gasto": 2, "codigo": "GD-2026-002",
+     "tipo": "TARJETA",
+     "proveedor_id": 2,
+     "tarjeta_id": 1, "empleado_id": 1,
+     "fecha_documento": "2026-03-15",
+     "fecha_cargo_real": "2026-03-16",
+     "importe_base": 320.00, "importe_iva": 67.20, "importe_total": 387.20,
+     "irpf": 0.0,
+     "referencia_factura": "TK-0045",
+     "concepto": "Material oficina",
+     "estado": "BORRADOR",
+     "remesa_directa_id": None,
+     "servicio_id": 1,
+     "lineas_analitica": [],
+     "lineas_iva": [{"porcentaje_iva": 21.0, "base": 320.00, "cuota": 67.20}]},
+]
+
+REMESAS_DIRECTAS: list[dict] = [
+    {"id_remesa_directa": 1, "numero": 1,
+     "tipo": "DOMICILIACIONES",
+     "periodo": "2026-03",
+     "estado": "ABIERTA",
+     "cuenta_bancaria_id": 1,
+     "servicio_id": 1,
+     "fecha_creacion": "2026-03-31",
+     "fecha_cierre": None},
+]
+
+
 def siguiente_cuenta_cliente() -> str:
     """
     Calcula la siguiente cuenta cliente disponible del grupo 4.
