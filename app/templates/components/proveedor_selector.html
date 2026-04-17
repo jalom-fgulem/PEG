@@ -1,0 +1,473 @@
+{# ─────────────────────────────────────────────────────────────────────────────
+   templates/components/proveedor_selector.html
+   Selector de proveedor reutilizable con búsqueda en tiempo real y modal
+   unificado para crear / editar.
+
+   Variables heredadas del contexto padre (Jinja2):
+     proveedores               — lista de dicts con id_proveedor, razon_social,
+                                 cif_nif, iban, cuenta_cliente, id_forma_pago_habitual
+     formas_pago               — lista de dicts con id_forma_pago, nombre
+     usuario                   — dict del usuario actual (atributo rol)
+     cuenta_saco               — string, código cuenta saco (solo GE/ADMIN)
+     proveedor_preseleccionado — dict opcional (nuevo.html)
+     peg                       — dict opcional (detalle.html edición)
+
+   El componente expone un hook JS para que el padre reaccione a cambios:
+     window._psOnProveedorSeleccionado(prov)
+     donde prov = { id, razon_social, cif_nif, iban, cuenta_cliente,
+                    id_forma_pago_habitual }
+   El padre debe definir esta función en su propio <script>.
+────────────────────────────────────────────────────────────────────────────── #}
+
+<div class="ps-wrapper" style="width:100%;">
+
+  {# ── Barra: buscador + botones ── #}
+  <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
+    <input type="text" id="ps-buscador"
+           placeholder="Buscar proveedor por nombre o NIF…"
+           autocomplete="off"
+           style="flex:1;min-width:160px;padding:8px 12px;border:1px solid #d8dce2;
+                  border-radius:10px;font-size:0.9rem;background:#fff;"
+           oninput="_psFiltrar()">
+    <button type="button" onclick="_psAbrirNuevo()"
+            class="btn btn-secondary" style="font-size:0.82rem;white-space:nowrap;">
+      ＋ Nuevo proveedor
+    </button>
+    <button type="button" onclick="_psAbrirEditar()"
+            class="btn btn-secondary" style="font-size:0.82rem;white-space:nowrap;"
+            id="ps-btn-editar" disabled>
+      ✏ Editar proveedor
+    </button>
+  </div>
+
+  {# ── Desplegable ── #}
+  <select name="id_proveedor" id="ps-select" class="select-field" required
+          onchange="_psOnCambiado(this)" style="width:100%;">
+    <option value="">— Selecciona proveedor —</option>
+    {% for p in proveedores %}
+    <option value="{{ p.id_proveedor }}"
+            data-iban="{{ p.iban or '' }}"
+            data-cif="{{ p.cif_nif or '' }}"
+            data-cuenta="{{ p.cuenta_cliente or '' }}"
+            data-forma="{{ p.id_forma_pago_habitual or '' }}"
+            {% if proveedor_preseleccionado is defined and proveedor_preseleccionado
+               and proveedor_preseleccionado.id_proveedor == p.id_proveedor %}selected
+            {% elif peg is defined and peg and peg.id_proveedor == p.id_proveedor %}selected
+            {% endif %}>
+      {{ p.razon_social }} — {{ p.cif_nif }}
+    </option>
+    {% endfor %}
+  </select>
+
+</div>{# .ps-wrapper #}
+
+{# ── MODAL ÚNICO: Nuevo / Editar proveedor ─────────────────────────────────── #}
+<div id="ps-modal" class="modal-backdrop">
+  <div class="modal-panel" style="max-width:620px;">
+    <div class="modal-header">
+      <h3 id="ps-modal-titulo" style="margin:0;">Proveedor</h3>
+      <button type="button" class="modal-close" onclick="_psCerrar()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px;">
+
+        <div class="field" style="margin:0;">
+          <label>Tipo de persona</label>
+          <select id="ps-tipo">
+            <option value="JURIDICA">Jurídica</option>
+            <option value="FISICA">Física</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0;">
+          <label>CIF/NIF <span style="color:var(--fgulem-magenta)">*</span></label>
+          <input type="text" id="ps-cif" placeholder="B12345678" maxlength="20">
+        </div>
+
+        <div class="field" style="grid-column:span 2;margin:0;">
+          <label>Razón social <span style="color:var(--fgulem-magenta)">*</span></label>
+          <input type="text" id="ps-razon"
+                 placeholder="Denominación social o nombre completo">
+        </div>
+        <div class="field" style="grid-column:span 2;margin:0;">
+          <label>Nombre comercial</label>
+          <input type="text" id="ps-nombre-comercial"
+                 placeholder="Si difiere de la razón social">
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>Teléfono</label>
+          <input type="text" id="ps-telefono" placeholder="987 000 000">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Email</label>
+          <input type="email" id="ps-email" placeholder="contacto@empresa.com">
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>IBAN</label>
+          <input type="text" id="ps-iban"
+                 placeholder="ES00 0000 0000 0000 0000 0000" maxlength="34">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Forma de pago habitual</label>
+          <select id="ps-forma-pago">
+            {% for fp in formas_pago %}
+            <option value="{{ fp.id_forma_pago }}">{{ fp.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+        <div class="field" style="grid-column:span 2;margin:0;
+                                  border-top:1px solid var(--line);padding-top:12px;">
+          <label>Cuenta cliente (grupo 4)</label>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="ps-cuenta-cliente"
+                   placeholder="Sin asignar"
+                   style="width:130px;font-family:monospace;" maxlength="10">
+            <button type="button" onclick="_psUsarSaco()"
+                    class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px;">
+              Saco ({{ cuenta_saco }})
+            </button>
+            <button type="button" onclick="_psNuevaCuenta()"
+                    class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px;">
+              Nueva correlativa
+            </button>
+          </div>
+        </div>
+        {% endif %}
+
+        <div style="grid-column:span 2;border-top:1px solid var(--line);padding-top:12px;
+                    font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;
+                    color:#8a8691;font-weight:700;">
+          Dirección postal
+        </div>
+        <div class="field" style="grid-column:span 2;margin:0;">
+          <label>Dirección</label>
+          <input type="text" id="ps-direccion" placeholder="Calle, número, piso…">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Código postal</label>
+          <input type="text" id="ps-cp" placeholder="24001" maxlength="10">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Localidad</label>
+          <input type="text" id="ps-localidad">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Provincia</label>
+          <input type="text" id="ps-provincia">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>País</label>
+          <select id="ps-pais"></select>
+        </div>
+
+        <div id="ps-error"
+             style="grid-column:span 2;color:#a32d2d;font-size:0.88rem;display:none;
+                    padding:8px 12px;background:rgba(226,75,74,0.07);border-radius:8px;
+                    border:1px solid rgba(226,75,74,0.22);margin:0;">
+        </div>
+      </div>{# /grid #}
+
+      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+        <button type="button" onclick="_psCerrar()" class="btn btn-secondary">
+          Cancelar
+        </button>
+        <button type="button" onclick="_psGuardar()" class="btn btn-primary"
+                id="ps-btn-guardar">
+          Guardar
+        </button>
+      </div>
+    </div>{# /modal-body #}
+  </div>{# /modal-panel #}
+</div>{# /ps-modal #}
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Estado interno ──────────────────────────────────────────────────────────
+  let _modoEdicion = false;
+  let _idEditando  = null;
+
+  // ── Lista de países (ISO 3166-1) ───────────────────────────────────────────
+  const _PAISES = [
+    ["ES","España"],["","──────────"],
+    ["DE","Alemania"],["AT","Austria"],["BE","Bélgica"],["BG","Bulgaria"],
+    ["HR","Croacia"],["CY","Chipre"],["CZ","Chequia"],["DK","Dinamarca"],
+    ["SK","Eslovaquia"],["SI","Eslovenia"],["EE","Estonia"],["FI","Finlandia"],
+    ["FR","Francia"],["GR","Grecia"],["HU","Hungría"],["IE","Irlanda"],
+    ["IT","Italia"],["LV","Letonia"],["LT","Lituania"],["LU","Luxemburgo"],
+    ["MT","Malta"],["NL","Países Bajos"],["PL","Polonia"],["PT","Portugal"],
+    ["RO","Rumanía"],["SE","Suecia"],["","──────────"],
+    ["CH","Suiza"],["NO","Noruega"],["IS","Islandia"],["GB","Reino Unido"],
+    ["TR","Turquía"],["UA","Ucrania"],["","──────────"],
+    ["US","Estados Unidos"],["CA","Canadá"],["MX","México"],["BR","Brasil"],
+    ["AR","Argentina"],["CO","Colombia"],["CL","Chile"],["PE","Perú"],["VE","Venezuela"],
+    ["","──────────"],
+    ["CN","China"],["JP","Japón"],["KR","Corea del Sur"],["IN","India"],
+    ["MA","Marruecos"],["ZA","Sudáfrica"],["OTHER","Otro"],
+  ];
+
+  function _poblarPais(el, valor) {
+    if (!el) return;
+    el.innerHTML = _PAISES.map(([v, t]) =>
+      v === ""
+        ? `<option value="" disabled>${t}</option>`
+        : `<option value="${v}"${v === (valor || "ES") ? " selected" : ""}>${t}</option>`
+    ).join("");
+  }
+
+  // ── Inicialización ──────────────────────────────────────────────────────────
+  _poblarPais(document.getElementById("ps-pais"), "ES");
+
+  const _selInit = document.getElementById("ps-select");
+  if (_selInit && _selInit.value) {
+    const btnEd = document.getElementById("ps-btn-editar");
+    if (btnEd) btnEd.disabled = false;
+  }
+
+  document.getElementById("ps-modal").addEventListener("click", function (e) {
+    if (e.target === this) _psCerrar();
+  });
+
+  // ── Filtrado en tiempo real ─────────────────────────────────────────────────
+  window._psFiltrar = function () {
+    const q   = (document.getElementById("ps-buscador").value || "").trim().toLowerCase();
+    const sel = document.getElementById("ps-select");
+    Array.from(sel.options).forEach(opt => {
+      if (!opt.value) return;
+      opt.hidden = q.length > 0 && !opt.text.toLowerCase().includes(q);
+    });
+  };
+
+  // ── Al cambiar selección ────────────────────────────────────────────────────
+  window._psOnCambiado = function (sel) {
+    const opt   = sel.options[sel.selectedIndex];
+    const btnEd = document.getElementById("ps-btn-editar");
+    if (btnEd) btnEd.disabled = !sel.value;
+
+    const provData = {
+      id:                     sel.value,
+      razon_social:           (opt.text || "").split(" — ")[0] || opt.text,
+      cif_nif:                opt.dataset.cif    || "",
+      iban:                   opt.dataset.iban   || "",
+      cuenta_cliente:         opt.dataset.cuenta || "",
+      id_forma_pago_habitual: opt.dataset.forma  || "",
+    };
+    if (typeof window._psOnProveedorSeleccionado === "function") {
+      window._psOnProveedorSeleccionado(provData);
+    }
+  };
+
+  // ── Abrir en modo NUEVO ─────────────────────────────────────────────────────
+  window._psAbrirNuevo = function () {
+    _modoEdicion = false;
+    _idEditando  = null;
+    document.getElementById("ps-modal-titulo").textContent = "Nuevo proveedor";
+    document.getElementById("ps-btn-guardar").textContent  = "Guardar";
+
+    ["ps-cif","ps-razon","ps-nombre-comercial","ps-iban",
+     "ps-telefono","ps-email","ps-direccion","ps-localidad",
+     "ps-cp","ps-provincia"].forEach(function(id) {
+      const el = document.getElementById(id); if (el) el.value = "";
+    });
+    const cc = document.getElementById("ps-cuenta-cliente");
+    if (cc) cc.value = "";
+    const tp = document.getElementById("ps-tipo");
+    if (tp) tp.value = "JURIDICA";
+    _poblarPais(document.getElementById("ps-pais"), "ES");
+    document.getElementById("ps-error").style.display = "none";
+
+    document.getElementById("ps-modal").classList.add("active");
+    setTimeout(function() {
+      const el = document.getElementById("ps-razon"); if (el) el.focus();
+    }, 50);
+  };
+
+  // ── Abrir en modo EDITAR ────────────────────────────────────────────────────
+  window._psAbrirEditar = function () {
+    const id = document.getElementById("ps-select").value;
+    if (!id) return;
+    _modoEdicion = true;
+    _idEditando  = id;
+    document.getElementById("ps-modal-titulo").textContent = "Editar proveedor";
+    document.getElementById("ps-btn-guardar").textContent  = "Guardar cambios";
+    document.getElementById("ps-error").style.display      = "none";
+
+    fetch("/proveedores/" + id + "/datos-json")
+      .then(function(r) { return r.json(); })
+      .then(function(p) {
+        function s(id2, val) {
+          const el = document.getElementById(id2); if (el) el.value = val || "";
+        }
+        s("ps-tipo",            p.tipo_persona       || "JURIDICA");
+        s("ps-cif",             p.nif                || p.cif_nif || "");
+        s("ps-razon",           p.razon_social        || "");
+        s("ps-nombre-comercial",p.nombre_comercial    || "");
+        s("ps-telefono",        p.telefono            || "");
+        s("ps-email",           p.email               || "");
+        s("ps-iban",            p.iban                || "");
+        s("ps-direccion",       p.direccion           || "");
+        s("ps-localidad",       p.localidad           || "");
+        s("ps-cp",              p.codigo_postal       || "");
+        s("ps-provincia",       p.provincia           || "");
+        _poblarPais(document.getElementById("ps-pais"), p.pais || "ES");
+        const cc = document.getElementById("ps-cuenta-cliente");
+        if (cc) cc.value = p.cuenta_cliente || "";
+        const fp = document.getElementById("ps-forma-pago");
+        if (fp && p.id_forma_pago_habitual) fp.value = String(p.id_forma_pago_habitual);
+        document.getElementById("ps-modal").classList.add("active");
+      })
+      .catch(function() {
+        const err = document.getElementById("ps-error");
+        err.textContent   = "Error al cargar los datos del proveedor.";
+        err.style.display = "block";
+        document.getElementById("ps-modal").classList.add("active");
+      });
+  };
+
+  // ── Cerrar ──────────────────────────────────────────────────────────────────
+  window._psCerrar = function () {
+    document.getElementById("ps-modal").classList.remove("active");
+  };
+
+  // ── Guardar (crea o edita) ──────────────────────────────────────────────────
+  window._psGuardar = async function () {
+    const razon = document.getElementById("ps-razon").value.trim();
+    const cif   = document.getElementById("ps-cif").value.trim();
+    const errEl = document.getElementById("ps-error");
+
+    if (!razon || !cif) {
+      errEl.textContent   = "Razón social y CIF/NIF son obligatorios.";
+      errEl.style.display = "block";
+      return;
+    }
+    errEl.style.display = "none";
+
+    const ccEl  = document.getElementById("ps-cuenta-cliente");
+    const fpEl  = document.getElementById("ps-forma-pago");
+    const payload = {
+      tipo_persona:           document.getElementById("ps-tipo").value,
+      razon_social:           razon,
+      cif_nif:                cif,
+      nombre_comercial:       document.getElementById("ps-nombre-comercial").value.trim() || null,
+      iban:                   document.getElementById("ps-iban").value.trim()             || null,
+      id_forma_pago_habitual: fpEl ? (parseInt(fpEl.value) || null) : null,
+      telefono:               document.getElementById("ps-telefono").value.trim()         || null,
+      email:                  document.getElementById("ps-email").value.trim()            || null,
+      direccion:              document.getElementById("ps-direccion").value.trim()        || null,
+      localidad:              document.getElementById("ps-localidad").value.trim()        || null,
+      codigo_postal:          document.getElementById("ps-cp").value.trim()               || null,
+      provincia:              document.getElementById("ps-provincia").value.trim()        || null,
+      pais:                   document.getElementById("ps-pais").value                   || "ES",
+      cuenta_cliente:         ccEl ? (ccEl.value.trim() || null) : null,
+    };
+
+    const btnG = document.getElementById("ps-btn-guardar");
+    btnG.disabled = true;
+
+    try {
+      if (_modoEdicion) {
+        // ── Editar proveedor existente ──────────────────────────────────────
+        const payloadEditar = Object.assign({}, payload, { nif: cif });
+        const res = await fetch("/proveedores/" + _idEditando + "/editar-json", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify(payloadEditar),
+        });
+        if (!res.ok) throw new Error("Error al guardar");
+
+        // Actualizar opción en el select
+        const opt = document.querySelector("#ps-select option[value=\"" + _idEditando + "\"]");
+        if (opt) {
+          opt.textContent    = razon + " — " + cif;
+          opt.dataset.iban   = payload.iban         || "";
+          opt.dataset.cif    = cif;
+          opt.dataset.cuenta = ccEl ? (ccEl.value.trim() || "") : "";
+          opt.dataset.forma  = payload.id_forma_pago_habitual || "";
+        }
+        _psCerrar();
+
+        if (typeof window._psOnProveedorSeleccionado === "function") {
+          window._psOnProveedorSeleccionado({
+            id:                     _idEditando,
+            razon_social:           razon,
+            cif_nif:                cif,
+            iban:                   payload.iban || "",
+            cuenta_cliente:         ccEl ? (ccEl.value.trim() || "") : "",
+            id_forma_pago_habitual: payload.id_forma_pago_habitual || "",
+          });
+        }
+
+      } else {
+        // ── Crear nuevo proveedor ───────────────────────────────────────────
+        const res  = await fetch("/proveedores/rapido", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          errEl.textContent   = data.detail || data.error || "Error al crear el proveedor.";
+          errEl.style.display = "block";
+          return;
+        }
+
+        // Añadir opción y seleccionarla
+        const sel = document.getElementById("ps-select");
+        const opt = new Option(data.razon_social + " — " + data.cif_nif, data.id);
+        opt.dataset.iban   = payload.iban                   || "";
+        opt.dataset.cif    = data.cif_nif                   || "";
+        opt.dataset.cuenta = payload.cuenta_cliente         || "";
+        opt.dataset.forma  = payload.id_forma_pago_habitual || "";
+        sel.add(opt);
+        sel.value = String(data.id);
+
+        const btnEd = document.getElementById("ps-btn-editar");
+        if (btnEd) btnEd.disabled = false;
+
+        // Limpiar buscador
+        const busq = document.getElementById("ps-buscador");
+        if (busq) { busq.value = ""; _psFiltrar(); }
+
+        _psCerrar();
+
+        if (typeof window._psOnProveedorSeleccionado === "function") {
+          window._psOnProveedorSeleccionado({
+            id:                     String(data.id),
+            razon_social:           data.razon_social,
+            cif_nif:                data.cif_nif,
+            iban:                   payload.iban               || "",
+            cuenta_cliente:         payload.cuenta_cliente     || "",
+            id_forma_pago_habitual: payload.id_forma_pago_habitual || "",
+          });
+        }
+      }
+
+    } catch (e) {
+      errEl.textContent   = "Error de red. Inténtelo de nuevo.";
+      errEl.style.display = "block";
+    } finally {
+      btnG.disabled = false;
+    }
+  };
+
+  // ── Cuenta saco / correlativa ───────────────────────────────────────────────
+  window._psUsarSaco = function () {
+    const cc = document.getElementById("ps-cuenta-cliente");
+    if (cc) cc.value = "{{ cuenta_saco }}";
+  };
+  window._psNuevaCuenta = function () {
+    fetch("/proveedores/siguiente-cuenta-cliente")
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        const cc = document.getElementById("ps-cuenta-cliente");
+        if (cc) cc.value = d.cuenta;
+      })
+      .catch(function() { alert("Error al calcular la siguiente cuenta."); });
+  };
+
+})();
+</script>

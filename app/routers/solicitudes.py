@@ -2,9 +2,9 @@ import os
 import shutil
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, List
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.core.auth import require_login, require_rol
@@ -12,44 +12,52 @@ from app.core.templating import templates
 from app.services import solicitudes_service
 from app.services.mock_servicios import listar_servicios, obtener_servicio
 from app.services.proveedores_service import listar_proveedores, obtener_proveedor
+from app.services.pegs_service import (
+    get_parametro,
+    obtener_datos_formulario as _peg_datos,
+)
 
 router = APIRouter(prefix="/solicitudes", tags=["Solicitudes"])
 
+_TIPOS_ADJ_SOL = ["PRESUPUESTO", "FACTURA_PROFORMA", "OTRO"]
 
-# ──────────────────────────────────────────────────────────────────────────────
-# LISTADO
-# ──────────────────────────────────────────────────────────────────────────────
+
+# ── LISTADO ────────────────────────────────────────────────────────────────────
 
 @router.get("/", response_class=HTMLResponse)
 def solicitudes_lista(
     request: Request,
+    filtro_servicio: Optional[int] = None,
     usuario: dict = Depends(require_login),
 ):
     if usuario["rol"] == "GESTOR_SERVICIO":
         items = solicitudes_service.listar_solicitudes(id_servicio=usuario["id_servicio"])
+    elif filtro_servicio:
+        items = solicitudes_service.listar_solicitudes(id_servicio=filtro_servicio)
     else:
         items = solicitudes_service.listar_solicitudes()
 
+    servicios = listar_servicios(solo_activos=True)
     return templates.TemplateResponse(
         request=request,
         name="solicitudes/lista.html",
-        context={"items": items, "usuario": usuario},
+        context={
+            "items":           items,
+            "usuario":         usuario,
+            "servicios":       servicios,
+            "filtro_servicio": filtro_servicio,
+        },
     )
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# NUEVA SOLICITUD  — literal /nueva antes de /{id}
-# ──────────────────────────────────────────────────────────────────────────────
+# ── NUEVA SOLICITUD — /nueva antes de /{id} ────────────────────────────────────
 
 @router.get("/nueva", response_class=HTMLResponse)
 def solicitudes_nueva_get(
     request: Request,
     usuario: dict = Depends(require_login),
 ):
-    # Solo servicios que requieren autorización
     servicios = [s for s in listar_servicios(solo_activos=True) if s.get("requiere_autorizacion")]
-
-    # GS: solo su propio servicio (si requiere autorización)
     if usuario["rol"] == "GESTOR_SERVICIO":
         servicios = [s for s in servicios if s["id_servicio"] == usuario["id_servicio"]]
 
@@ -59,18 +67,15 @@ def solicitudes_nueva_get(
             status_code=403,
         )
 
-    proveedores = listar_proveedores()
-    # GS: filtrar proveedores de su servicio
-    if usuario["rol"] == "GESTOR_SERVICIO":
-        id_serv = usuario["id_servicio"]
-        proveedores = [p for p in proveedores if id_serv in p.get("servicios", [])]
-
+    datos = _peg_datos()
     return templates.TemplateResponse(
         request=request,
         name="solicitudes/nueva.html",
         context={
             "servicios":   servicios,
-            "proveedores": proveedores,
+            "proveedores": listar_proveedores(),
+            "formas_pago": datos["formas_pago"],
+            "cuenta_saco": get_parametro("cuenta_saco"),
             "usuario":     usuario,
             "error":       None,
         },
@@ -82,15 +87,17 @@ async def solicitudes_nueva_post(
     request: Request,
     id_servicio: int = Form(...),
     id_proveedor: int = Form(...),
-    importe_estimado: str = Form(...),
     concepto: str = Form(...),
     fecha_estimada_gasto: str = Form(...),
-    adjunto_1: Optional[UploadFile] = File(default=None),
-    adjunto_2: Optional[UploadFile] = File(default=None),
-    adjunto_3: Optional[UploadFile] = File(default=None),
+    id_forma_pago: int = Form(1),
+    lineas_tipo_iva: List[str] = Form(...),
+    lineas_base_imponible: List[str] = Form(...),
+    tiene_irpf: Optional[str] = Form(None),
+    tipo_irpf: str = Form("0"),
+    archivos: List[UploadFile] = File(default=[]),
+    tipos_documento: List[str] = Form(default=[]),
     usuario: dict = Depends(require_login),
 ):
-    # Guardia de rol: GS solo para su servicio
     if usuario["rol"] == "GESTOR_SERVICIO" and id_servicio != usuario["id_servicio"]:
         return HTMLResponse("Sin permisos para crear solicitudes en este servicio", status_code=403)
 
@@ -98,54 +105,69 @@ async def solicitudes_nueva_post(
     if not servicio or not servicio.get("requiere_autorizacion"):
         return HTMLResponse("El servicio seleccionado no requiere autorización previa", status_code=400)
 
-    # Guardar adjuntos
-    def _guardar_adjunto(archivo: Optional[UploadFile], idx: int) -> Optional[str]:
-        if not archivo or not archivo.filename:
-            return None
-        carpeta = f"media/autorizaciones/tmp_{usuario['id_usuario']}"
-        os.makedirs(carpeta, exist_ok=True)
-        ruta = f"{carpeta}/{archivo.filename}"
-        with open(ruta, "wb") as f:
-            shutil.copyfileobj(archivo.file, f)
-        return ruta
+    # Calcular importes
+    lineas = [
+        {"tipo_iva": float(t), "base_imponible": float(b)}
+        for t, b in zip(lineas_tipo_iva, lineas_base_imponible)
+        if b.strip()
+    ]
+    base_total = sum(l["base_imponible"] for l in lineas)
+    iva_total  = sum(
+        round(l["base_imponible"] * l["tipo_iva"] * 100) / 10000
+        for l in lineas
+    )
+    _tiene_irpf = tiene_irpf == "on"
+    _tipo_irpf  = float(tipo_irpf or "0") if _tiene_irpf else 0.0
+    irpf_total  = round(base_total * _tipo_irpf * 100) / 10000 if _tiene_irpf else 0.0
+    importe_total = base_total + iva_total - irpf_total
 
-    ruta_1 = _guardar_adjunto(adjunto_1, 1)
-    ruta_2 = _guardar_adjunto(adjunto_2, 2)
-    ruta_3 = _guardar_adjunto(adjunto_3, 3)
-
-    try:
-        importe = Decimal(importe_estimado.replace(",", "."))
-    except Exception:
-        return HTMLResponse("Importe no válido", status_code=400)
+    # Guardar adjuntos en carpeta temporal
+    archivos_con_nombre = [a for a in archivos if a.filename]
+    rutas_tmp: list[tuple[str, str, str]] = []  # (ruta, nombre, tipo)
+    carpeta_tmp = f"media/autorizaciones/tmp_{usuario['id_usuario']}"
+    if archivos_con_nombre:
+        os.makedirs(carpeta_tmp, exist_ok=True)
+        for archivo, tipo in zip(archivos_con_nombre, tipos_documento):
+            ruta = f"{carpeta_tmp}/{archivo.filename}"
+            with open(ruta, "wb") as f:
+                shutil.copyfileobj(archivo.file, f)
+            rutas_tmp.append((ruta, archivo.filename, tipo))
 
     solicitud = solicitudes_service.crear_solicitud(
         id_servicio=id_servicio,
         id_usuario_solicitante=usuario["id_usuario"],
         id_proveedor=id_proveedor,
-        importe_estimado=importe,
+        importe_estimado=Decimal(str(round(importe_total, 2))),
         concepto=concepto,
         fecha_estimada_gasto=date.fromisoformat(fecha_estimada_gasto),
-        adjunto_1=ruta_1,
-        adjunto_2=ruta_2,
-        adjunto_3=ruta_3,
+        lineas=lineas,
+        base_imponible=base_total,
+        importe_iva=iva_total,
+        importe_irpf=irpf_total,
+        tiene_irpf=_tiene_irpf,
+        tipo_irpf=_tipo_irpf,
+        id_forma_pago=id_forma_pago,
     )
 
-    # Mover adjuntos a carpeta definitiva
     id_sol = solicitud["id_solicitud"]
+    # Mover adjuntos a carpeta definitiva y registrar en BD
     carpeta_def = f"media/autorizaciones/{id_sol}"
-    carpeta_tmp = f"media/autorizaciones/tmp_{usuario['id_usuario']}"
-    if os.path.isdir(carpeta_tmp):
+    if rutas_tmp:
         os.makedirs(carpeta_def, exist_ok=True)
-        for fname in os.listdir(carpeta_tmp):
-            shutil.move(f"{carpeta_tmp}/{fname}", f"{carpeta_def}/{fname}")
-        os.rmdir(carpeta_tmp)
+        for ruta_tmp, nombre, tipo in rutas_tmp:
+            ruta_def = f"{carpeta_def}/{nombre}"
+            shutil.move(ruta_tmp, ruta_def)
+            solicitudes_service.adjuntar_doc(id_sol, nombre, ruta_def, tipo)
+        if os.path.isdir(carpeta_tmp):
+            try:
+                os.rmdir(carpeta_tmp)
+            except OSError:
+                pass
 
     return RedirectResponse(url=f"/solicitudes/{id_sol}", status_code=303)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# DETALLE  — ruta dinámica al final
-# ──────────────────────────────────────────────────────────────────────────────
+# ── DETALLE — ruta dinámica al final ───────────────────────────────────────────
 
 @router.get("/{id_solicitud}", response_class=HTMLResponse)
 def solicitudes_detalle(
@@ -157,7 +179,6 @@ def solicitudes_detalle(
     if not solicitud:
         return RedirectResponse(url="/solicitudes/?msg=no_encontrada", status_code=303)
 
-    # GS solo puede ver las de su servicio
     if usuario["rol"] == "GESTOR_SERVICIO" and solicitud["id_servicio"] != usuario["id_servicio"]:
         return HTMLResponse("Sin permisos para ver esta solicitud", status_code=403)
 
@@ -168,9 +189,7 @@ def solicitudes_detalle(
     )
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# AUTORIZAR
-# ──────────────────────────────────────────────────────────────────────────────
+# ── AUTORIZAR ──────────────────────────────────────────────────────────────────
 
 @router.post("/{id_solicitud}/autorizar")
 def solicitudes_autorizar(
@@ -186,66 +205,7 @@ def solicitudes_autorizar(
     return RedirectResponse(url=f"/solicitudes/{id_solicitud}", status_code=303)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# CONVERTIR EN PEG
-# ──────────────────────────────────────────────────────────────────────────────
-
-@router.post("/{id_solicitud}/convertir-en-peg")
-def solicitudes_convertir_en_peg(
-    id_solicitud: int,
-    request: Request,
-    usuario: dict = Depends(require_login),
-):
-    from app.schemas.pegs import PegCrear, LineaIVA
-    from app.services import pegs_service
-
-    solicitud = solicitudes_service.obtener_solicitud_raw(id_solicitud)
-    if not solicitud:
-        request.session["flash_error"] = "Solicitud no encontrada"
-        return RedirectResponse(url="/solicitudes/", status_code=303)
-
-    if solicitud["estado"] != "AUTORIZADA":
-        request.session["flash_error"] = "Solo se puede convertir una solicitud AUTORIZADA"
-        return RedirectResponse(url=f"/solicitudes/{id_solicitud}", status_code=303)
-
-    if solicitud.get("id_peg_generado"):
-        request.session["flash_error"] = "Esta solicitud ya tiene un PEG generado"
-        return RedirectResponse(url=f"/solicitudes/{id_solicitud}", status_code=303)
-
-    hoy = date.today()
-    data = PegCrear(
-        id_servicio=solicitud["id_servicio"],
-        id_proyecto=None,
-        id_proveedor=solicitud["id_proveedor"],
-        id_peg_tipo=2,                          # Presupuesto
-        numero_documento=f"SOL-{id_solicitud:04d}",
-        fecha_documento=hoy,
-        fecha_recepcion=hoy,
-        fecha_vencimiento=solicitud.get("fecha_estimada_gasto"),
-        descripcion_gasto=solicitud["concepto"],
-        observaciones=f"Generado automáticamente desde solicitud de autorización #{id_solicitud}",
-        id_forma_pago_prevista=1,               # Transferencia
-        lineas=[LineaIVA(tipo_iva=0.0, base_imponible=float(solicitud["importe_estimado"]))],
-        tiene_irpf=False,
-        tipo_irpf=0.0,
-        importe_irpf=0.0,
-        id_analitica=None,
-        creado_por=usuario["id_usuario"],
-    )
-    resultado = pegs_service.crear_peg(data)
-    id_peg = resultado["id_peg"]
-
-    solicitudes_service.vincular_peg(id_solicitud, id_peg)
-
-    request.session["flash_success"] = (
-        f"PEG {resultado['codigo_peg']} creado a partir de la solicitud #{id_solicitud}"
-    )
-    return RedirectResponse(url=f"/pegs/{id_peg}", status_code=303)
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# DENEGAR
-# ──────────────────────────────────────────────────────────────────────────────
+# ── DENEGAR ────────────────────────────────────────────────────────────────────
 
 @router.post("/{id_solicitud}/denegar")
 def solicitudes_denegar(
@@ -263,4 +223,85 @@ def solicitudes_denegar(
         request.session["flash_error"] = "No se pudo denegar (estado incorrecto o no encontrada)"
         return RedirectResponse(url=f"/solicitudes/{id_solicitud}", status_code=303)
     request.session["flash_success"] = "Solicitud denegada"
+    return RedirectResponse(url=f"/solicitudes/{id_solicitud}", status_code=303)
+
+
+# ── CONVERTIR EN PEG ───────────────────────────────────────────────────────────
+
+@router.post("/{id_solicitud}/convertir-en-peg")
+def solicitudes_convertir_en_peg(
+    id_solicitud: int,
+    request: Request,
+    usuario: dict = Depends(require_login),
+):
+    from app.schemas.pegs import PegCrear, LineaIVA
+    from app.services import pegs_service
+
+    solicitud = solicitudes_service.obtener_solicitud_raw(id_solicitud)
+    if not solicitud:
+        request.session["flash_error"] = "Solicitud no encontrada"
+        return RedirectResponse(url="/solicitudes/", status_code=303)
+
+    if solicitud["estado_solicitud"] != "AUTORIZADA":
+        request.session["flash_error"] = "Solo se puede convertir una solicitud AUTORIZADA"
+        return RedirectResponse(url=f"/solicitudes/{id_solicitud}", status_code=303)
+
+    if solicitud.get("id_peg_generado"):
+        request.session["flash_error"] = "Esta solicitud ya tiene un PEG generado"
+        return RedirectResponse(url=f"/solicitudes/{id_solicitud}", status_code=303)
+
+    hoy = date.today()
+    lineas_peg = [
+        LineaIVA(tipo_iva=l["tipo_iva"], base_imponible=l["base_imponible"])
+        for l in (solicitud.get("lineas") or [])
+    ] or [LineaIVA(tipo_iva=0.0, base_imponible=float(solicitud["importe_estimado"]))]
+
+    data = PegCrear(
+        id_servicio=solicitud["id_servicio"],
+        id_proyecto=None,
+        id_proveedor=solicitud["id_proveedor"],
+        id_peg_tipo=2,  # Presupuesto
+        numero_documento=f"SOL-{id_solicitud:04d}",
+        fecha_documento=hoy,
+        fecha_recepcion=hoy,
+        fecha_vencimiento=solicitud.get("fecha_estimada_gasto"),
+        descripcion_gasto=solicitud["concepto"],
+        observaciones=f"Generado automáticamente desde solicitud de autorización #{id_solicitud}",
+        id_forma_pago_prevista=solicitud.get("id_forma_pago") or 1,
+        lineas=lineas_peg,
+        tiene_irpf=solicitud.get("tiene_irpf", False),
+        tipo_irpf=solicitud.get("tipo_irpf", 0.0),
+        importe_irpf=float(solicitud.get("importe_irpf", 0.0)),
+        id_analitica=None,
+        creado_por=usuario["id_usuario"],
+    )
+    resultado = pegs_service.crear_peg(data)
+    id_peg = resultado["id_peg"]
+
+    solicitudes_service.vincular_peg(id_solicitud, id_peg)
+    request.session["flash_success"] = (
+        f"PEG {resultado['codigo_peg']} creado a partir de la solicitud #{id_solicitud}"
+    )
+    return RedirectResponse(url=f"/pegs/{id_peg}", status_code=303)
+
+
+# ── ELIMINAR ADJUNTO ───────────────────────────────────────────────────────────
+
+@router.post("/{id_solicitud}/adjuntos/{id_sol_adj}/eliminar")
+def solicitudes_eliminar_adjunto(
+    id_solicitud: int,
+    id_sol_adj: int,
+    request: Request,
+    usuario: dict = Depends(require_login),
+):
+    solicitud = solicitudes_service.obtener_solicitud_raw(id_solicitud)
+    if not solicitud:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    if solicitud["estado_solicitud"] != "PENDIENTE_AUTORIZACION":
+        request.session["flash_error"] = "Solo se pueden eliminar adjuntos de solicitudes pendientes"
+        return RedirectResponse(url=f"/solicitudes/{id_solicitud}", status_code=303)
+    ok = solicitudes_service.eliminar_doc(id_solicitud, id_sol_adj)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Adjunto no encontrado")
+    request.session["flash_success"] = "Adjunto eliminado"
     return RedirectResponse(url=f"/solicitudes/{id_solicitud}", status_code=303)

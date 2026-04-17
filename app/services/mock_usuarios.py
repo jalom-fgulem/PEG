@@ -55,9 +55,21 @@ _usuarios: List[Dict[str, Any]] = [
         "email": "admin01@fgulem.es",
         "activo": True,
     },
+    {
+        "id_usuario": 5,
+        "username": "dp.gestor_servicio",
+        "password_hash": _hash_password("1234"),
+        "nombre": "Gestor",
+        "apellidos": "Desarrollo Profesional",
+        "rol": "GESTOR_SERVICIO",
+        "id_servicio": 3,
+        "servicios_ids": [3],
+        "email": "dp.gestor@fgulem.es",
+        "activo": True,
+    },
 ]
 
-_next_id = 5
+_next_id = 6
 
 
 def _nombre_completo(u: Dict[str, Any]) -> str:

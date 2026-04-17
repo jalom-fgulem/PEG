@@ -125,6 +125,37 @@ _pegs = [
         "fecha_creacion": "2026-03-11", "fecha_actualizacion": "2026-03-12", "fecha_pago": None,
         "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_cliente_proveedor": "", "factura_recibida": False,
     },
+    # ── Desarrollo Profesional — datos de prueba ─────────────────────────────
+    {
+        "id_peg": 6, "codigo_peg": "PEG-2026-0006",
+        "id_servicio": 3, "id_proyecto": 4, "id_proveedor": 5, "id_peg_tipo": 2,
+        "numero_documento": "PRE-DP-01", "fecha_documento": "2026-04-01",
+        "fecha_recepcion": "2026-04-02", "fecha_vencimiento": "2026-05-01",
+        "descripcion_gasto": "Servicios de formación programa INCOFI 2026",
+        "observaciones": "Acción formativa primer semestre",
+        "id_forma_pago_prevista": 1,
+        "lineas": [{"tipo_iva": 0, "base_imponible": 2400.00}],
+        "base_imponible": 2400.00, "importe_iva": 0.00, "importe_irpf": 0.00, "importe_total": 2400.00,
+        "id_peg_estado": 1, "id_analitica": 4, "id_remesa": None, "creado_por": 5,
+        "fecha_creacion": "2026-04-02", "fecha_actualizacion": "2026-04-02", "fecha_pago": None,
+        "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_cliente_proveedor": "4100005", "factura_recibida": False,
+    },
+    {
+        "id_peg": 7, "codigo_peg": "PEG-2026-0007",
+        "id_servicio": 3, "id_proyecto": 5, "id_proveedor": 6, "id_peg_tipo": 1,
+        "numero_documento": "FAC-DP-001", "fecha_documento": "2026-04-08",
+        "fecha_recepcion": "2026-04-08", "fecha_vencimiento": "2026-05-08",
+        "descripcion_gasto": "Ponente jornada Experience Plus — Habilidades digitales",
+        "observaciones": None,
+        "id_forma_pago_prevista": 2,
+        "lineas": [
+            {"tipo_iva": 0,  "base_imponible": 800.00},
+        ],
+        "base_imponible": 800.00, "importe_iva": 0.00, "importe_irpf": 152.00, "importe_total": 648.00,
+        "id_peg_estado": 2, "id_analitica": 5, "id_remesa": None, "creado_por": 5,
+        "fecha_creacion": "2026-04-08", "fecha_actualizacion": "2026-04-09", "fecha_pago": None,
+        "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_cliente_proveedor": "", "factura_recibida": True,
+    },
 ]
 
 _historial = [
@@ -137,6 +168,9 @@ _historial = [
     {"id_peg": 4, "fecha_cambio": "2026-03-03", "estado_origen": "Pendiente", "estado_destino": "Incidencia", "comentario": "Falta autorización firmada",           "realizado_por": "José Carlos Alonso"},
     {"id_peg": 5, "fecha_cambio": "2026-03-11", "estado_origen": None,        "estado_destino": "Pendiente",  "comentario": "PEG creada",                          "realizado_por": "Gestor H. Veterinario"},
     {"id_peg": 5, "fecha_cambio": "2026-03-12", "estado_origen": "Pendiente", "estado_destino": "Validado",   "comentario": "PEG validada",                        "realizado_por": "José Carlos Alonso"},
+    {"id_peg": 6, "fecha_cambio": "2026-04-02", "estado_origen": None,        "estado_destino": "Pendiente",  "comentario": "PEG creada",                          "realizado_por": "Gestor Desarrollo Profesional"},
+    {"id_peg": 7, "fecha_cambio": "2026-04-08", "estado_origen": None,        "estado_destino": "Pendiente",  "comentario": "PEG creada",                          "realizado_por": "Gestor Desarrollo Profesional"},
+    {"id_peg": 7, "fecha_cambio": "2026-04-09", "estado_origen": "Pendiente", "estado_destino": "Validado",   "comentario": "PEG validada",                        "realizado_por": "Gestor Económico FGULEM"},
 ]
 
 _incidencias = [

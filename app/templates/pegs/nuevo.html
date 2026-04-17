@@ -91,79 +91,7 @@
       <div class="section-title">Proveedor</div>
 
       <div class="col-12 field">
-        <div style="display:flex;gap:8px;margin-bottom:8px">
-          <button type="button" onclick="abrirModalEditarProveedor()"
-                  class="btn btn-secondary" style="font-size:0.8rem"
-                  id="btn-editar-proveedor" disabled>
-            ✏ Editar proveedor
-          </button>
-          <button type="button" onclick="abrirModalNuevoProveedor()"
-                  class="btn btn-secondary" style="font-size:0.8rem">
-            ＋ Nuevo proveedor
-          </button>
-        </div>
-
-        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
-          <div style="flex:2;min-width:200px">
-            <label class="form-label">Proveedor *</label>
-            <select name="id_proveedor" id="select-proveedor"
-                    class="select-field" required
-                    onchange="onProveedorCambiado(this)">
-              <option value="">— Selecciona proveedor —</option>
-              {% for p in proveedores %}
-              <option value="{{ p.id_proveedor }}"
-                      data-cuenta="{{ p.cuenta_cliente or '' }}"
-                      data-iban="{{ p.iban or '' }}"
-                      {% if peg is defined and peg.id_proveedor == p.id_proveedor %}
-                      selected{% endif %}
-                      {% if proveedor_preseleccionado and proveedor_preseleccionado.id_proveedor == p.id_proveedor %}
-                      selected{% endif %}>
-                {{ p.razon_social }} — {{ p.cif_nif }}
-              </option>
-              {% endfor %}
-            </select>
-          </div>
-
-          {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
-          <div style="flex:1;min-width:160px" id="bloque-cuenta-cliente">
-            <label class="form-label">Cuenta cliente</label>
-            <div style="display:flex;gap:6px;align-items:center">
-              <input type="text" name="cuenta_cliente_proveedor"
-                     id="input-cuenta-cliente"
-                     class="select-field" style="width:120px"
-                     placeholder="4100000"
-                     value="">
-              <button type="button"
-                      onclick="usarCuentaSaco()"
-                      class="btn btn-secondary"
-                      style="font-size:0.75rem;white-space:nowrap;padding:4px 8px"
-                      title="Usar cuenta saco">
-                Saco
-              </button>
-            </div>
-            <span style="font-size:0.75rem;color:#6b7280">
-              Cuenta propia, saco ({{ cuenta_saco }}) o nueva
-            </span>
-          </div>
-          {% endif %}
-        </div>
-
-        <!-- Modal editar proveedor -->
-        <div id="modal-editar-proveedor"
-             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);
-                    z-index:1000;align-items:center;justify-content:center">
-          <div style="background:white;border-radius:10px;padding:28px;
-                      width:100%;max-width:640px;max-height:90vh;overflow-y:auto">
-            <h3 style="margin:0 0 16px;font-size:1rem;font-weight:700">Editar proveedor</h3>
-            <div id="modal-editar-proveedor-contenido"></div>
-            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-              <button type="button" onclick="cerrarModalEditarProveedor()"
-                      class="btn btn-secondary">Cancelar</button>
-              <button type="button" onclick="guardarProveedorEditado()"
-                      class="btn btn-primary">Guardar cambios</button>
-            </div>
-          </div>
-        </div>
+        {% include "components/proveedor_selector.html" %}
       </div>
 
       <div class="col-3 field">
@@ -190,138 +118,28 @@
           {% endfor %}
         </select>
       </div>
-    </div>
 
-    <!-- ── MODAL: NUEVO PROVEEDOR RÁPIDO ── -->
-    <div id="modalNuevoProveedor" class="modal-backdrop">
-      <div class="modal-panel" style="max-width:560px">
-        <div class="modal-header">
-          <h3 style="margin:0;">Nuevo proveedor</h3>
-          <button type="button" class="modal-close" onclick="cerrarModalProveedor()">&times;</button>
+      {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+      <div class="col-4 field" id="bloque-cuenta-cliente">
+        <label>Cuenta cliente</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="text" name="cuenta_cliente_proveedor"
+                 id="input-cuenta-cliente"
+                 class="select-field" style="width:120px"
+                 placeholder="4100000"
+                 value="">
+          <button type="button"
+                  onclick="document.getElementById('input-cuenta-cliente').value='{{ cuenta_saco }}'"
+                  class="btn btn-secondary"
+                  style="font-size:0.75rem;white-space:nowrap;padding:4px 8px">
+            Saco
+          </button>
         </div>
-        <div class="modal-body">
-          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px;">
-
-            <!-- Identificación -->
-            <div class="field" style="margin:0;">
-              <label>Tipo de persona</label>
-              <select id="mp-tipo-persona">
-                <option value="JURIDICA">Jurídica</option>
-                <option value="FISICA">Física</option>
-              </select>
-            </div>
-
-            <div class="field" style="margin:0;">
-              <label>CIF/NIF <span style="color:var(--fgulem-magenta)">*</span></label>
-              <input type="text" id="mp-cif-nif" placeholder="B12345678">
-            </div>
-
-            <div class="field" style="grid-column:span 2;margin:0;">
-              <label>Razón social <span style="color:var(--fgulem-magenta)">*</span></label>
-              <input type="text" id="mp-razon-social" placeholder="Nombre o denominación social">
-            </div>
-
-            <div class="field" style="grid-column:span 2;margin:0;">
-              <label>Nombre comercial</label>
-              <input type="text" id="mp-nombre-comercial" placeholder="Si difiere de la razón social">
-            </div>
-
-            <!-- Contacto -->
-            <div class="field" style="margin:0;">
-              <label>Teléfono</label>
-              <input type="text" id="mp-telefono" placeholder="987 000 000">
-            </div>
-
-            <div class="field" style="margin:0;">
-              <label>Email</label>
-              <input type="email" id="mp-email" placeholder="contacto@empresa.com">
-            </div>
-
-            <!-- Bancario -->
-            <div class="field" style="margin:0;">
-              <label>IBAN</label>
-              <input type="text" id="mp-iban" placeholder="ES00 0000 0000 0000 0000 0000">
-            </div>
-
-            <div class="field" style="margin:0;">
-              <label>Forma de pago habitual</label>
-              <select id="mp-forma-pago">
-                {% for fp in formas_pago %}
-                <option value="{{ fp.id_forma_pago }}">{{ fp.nombre }}</option>
-                {% endfor %}
-              </select>
-            </div>
-
-            {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
-            <div class="field" style="grid-column:span 2;margin:0;border-top:1px solid var(--line);padding-top:12px;">
-              <label>Cuenta cliente (grupo 4)</label>
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <input type="text" id="mp-cuenta-cliente" placeholder="Sin asignar"
-                       style="width:130px;font-family:monospace" maxlength="10">
-                <button type="button" onclick="usarCuentaSaco()"
-                        class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px">
-                  Saco ({{ cuenta_saco }})
-                </button>
-                <button type="button" onclick="calcularNuevaCuenta()"
-                        class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px">
-                  Nueva correlativa
-                </button>
-              </div>
-            </div>
-            {% endif %}
-
-            <!-- Dirección postal -->
-            <div style="grid-column:span 2;border-top:1px solid var(--line);padding-top:12px;
-                        font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;
-                        color:#8a8691;font-weight:700;">
-              Dirección postal
-            </div>
-
-            <div class="field" style="grid-column:span 2;margin:0;">
-              <label>Dirección</label>
-              <input type="text" id="mp-direccion" placeholder="Calle, número, piso…">
-            </div>
-
-            <div class="field" style="margin:0;">
-              <label>Localidad</label>
-              <input type="text" id="mp-localidad">
-            </div>
-
-            <div class="field" style="margin:0;">
-              <label>Provincia</label>
-              <input type="text" id="mp-provincia">
-            </div>
-
-            <div class="field" style="margin:0;">
-              <label>Código postal</label>
-              <input type="text" id="mp-codigo-postal" placeholder="24001" maxlength="5">
-            </div>
-
-            <div class="field" style="margin:0;">
-              <label>País</label>
-              <select id="mp-pais"></select>
-            </div>
-
-            <div id="mp-error" style="grid-column:span 2;color:var(--fgulem-magenta);
-                 font-size:0.88rem;display:none;padding:8px 12px;
-                 background:rgba(194,27,132,0.07);border-radius:8px;margin:0;"></div>
-          </div>
-
-          <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
-            <button type="button" onclick="cerrarModalProveedor()"
-              style="background:transparent;border:1px solid #d8dce2;border-radius:10px;
-                     padding:9px 18px;cursor:pointer;font-size:0.9rem;">
-              Cancelar
-            </button>
-            <button type="button" onclick="guardarProveedorRapido()"
-              style="background:linear-gradient(135deg,var(--fgulem-magenta),var(--fgulem-magenta-soft));
-                     color:#fff;border:none;border-radius:10px;padding:9px 22px;
-                     cursor:pointer;font-weight:700;font-size:0.9rem;">
-              Guardar
-            </button>
-          </div>
-        </div>
+        <span style="font-size:0.75rem;color:#6b7280">
+          Cuenta propia, saco ({{ cuenta_saco }}) o nueva
+        </span>
       </div>
+      {% endif %}
     </div>
 
     <!-- ── SECCIÓN: DOCUMENTO ── -->
@@ -493,7 +311,22 @@
 
 {% block extra_scripts %}
 <script>
-  // ── Filtro proyectos/analíticas por servicio ──────────────────────────────
+  // ── Callback del selector de proveedor ─────────────────────────────────────
+  window._psOnProveedorSeleccionado = function(prov) {
+    const ibanInput = document.getElementById("iban_proveedor");
+    if (ibanInput) {
+      ibanInput.value = prov.iban || "";
+      _actualizarEstadoIban(prov.iban || "");
+    }
+    if (prov.id_forma_pago_habitual) {
+      const fp = document.getElementById("id_forma_pago_prevista");
+      if (fp) fp.value = String(prov.id_forma_pago_habitual);
+    }
+    const inputCuenta = document.getElementById("input-cuenta-cliente");
+    if (inputCuenta) inputCuenta.value = prov.cuenta_cliente || "";
+  };
+
+  // ── Filtro proyectos/analíticas por servicio ────────────────────────────────
   {% if usuario.rol != 'GESTOR_SERVICIO' %}
   const todosProyectos  = [...document.querySelectorAll("#id_proyecto option[data-servicio]")];
   const todasAnaliticas = [...document.querySelectorAll("#id_analitica option[data-servicio]")];
@@ -513,159 +346,23 @@
   }
   {% endif %}
 
-  // ── Buscador de proveedor ─────────────────────────────────────────────────
-  function filtrarProveedores() {
-    const termino = document.getElementById("buscador-proveedor").value.trim().toLowerCase();
-    const sel = document.getElementById("id_proveedor");
-    Array.from(sel.options).forEach(opt => {
-      if (!opt.value) return;
-      opt.hidden = termino.length > 0 && !opt.text.toLowerCase().includes(termino);
-    });
+  // ── IBAN: gestión visual ────────────────────────────────────────────────────
+  function _actualizarEstadoIban(ibanActual) {
+    const inputIban = document.getElementById("iban_proveedor");
+    const badge     = document.getElementById("iban-obligatorio-badge");
+    const aviso     = document.getElementById("iban-aviso");
+    if (!inputIban) return;
+    const sinIban = !ibanActual;
+    if (badge) badge.style.display = sinIban ? "" : "none";
+    if (aviso) aviso.style.display = "none";
+    inputIban.style.borderColor = sinIban ? "#f97316" : "";
+    inputIban.style.boxShadow   = sinIban ? "0 0 0 3px rgba(249,115,22,0.15)" : "";
   }
 
-  // ── Lista de países (ISO 3166-1 alpha-2) ─────────────────────────────────
-  const PAISES = [
-    ["ES","España"],["","──────────"],
-    ["DE","Alemania"],["AT","Austria"],["BE","Bélgica"],["BG","Bulgaria"],
-    ["HR","Croacia"],["CY","Chipre"],["CZ","Chequia"],["DK","Dinamarca"],
-    ["SK","Eslovaquia"],["SI","Eslovenia"],["EE","Estonia"],["FI","Finlandia"],
-    ["FR","Francia"],["GR","Grecia"],["HU","Hungría"],["IE","Irlanda"],
-    ["IT","Italia"],["LV","Letonia"],["LT","Lituania"],["LU","Luxemburgo"],
-    ["MT","Malta"],["NL","Países Bajos"],["PL","Polonia"],["PT","Portugal"],
-    ["RO","Rumanía"],["SE","Suecia"],["","──────────"],
-    ["CH","Suiza"],["NO","Noruega"],["IS","Islandia"],["GB","Reino Unido"],
-    ["TR","Turquía"],["UA","Ucrania"],["","──────────"],
-    ["US","Estados Unidos"],["CA","Canadá"],["MX","México"],["BR","Brasil"],
-    ["AR","Argentina"],["CO","Colombia"],["CL","Chile"],["PE","Perú"],["VE","Venezuela"],
-    ["","──────────"],
-    ["CN","China"],["JP","Japón"],["KR","Corea del Sur"],["IN","India"],
-    ["MA","Marruecos"],["ZA","Sudáfrica"],["OTHER","Otro"],
-  ];
-
-  function poblarSelectPais(el, valorActual) {
-    el.innerHTML = PAISES.map(([v, t]) =>
-      v === ""
-        ? `<option value="" disabled>${t}</option>`
-        : `<option value="${v}"${v === (valorActual||"ES") ? " selected" : ""}>${t}</option>`
-    ).join("");
-  }
-
-  // Poblar selector del modal "Nuevo proveedor"
-  poblarSelectPais(document.getElementById("mp-pais"), "ES");
-
-  // Inicializar estado IBAN según el proveedor preseleccionado (si lo hay)
+  // Inicializar estado IBAN
   _actualizarEstadoIban(document.getElementById("iban_proveedor")?.value || "");
 
-  // ── Modal nuevo proveedor ─────────────────────────────────────────────────
-  function abrirModalProveedor() {
-    const ids = ["mp-razon-social","mp-cif-nif","mp-nombre-comercial","mp-iban",
-                 "mp-telefono","mp-email","mp-direccion","mp-localidad",
-                 "mp-provincia","mp-codigo-postal","mp-cuenta-cliente"];
-    ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
-    document.getElementById("mp-tipo-persona").value  = "JURIDICA";
-    poblarSelectPais(document.getElementById("mp-pais"), "ES");
-    document.getElementById("mp-error").style.display = "none";
-    document.getElementById("modalNuevoProveedor").classList.add("active");
-    document.getElementById("mp-razon-social").focus();
-  }
-
-  function cerrarModalProveedor() {
-    document.getElementById("modalNuevoProveedor").classList.remove("active");
-  }
-
-  document.getElementById("modalNuevoProveedor").addEventListener("click", e => {
-    if (e.target === document.getElementById("modalNuevoProveedor")) cerrarModalProveedor();
-  });
-
-  async function guardarProveedorRapido() {
-    const razonSocial      = document.getElementById("mp-razon-social").value.trim();
-    const cifNif           = document.getElementById("mp-cif-nif").value.trim();
-    const tipoPersona      = document.getElementById("mp-tipo-persona").value;
-    const nombreComercial  = document.getElementById("mp-nombre-comercial").value.trim();
-    const iban             = document.getElementById("mp-iban").value.trim();
-    const formaPago        = document.getElementById("mp-forma-pago").value;
-    const telefono         = document.getElementById("mp-telefono").value.trim();
-    const email            = document.getElementById("mp-email").value.trim();
-    const direccion        = document.getElementById("mp-direccion").value.trim();
-    const localidad        = document.getElementById("mp-localidad").value.trim();
-    const provincia        = document.getElementById("mp-provincia").value.trim();
-    const codigoPostal     = document.getElementById("mp-codigo-postal").value.trim();
-    const cuentaClienteEl  = document.getElementById("mp-cuenta-cliente");
-    const cuentaCliente    = cuentaClienteEl ? cuentaClienteEl.value.trim() : null;
-    const errEl            = document.getElementById("mp-error");
-
-    if (!razonSocial || !cifNif) {
-      errEl.textContent   = "Razón social y CIF/NIF son obligatorios.";
-      errEl.style.display = "block";
-      return;
-    }
-
-    errEl.style.display = "none";
-
-    try {
-      const res = await fetch("/proveedores/rapido", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tipo_persona:           tipoPersona,
-          razon_social:           razonSocial,
-          cif_nif:                cifNif,
-          nombre_comercial:       nombreComercial || null,
-          iban:                   iban || null,
-          id_forma_pago_habitual: parseInt(formaPago) || null,
-          telefono:               telefono   || null,
-          email:                  email      || null,
-          direccion:              direccion  || null,
-          localidad:              localidad  || null,
-          provincia:              provincia  || null,
-          codigo_postal:          codigoPostal || null,
-          pais:                   document.getElementById("mp-pais").value || "ES",
-          cuenta_cliente:         cuentaCliente || null,
-        }),
-      });
-      const data = await res.json();
-
-      if (!res.ok || !data.ok) {
-        errEl.textContent   = data.detail || data.error || "Error al crear el proveedor.";
-        errEl.style.display = "block";
-        return;
-      }
-
-      // Añadir nueva opción y seleccionarla
-      const sel = document.getElementById("id_proveedor");
-      const opt = new Option(`${data.razon_social} — ${data.cif_nif}`, data.id);
-      sel.add(opt);
-      sel.value = data.id;
-
-      // Limpiar buscador y disparar carga de datos
-      document.getElementById("buscador-proveedor").value = "";
-      filtrarProveedores();
-      cargarDatosProveedor();
-
-      cerrarModalProveedor();
-    } catch (e) {
-      errEl.textContent   = "Error de red. Inténtelo de nuevo.";
-      errEl.style.display = "block";
-    }
-  }
-
-  // ── Carga de datos del proveedor ──────────────────────────────────────────
-  async function cargarDatosProveedor() {
-    const id = document.getElementById("id_proveedor").value;
-    if (!id) return;
-    try {
-      const res  = await fetch(`/pegs/proveedor/${id}/json`);
-      const data = await res.json();
-      const iban = data.iban || "";
-      document.getElementById("iban_proveedor").value = iban;
-      _actualizarEstadoIban(iban);
-      if (data.id_forma_pago_habitual) {
-        document.getElementById("id_forma_pago_prevista").value = data.id_forma_pago_habitual;
-      }
-    } catch(e) {}
-  }
-
-  // ── Gestión de líneas de IVA ──────────────────────────────────────────────
+  // ── Gestión de líneas de IVA ────────────────────────────────────────────────
   const MAX_LINEAS = 5;
 
   function fmt(n) {
@@ -766,206 +463,6 @@
     }
   }
 
-  // ── Proveedor: editar / nuevo / cuenta saco ──────────────────────────────
-  const CUENTA_SACO = "{{ cuenta_saco }}";
-
-  function _actualizarEstadoIban(ibanActual) {
-    const inputIban  = document.getElementById("iban_proveedor");
-    const badge      = document.getElementById("iban-obligatorio-badge");
-    const aviso      = document.getElementById("iban-aviso");
-    if (!inputIban) return;
-    const sinIban = !ibanActual;
-    if (badge) badge.style.display  = sinIban ? "" : "none";
-    if (aviso) aviso.style.display  = "none";   // se mostrará solo en validación
-    inputIban.style.borderColor = sinIban ? "#f97316" : "";
-    inputIban.style.boxShadow   = sinIban ? "0 0 0 3px rgba(249,115,22,0.15)" : "";
-  }
-
-  function onProveedorCambiado(sel) {
-    const opt = sel.options[sel.selectedIndex];
-
-    // Cuenta cliente
-    const cuenta = opt.dataset.cuenta || "";
-    const inputCuenta = document.getElementById("input-cuenta-cliente");
-    if (inputCuenta) inputCuenta.value = cuenta;
-
-    // IBAN
-    const iban = opt.dataset.iban || "";
-    const inputIban = document.getElementById("iban_proveedor");
-    if (inputIban) inputIban.value = iban;
-    _actualizarEstadoIban(iban);
-
-    // Botón editar proveedor
-    const btnEditar = document.getElementById("btn-editar-proveedor");
-    if (btnEditar) btnEditar.disabled = !sel.value;
-  }
-
-  function usarCuentaSaco() {
-    document.getElementById("input-cuenta-cliente").value = CUENTA_SACO;
-  }
-
-  function abrirModalNuevoProveedor() {
-    abrirModalProveedor();
-  }
-
-  function abrirModalEditarProveedor() {
-    const idProv = document.getElementById("select-proveedor").value;
-    if (!idProv) return;
-    fetch(`/proveedores/${idProv}/datos-json`)
-      .then(r => r.json())
-      .then(p => {
-        {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
-        const camposCuentaCliente = `
-          <div style="margin-top:8px">
-            <label class="form-label">Cuenta cliente</label>
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-              <input type="text" id="ep-cuenta-cliente"
-                     class="select-field" style="width:120px"
-                     value="${p.cuenta_cliente || ''}">
-              <button type="button" onclick="usarCuentaSacoModal()"
-                      class="btn btn-secondary"
-                      style="font-size:0.75rem;padding:4px 8px">
-                Saco
-              </button>
-              <button type="button" onclick="calcularNuevaCuenta()"
-                      class="btn btn-secondary"
-                      style="font-size:0.75rem;padding:4px 8px">
-                Nueva cuenta
-              </button>
-            </div>
-            <span style="font-size:0.75rem;color:#6b7280">
-              Saco: {{ cuenta_saco }} · o introduce una nueva
-            </span>
-          </div>
-        `;
-        {% else %}
-        const camposCuentaCliente = '';
-        {% endif %}
-        const fs = "width:100%;padding:8px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.93rem;box-sizing:border-box;";
-        const lb = "display:block;font-size:0.85rem;font-weight:600;color:#374151;margin-bottom:4px;";
-        document.getElementById("modal-editar-proveedor-contenido").innerHTML = `
-          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px 16px;">
-            <div>
-              <label style="${lb}">Tipo de persona</label>
-              <select id="ep-tipo" style="${fs}">
-                <option value="JURIDICA" ${p.tipo_persona==="JURIDICA"?"selected":""}>Jurídica</option>
-                <option value="FISICA"   ${p.tipo_persona==="FISICA"?"selected":""}>Física</option>
-              </select>
-            </div>
-            <div>
-              <label style="${lb}">CIF/NIF</label>
-              <input type="text" id="ep-nif" style="${fs}" value="${p.nif||p.cif_nif||''}">
-            </div>
-            <div style="grid-column:span 2">
-              <label style="${lb}">Razón social <span style="color:#c21b84">*</span></label>
-              <input type="text" id="ep-razon" style="${fs}" value="${p.razon_social||''}">
-            </div>
-            <div style="grid-column:span 2">
-              <label style="${lb}">Nombre comercial</label>
-              <input type="text" id="ep-nombre-comercial" style="${fs}" value="${p.nombre_comercial||''}">
-            </div>
-            <div>
-              <label style="${lb}">Teléfono</label>
-              <input type="text" id="ep-telefono" style="${fs}" value="${p.telefono||''}">
-            </div>
-            <div>
-              <label style="${lb}">Email</label>
-              <input type="text" id="ep-email" style="${fs}" value="${p.email||''}">
-            </div>
-            <div style="grid-column:span 2">
-              <label style="${lb}">IBAN</label>
-              <input type="text" id="ep-iban" style="${fs}" value="${p.iban||''}">
-            </div>
-            <div style="grid-column:span 2;border-top:1px solid #e8ecf0;padding-top:10px;
-                        font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;
-                        color:#8a8691;font-weight:700;">Dirección postal</div>
-            <div style="grid-column:span 2">
-              <label style="${lb}">Dirección</label>
-              <input type="text" id="ep-direccion" style="${fs}" value="${p.direccion||''}">
-            </div>
-            <div>
-              <label style="${lb}">Localidad</label>
-              <input type="text" id="ep-localidad" style="${fs}" value="${p.localidad||''}">
-            </div>
-            <div>
-              <label style="${lb}">Código postal</label>
-              <input type="text" id="ep-cp" style="${fs}" value="${p.codigo_postal||''}">
-            </div>
-            <div>
-              <label style="${lb}">Provincia</label>
-              <input type="text" id="ep-provincia" style="${fs}" value="${p.provincia||''}">
-            </div>
-            <div>
-              <label style="${lb}">País</label>
-              <select id="ep-pais" style="${fs}"></select>
-            </div>
-            <input type="hidden" id="ep-id" value="${p.id_proveedor}">
-            ${camposCuentaCliente}
-          </div>`;
-        poblarSelectPais(document.getElementById("ep-pais"), p.pais || "ES");
-        document.getElementById("modal-editar-proveedor").style.display = "flex";
-      });
-  }
-
-  function cerrarModalEditarProveedor() {
-    document.getElementById("modal-editar-proveedor").style.display = "none";
-  }
-
-  function guardarProveedorEditado() {
-    const id = document.getElementById("ep-id").value;
-    const datos = {
-      tipo_persona:     document.getElementById("ep-tipo").value,
-      nif:              document.getElementById("ep-nif").value,
-      razon_social:     document.getElementById("ep-razon").value,
-      nombre_comercial: document.getElementById("ep-nombre-comercial").value,
-      telefono:         document.getElementById("ep-telefono").value,
-      email:            document.getElementById("ep-email").value,
-      iban:             document.getElementById("ep-iban").value,
-      direccion:        document.getElementById("ep-direccion").value,
-      localidad:        document.getElementById("ep-localidad").value,
-      codigo_postal:    document.getElementById("ep-cp").value,
-      provincia:        document.getElementById("ep-provincia").value,
-      pais:             document.getElementById("ep-pais").value,
-    };
-    {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
-    const epCuenta = document.getElementById("ep-cuenta-cliente");
-    if (epCuenta) datos.cuenta_cliente = epCuenta.value;
-    {% endif %}
-    fetch(`/proveedores/${id}/editar-json`, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(datos),
-    }).then(r => {
-      if (r.ok) {
-        cerrarModalEditarProveedor();
-        const opt = document.querySelector(`#select-proveedor option[value="${id}"]`);
-        if (opt) opt.textContent = datos.razon_social + " — " + datos.nif;
-        if (opt) {
-          opt.dataset.cuenta = datos.cuenta_cliente || "";
-          const inputCuenta = document.getElementById("input-cuenta-cliente");
-          if (inputCuenta) inputCuenta.value = datos.cuenta_cliente || "";
-        }
-      } else {
-        alert("Error al guardar el proveedor.");
-      }
-    });
-  }
-
-  function usarCuentaSacoModal() {
-    const campo = document.getElementById("ep-cuenta-cliente");
-    if (campo) campo.value = "{{ cuenta_saco }}";
-  }
-
-  function calcularNuevaCuenta() {
-    fetch("/proveedores/siguiente-cuenta-cliente")
-      .then(r => r.json())
-      .then(data => {
-        const campo = document.getElementById("ep-cuenta-cliente");
-        if (campo) campo.value = data.cuenta;
-      })
-      .catch(() => alert("Error al calcular la siguiente cuenta."));
-  }
-
   // ── Filas de documentos adjuntos ─────────────────────────────────────────
   let contadorFilas = 1;
 
@@ -1008,8 +505,6 @@
 
   // ── Inicialización ────────────────────────────────────────────────────────
   // El script se ejecuta al final del body (DOMContentLoaded ya disparó)
-  const _selProv = document.getElementById("id_proveedor");
-  if (_selProv && _selProv.value) cargarDatosProveedor();
   document.getElementById("fecha_recepcion").value = new Date().toISOString().split("T")[0];
   añadirLinea();   // primera línea vacía
 
@@ -1022,7 +517,7 @@
       errores.push("Selecciona un servicio.");
     {% endif %}
 
-    if (!document.getElementById("select-proveedor").value)
+    if (!document.getElementById("ps-select").value)
       errores.push("Selecciona un proveedor.");
 
     // IBAN obligatorio cuando el proveedor no lo tiene en el mock (badge visible)

@@ -20,6 +20,15 @@
   .filtros-inline input, .filtros-inline select { padding: 9px 12px; border: 1px solid #d8dce2; border-radius: 10px; font-size: 0.95rem; color: var(--ink); background: white; }
   .filtros-inline input:focus, .filtros-inline select:focus { outline: none; border-color: var(--fgulem-blue); box-shadow: 0 0 0 3px rgba(95,159,211,0.14); }
 
+  .btn-filtro {
+    background: #f3f4f6; color: #374151; border: 1.5px solid #e5e7eb;
+    border-radius: 20px; padding: 4px 14px; font-size: 0.8rem;
+    cursor: pointer; transition: all 0.15s; text-decoration: none;
+    display: inline-block;
+  }
+  .btn-filtro:hover { background: #e5e7eb; }
+  .btn-filtro.activo { background: #166534; color: white; border-color: #166534; }
+
   .btn-filtro-estado {
     background: #f3f4f6; color: #374151; border: 1.5px solid #e5e7eb;
     border-radius: 20px; padding: 4px 14px; font-size: 0.8rem;
@@ -52,11 +61,34 @@
       <div class="muted" id="contadorResultados">{{ items|length }} solicitud{{ 'es' if items|length != 1 }}</div>
     </div>
     <div class="actions">
-      {% if usuario.rol == 'GESTOR_SERVICIO' %}
-      <a class="btn btn-primary" href="/solicitudes/nueva">Nueva solicitud</a>
+      {# GE y Admin: siempre pueden crear. GS: solo si su servicio requiere autorización #}
+      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+        <a class="btn btn-primary" href="/solicitudes/nueva">Nueva solicitud</a>
+      {% elif usuario.rol == 'GESTOR_SERVICIO' %}
+        {% set ns = namespace(requiere=false) %}
+        {% for s in servicios %}{% if s.id_servicio == usuario.id_servicio and s.requiere_autorizacion %}{% set ns.requiere = true %}{% endif %}{% endfor %}
+        {% if ns.requiere %}
+        <a class="btn btn-primary" href="/solicitudes/nueva">Nueva solicitud</a>
+        {% endif %}
       {% endif %}
     </div>
   </div>
+
+  {# ── Filtro por servicio (solo GE y Admin) ── #}
+  {% if usuario.rol != 'GESTOR_SERVICIO' %}
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+    <a href="/solicitudes/"
+       class="btn-filtro {% if not filtro_servicio %}activo{% endif %}">
+      Todos los servicios
+    </a>
+    {% for s in servicios %}
+    <a href="/solicitudes/?filtro_servicio={{ s.id_servicio }}"
+       class="btn-filtro {% if filtro_servicio == s.id_servicio %}activo{% endif %}">
+      {{ s.nombre }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   <!-- Filtros por estado -->
   <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
@@ -108,8 +140,8 @@
         <td style="white-space:nowrap">{{ item.fecha_estimada_gasto.strftime('%d/%m/%Y') if item.fecha_estimada_gasto else '—' }}</td>
         <td>
           <span class="estado-badge estado-{{ item.badge_clase }}">
-            {% if item.estado == 'PENDIENTE_AUTORIZACION' %}Pendiente
-            {% elif item.estado == 'AUTORIZADA' %}Autorizada
+            {% if item.estado_solicitud == 'PENDIENTE_AUTORIZACION' %}Pendiente
+            {% elif item.estado_solicitud == 'AUTORIZADA' %}Autorizada
             {% else %}Denegada{% endif %}
           </span>
         </td>
@@ -127,8 +159,12 @@
   {% else %}
   <div class="empty-state">
     No hay solicitudes registradas.
-    {% if usuario.rol == 'GESTOR_SERVICIO' %}
-    <a href="/solicitudes/nueva">Crear la primera</a>.
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+      <a href="/solicitudes/nueva">Crear la primera</a>.
+    {% elif usuario.rol == 'GESTOR_SERVICIO' %}
+      {% set ns = namespace(requiere=false) %}
+      {% for s in servicios %}{% if s.id_servicio == usuario.id_servicio and s.requiere_autorizacion %}{% set ns.requiere = true %}{% endif %}{% endfor %}
+      {% if ns.requiere %}<a href="/solicitudes/nueva">Crear la primera</a>.{% endif %}
     {% endif %}
   </div>
   {% endif %}

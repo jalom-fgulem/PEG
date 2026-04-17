@@ -80,8 +80,8 @@ def pegs_nuevo(
         srv = _obtener_servicio(usuario.get("id_servicio"))
         if srv and srv.get("requiere_autorizacion"):
             request.session["flash_error"] = (
-                "Este servicio requiere autorización previa al gasto. "
-                "Crea primero una solicitud de autorización."
+                "Este servicio requiere autorización previa. "
+                "Crea primero una solicitud."
             )
             return RedirectResponse(url="/solicitudes/nueva", status_code=303)
 
@@ -144,8 +144,8 @@ async def pegs_nuevo_post(
         srv = _obtener_servicio(id_servicio)
         if srv and srv.get("requiere_autorizacion"):
             request.session["flash_error"] = (
-                "Este servicio requiere autorización previa al gasto. "
-                "Crea primero una solicitud de autorización."
+                "Este servicio requiere autorización previa. "
+                "Crea primero una solicitud."
             )
             return RedirectResponse(url="/solicitudes/nueva", status_code=303)
 
