@@ -419,7 +419,9 @@
             <div class="nav-section-title">Principal</div>
             <a class="nav-link" href="/">Inicio</a>
             <a class="nav-link {% if request.url.path.startswith('/pegs') %}active{% endif %}" href="/pegs/">PEGs</a>
+            {% if usuario and (usuario.rol in ('GESTOR_ECONOMICO', 'ADMIN') or (usuario.id_servicio and obtener_servicio(usuario.id_servicio) and obtener_servicio(usuario.id_servicio).requiere_autorizacion)) %}
             <a class="nav-link {% if request.url.path.startswith('/solicitudes') %}active{% endif %}" href="/solicitudes/">Autorizaciones</a>
+            {% endif %}
             <a class="nav-link {% if request.url.path.startswith('/proveedores') %}active{% endif %}" href="/proveedores/">Proveedores</a>
             {% if usuario and usuario.rol in ('GESTOR_ECONOMICO', 'ADMIN') %}
             <a class="nav-link {% if request.url.path.startswith('/remesas') %}active{% endif %}" href="/remesas/">Remesas</a>
