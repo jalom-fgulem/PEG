@@ -45,8 +45,22 @@
             </div>
 
             <div class="grid-6 field">
-                <label for="iban">IBAN</label>
-                <input id="iban" type="text" name="iban">
+                <label for="tipo_proveedor">Tipo de proveedor</label>
+                <select id="tipo_proveedor" name="tipo_proveedor">
+                    <option value="TRANSFERENCIA">Transferencia</option>
+                    <option value="DOMICILIACION">Domiciliación</option>
+                    <option value="TARJETA">Tarjeta</option>
+                    <option value="MIXTO">Mixto</option>
+                </select>
+            </div>
+
+            <div class="grid-6 field">
+                <label for="iban">IBAN
+                    <span style="font-size:0.8rem;color:#6b7280;font-weight:400;">
+                        — Obligatorio para pagos por transferencia
+                    </span>
+                </label>
+                <input id="iban" type="text" name="iban" placeholder="ES00 0000 0000 0000 0000 0000">
             </div>
 
             {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}

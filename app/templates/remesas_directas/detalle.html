@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Remesa Directa RD-{{ "%04d"|format(remesa.numero) }}{% endblock %}
+{% block page_title %}RD-{{ "%04d"|format(remesa.numero) }}{% endblock %}
+{% block page_subtitle %}{{ remesa.tipo }} · Período {{ remesa.periodo }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .estado-badge { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; }
+  .estado-abierta { background: rgba(239,159,39,0.14); color: #854f0b; }
+  .estado-cerrada { background: rgba(99,153,34,0.14);  color: #3b6d11; }
+
+  .flash-success { padding: 12px 16px; border-radius: 10px; background: rgba(99,153,34,0.12); border: 1px solid rgba(99,153,34,0.28); color: #2f6b10; font-weight: 600; margin-bottom: 16px; }
+  .flash-error   { padding: 12px 16px; border-radius: 10px; background: rgba(226,75,74,0.10); border: 1px solid rgba(226,75,74,0.28); color: #a32d2d; font-weight: 600; margin-bottom: 16px; }
+
+  .totales-strip { display: flex; gap: 28px; flex-wrap: wrap; padding: 14px 18px; background: rgba(194,27,132,0.04); border: 1px solid rgba(194,27,132,0.12); border-radius: 12px; margin-bottom: 18px; }
+  .totales-strip .t-item label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #8a8691; font-weight: 700; margin-bottom: 3px; }
+  .totales-strip .t-item span  { font-size: 1rem; font-weight: 700; color: var(--ink); }
+  .totales-strip .t-item.total span { color: var(--fgulem-magenta); font-size: 1.2rem; }
+
+  .btn-cerrar { width: 100%; background: #16a34a; color: white; padding: 10px; border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 700; cursor: pointer; }
+  .btn-cerrar:hover { background: #15803d; }
+  .btn-export { display: block; width: 100%; padding: 10px; border-radius: 8px; background: rgba(95,159,211,0.12); border: 1.5px solid rgba(95,159,211,0.28); color: #185fa5; font-weight: 700; font-size: 0.88rem; text-align: center; text-decoration: none; margin-top: 8px; }
+  .btn-export:hover { background: rgba(95,159,211,0.22); }
+  .btn-quitar { background: rgba(226,75,74,0.10); color: #a32d2d; border: 1px solid rgba(226,75,74,0.22); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+  .btn-quitar:hover { background: rgba(226,75,74,0.20); }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if msg %}
+<div class="flash-{{ msg_type }}">
+  {% if msg_type == 'success' %}✓{% else %}⚠{% endif %} {{ msg }}
+</div>
+{% endif %}
+
+<div style="display: grid; grid-template-columns: 1fr 280px; gap: 18px; align-items: start;">
+
+  <!-- ── COLUMNA PRINCIPAL ── -->
+  <div>
+
+    <!-- Cabecera remesa -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+        <div>
+          <span class="estado-badge estado-{{ remesa.estado|lower }}">
+            {% if remesa.estado == 'ABIERTA' %}Abierta{% elif remesa.estado == 'CERRADA' %}Cerrada{% else %}{{ remesa.estado }}{% endif %}
+          </span>
+          <span class="muted" style="margin-left:10px; font-size:0.88rem;">{{ remesa.tipo }}</span>
+        </div>
+        <div style="font-size:0.9rem; color:var(--ink-soft);">
+          Creada el {{ remesa.fecha_creacion }}
+          {% if remesa.fecha_cierre %} · Cerrada el {{ remesa.fecha_cierre }}{% endif %}
+        </div>
+      </div>
+
+      <div class="totales-strip">
+        <div class="t-item"><label>Período</label><span>{{ remesa.periodo }}</span></div>
+        <div class="t-item"><label>Gastos</label><span>{{ totales.num_gastos }}</span></div>
+        <div class="t-item"><label>Base</label><span>{{ "%.2f"|format(totales.total_base) }} €</span></div>
+        <div class="t-item"><label>IVA</label><span>{{ "%.2f"|format(totales.total_iva) }} €</span></div>
+        <div class="t-item total"><label>Total</label><span>{{ "%.2f"|format(totales.total) }} €</span></div>
+      </div>
+    </div>
+
+    <!-- Gastos asignados -->
+    <div class="card">
+      <h3 style="margin-top:0; margin-bottom:14px;">Gastos asignados</h3>
+      {% if gastos_asignados %}
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Proveedor</th>
+            <th>Fecha doc.</th>
+            <th style="text-align:right;">Importe</th>
+            {% if remesa.estado == 'ABIERTA' %}<th></th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for g in gastos_asignados %}
+          <tr>
+            <td style="font-family:monospace; font-weight:700; font-size:0.9rem;">{{ g.codigo }}</td>
+            <td>{{ g.nombre_proveedor }}</td>
+            <td>{{ g.fecha_documento }}</td>
+            <td style="text-align:right; font-weight:700;">{{ "%.2f"|format(g.importe_total) }} €</td>
+            {% if remesa.estado == 'ABIERTA' %}
+            <td>
+              <form method="POST" action="/remesas-directas/{{ remesa.id_remesa_directa }}/quitar-gasto" style="margin:0;">
+                <input type="hidden" name="id_gasto" value="{{ g.id_gasto }}">
+                <button type="submit" class="btn-quitar">Quitar</button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state" style="padding:16px 0;">Sin gastos asignados.</div>
+      {% endif %}
+    </div>
+
+    <!-- Añadir gasto (solo si ABIERTA) -->
+    {% if remesa.estado == 'ABIERTA' %}
+    <div class="card">
+      <h3 style="margin-top:0; margin-bottom:12px;">Añadir gasto disponible</h3>
+      {% if gastos_disponibles %}
+      <form method="POST" action="/remesas-directas/{{ remesa.id_remesa_directa }}/añadir-gasto"
+            style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+        <div style="flex:1; min-width:260px;">
+          <label style="font-size:0.8rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.06em; display:block; margin-bottom:6px;">
+            Gasto cotejado
+          </label>
+          <select name="id_gasto" required
+                  style="padding:10px 12px; border:1px solid #d8dce2; border-radius:10px; font-size:0.95rem; width:100%;">
+            {% for g in gastos_disponibles %}
+            <option value="{{ g.id_gasto }}">
+              {{ g.codigo }} — {{ g.nombre_proveedor }} — {{ "%.2f"|format(g.importe_total) }} €
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary" style="white-space:nowrap;">
+          + Añadir
+        </button>
+      </form>
+      {% else %}
+      <p class="muted" style="font-size:0.9rem; margin:0;">
+        No hay gastos cotejados disponibles del tipo {{ remesa.tipo }}.
+      </p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ── COLUMNA LATERAL (ACCIONES) ── -->
+  <div>
+    <div class="card">
+      <h3 style="margin-top:0; margin-bottom:14px;">Acciones</h3>
+
+      {% if remesa.estado == 'ABIERTA' %}
+      <!-- Cerrar remesa -->
+      <form method="POST" action="/remesas-directas/{{ remesa.id_remesa_directa }}/cerrar"
+            onsubmit="return confirm('¿Cerrar esta remesa? Los gastos asignados pasarán a estado CERRADO.')">
+        <button type="submit" class="btn-cerrar">Cerrar remesa</button>
+      </form>
+      <p style="font-size:0.78rem; color:#6b7280; margin:8px 0 12px;">
+        Al cerrar, los gastos asignados pasan a estado CERRADO y la remesa queda lista para exportar.
+      </p>
+      {% endif %}
+
+      <!-- Exportar SUENLACE (solo si está cerrada) -->
+      {% if remesa.estado == 'CERRADA' %}
+      <a class="btn-export" href="/remesas-directas/{{ remesa.id_remesa_directa }}/exportar-suenlace?empresa=real">
+        ⬇ Exportar SUENLACE (real)
+      </a>
+      <a class="btn-export" href="/remesas-directas/{{ remesa.id_remesa_directa }}/exportar-suenlace?empresa=prueba"
+         style="margin-top:6px; background:rgba(127,85,211,0.08); border-color:rgba(127,85,211,0.25); color:#5a2db5;">
+        ⬇ Exportar SUENLACE (prueba)
+      </a>
+      {% endif %}
+
+      <a class="btn btn-secondary" href="/remesas-directas/"
+         style="width:100%; justify-content:center; margin-top:12px;">
+        ← Volver al listado
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -10,6 +10,7 @@ proveedores_db = [
         "email": "proveedor@ejemplo.com",
         "telefono": "987000000",
         "iban": "ES7620770024003102575766",
+        "tipo_proveedor": "TRANSFERENCIA",
         "servicios": [1, 2, 3],
         "direccion": "Calle Mayor 10, 2º",
         "localidad": "León",
@@ -26,6 +27,7 @@ proveedores_db = [
         "email": "maria@ejemplo.com",
         "telefono": "600000000",
         "iban": None,
+        "tipo_proveedor": "TRANSFERENCIA",
         "servicios": [2],
         "direccion": "Avenida de Asturias 45, 1º B",
         "localidad": "Ponferrada",
@@ -42,6 +44,7 @@ proveedores_db = [
         "email": "contacto@vettecnica.com",
         "telefono": "987111222",
         "iban": None,
+        "tipo_proveedor": "TRANSFERENCIA",
         "servicios": [1],
         "direccion": "Polígono Industrial El Jano, nave 7",
         "localidad": "Benavente",
@@ -58,6 +61,7 @@ proveedores_db = [
         "email": "info@traduccionesleon.com",
         "telefono": "987333444",
         "iban": "ES2222222222222222222222",
+        "tipo_proveedor": "TRANSFERENCIA",
         "servicios": [2, 3],
         "direccion": "Calle Ancha 22, 1º",
         "localidad": "León",
@@ -106,7 +110,7 @@ def actualizar_proveedor(id_proveedor: int, datos: dict) -> bool:
     if not proveedor:
         return False
     for campo in ("tipo_persona", "cif_nif", "razon_social", "nombre_comercial", "email", "telefono", "iban",
-                  "direccion", "localidad", "codigo_postal", "provincia", "pais", "cuenta_cliente"):
+                  "tipo_proveedor", "direccion", "localidad", "codigo_postal", "provincia", "pais", "cuenta_cliente"):
         if campo in datos:
             proveedor[campo] = datos[campo] or None
     return True

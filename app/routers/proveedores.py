@@ -71,6 +71,7 @@ class _ProveedorRapidoBody(BaseModel):
     tipo_persona: _Opt[str] = "JURIDICA"
     nombre_comercial: _Opt[str] = None
     iban: _Opt[str] = None
+    tipo_proveedor: _Opt[str] = "TRANSFERENCIA"
     id_forma_pago_habitual: _Opt[int] = None
     telefono: _Opt[str] = None
     email: _Opt[str] = None
@@ -95,6 +96,7 @@ def proveedor_rapido(
         email=body.email or None,
         telefono=body.telefono or None,
         iban=body.iban.strip().upper().replace(" ", "") if body.iban else None,
+        tipo_proveedor=body.tipo_proveedor or "TRANSFERENCIA",
         direccion=body.direccion or None,
         localidad=body.localidad or None,
         codigo_postal=body.codigo_postal or None,
@@ -140,6 +142,7 @@ def proveedores_nuevo_post(
     email: str = Form(""),
     telefono: str = Form(""),
     iban: str = Form(""),
+    tipo_proveedor: str = Form("TRANSFERENCIA"),
     direccion: str = Form(""),
     localidad: str = Form(""),
     codigo_postal: str = Form(""),
@@ -155,6 +158,7 @@ def proveedores_nuevo_post(
         email=email or None,
         telefono=telefono or None,
         iban=iban or None,
+        tipo_proveedor=tipo_proveedor or "TRANSFERENCIA",
         direccion=direccion or None,
         localidad=localidad or None,
         codigo_postal=codigo_postal or None,
@@ -202,6 +206,7 @@ def proveedor_datos_json(
         "nif":             p.get("cif_nif", ""),
         "nombre_comercial":p.get("nombre_comercial", ""),
         "iban":            p.get("iban", ""),
+        "tipo_proveedor":  p.get("tipo_proveedor", "TRANSFERENCIA"),
         "email":           p.get("email", ""),
         "telefono":        p.get("telefono", ""),
         "cuenta_cliente":  p.get("cuenta_cliente", ""),
@@ -227,6 +232,7 @@ async def proveedor_editar_json(
     mapeo = {
         "razon_social": "razon_social", "nif": "cif_nif",
         "iban": "iban", "email": "email", "telefono": "telefono",
+        "tipo_proveedor": "tipo_proveedor",
         "cuenta_cliente": "cuenta_cliente", "tipo_persona": "tipo_persona",
         "nombre_comercial": "nombre_comercial", "direccion": "direccion",
         "localidad": "localidad", "codigo_postal": "codigo_postal",
@@ -252,6 +258,7 @@ def proveedor_editar(
     email: str = Form(""),
     telefono: str = Form(""),
     iban: str = Form(""),
+    tipo_proveedor: str = Form("TRANSFERENCIA"),
     direccion: str = Form(""),
     localidad: str = Form(""),
     codigo_postal: str = Form(""),
@@ -267,6 +274,7 @@ def proveedor_editar(
         "email": email.strip() or None,
         "telefono": telefono.strip() or None,
         "iban": iban.strip().upper().replace(" ", "") or None,
+        "tipo_proveedor": tipo_proveedor or "TRANSFERENCIA",
         "direccion": direccion.strip() or None,
         "localidad": localidad.strip() or None,
         "codigo_postal": codigo_postal.strip() or None,

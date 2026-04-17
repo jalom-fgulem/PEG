@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Gastos Directos{% endblock %}
+{% block page_title %}Gastos Directos{% endblock %}
+{% block page_subtitle %}Domiciliaciones y cargos en tarjeta corporativa{% endblock %}
+
+{% block extra_head %}
+<style>
+  .estado-badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 0.78rem; font-weight: 700; white-space: nowrap;
+  }
+  .estado-borrador    { background: rgba(156,163,175,0.18); color: #4b5563; }
+  .estado-en_revision { background: rgba(239,159,39,0.14);  color: #854f0b; }
+  .estado-cotejado    { background: rgba(95,159,211,0.14);  color: #185fa5; }
+  .estado-cerrado     { background: rgba(99,153,34,0.14);   color: #3b6d11; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab {
+    padding: 6px 16px; border-radius: 20px; border: 1.5px solid #e5e7eb;
+    background: #f3f4f6; color: #374151; font-size: 0.82rem;
+    font-weight: 700; cursor: pointer; text-decoration: none;
+    transition: all 0.15s;
+  }
+  .tab:hover { background: #e5e7eb; }
+  .tab.activo { background: var(--fgulem-magenta); color: white; border-color: var(--fgulem-magenta); }
+
+  .tipo-badge {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 0.75rem; font-weight: 700;
+  }
+  .tipo-domiciliacion { background: rgba(127,85,211,0.12); color: #5a2db5; }
+  .tipo-tarjeta       { background: rgba(239,159,39,0.12); color: #854f0b; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="toolbar">
+    <div>
+      <h2 style="margin-bottom:4px;">Gastos Directos</h2>
+      <div class="muted">{{ items|length }} registro{% if items|length != 1 %}s{% endif %}</div>
+    </div>
+    <div class="actions">
+      <a class="btn btn-primary" href="/gastos/nuevo">Nuevo gasto</a>
+    </div>
+  </div>
+
+  <!-- Filtros tipo -->
+  <div class="tabs">
+    <a class="tab {% if not filtro_tipo %}activo{% endif %}" href="/gastos/">Todos</a>
+    <a class="tab {% if filtro_tipo == 'DOMICILIACION' %}activo{% endif %}" href="/gastos/?tipo=DOMICILIACION">Domiciliación</a>
+    <a class="tab {% if filtro_tipo == 'TARJETA' %}activo{% endif %}" href="/gastos/?tipo=TARJETA">Tarjeta</a>
+  </div>
+
+  <!-- Filtros estado -->
+  <div class="tabs" style="margin-bottom:20px;">
+    <a class="tab {% if not filtro_estado %}activo{% endif %}"
+       href="/gastos/{% if filtro_tipo %}?tipo={{ filtro_tipo }}{% endif %}">Todos los estados</a>
+    {% for est, lbl in [('BORRADOR','Borrador'),('EN_REVISION','En revisión'),('COTEJADO','Cotejado'),('CERRADO','Cerrado')] %}
+    <a class="tab {% if filtro_estado == est %}activo{% endif %}"
+       href="/gastos/?{% if filtro_tipo %}tipo={{ filtro_tipo }}&{% endif %}estado={{ est }}">{{ lbl }}</a>
+    {% endfor %}
+  </div>
+
+  {% if items %}
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Proveedor</th>
+        <th>Tipo</th>
+        <th>Fecha doc.</th>
+        <th style="text-align:right;">Importe total</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for g in items %}
+      <tr>
+        <td style="font-family:monospace; font-weight:700;">{{ g.codigo }}</td>
+        <td>{{ g.nombre_proveedor }}</td>
+        <td>
+          <span class="tipo-badge tipo-{{ g.tipo|lower }}">{{ g.tipo }}</span>
+        </td>
+        <td>{{ g.fecha_documento }}</td>
+        <td style="text-align:right; font-weight:700;">{{ "%.2f"|format(g.importe_total) }} €</td>
+        <td>
+          <span class="estado-badge estado-{{ g.estado|lower|replace('_','-') }}">
+            {% if g.estado == 'BORRADOR' %}Borrador
+            {% elif g.estado == 'EN_REVISION' %}En revisión
+            {% elif g.estado == 'COTEJADO' %}Cotejado
+            {% elif g.estado == 'CERRADO' %}Cerrado
+            {% else %}{{ g.estado }}{% endif %}
+          </span>
+        </td>
+        <td>
+          <a href="/gastos/{{ g.id_gasto }}"
+             style="font-size:0.85rem; font-weight:700; color:var(--fgulem-magenta); text-decoration:none;">
+            Ver →
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">Sin gastos directos para los filtros seleccionados.</div>
+  {% endif %}
+</div>
+{% endblock %}

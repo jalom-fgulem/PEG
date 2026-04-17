@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% block title %}{{ gasto.codigo }}{% endblock %}
+{% block page_title %}{{ gasto.codigo }}{% endblock %}
+{% block page_subtitle %}{{ gasto.concepto }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .info-item label { display: block; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: #8a8691; font-weight: 700; margin-bottom: 4px; }
+  .info-item span  { font-size: 0.97rem; color: var(--ink); font-weight: 600; }
+  .importe-total { font-size: 1.6rem; font-weight: 800; color: var(--fgulem-magenta); }
+
+  .estado-badge { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; }
+  .estado-borrador    { background: rgba(156,163,175,0.18); color: #4b5563; }
+  .estado-en_revision { background: rgba(239,159,39,0.14);  color: #854f0b; }
+  .estado-cotejado    { background: rgba(95,159,211,0.14);  color: #185fa5; }
+  .estado-cerrado     { background: rgba(99,153,34,0.14);   color: #3b6d11; }
+
+  .tipo-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+  .tipo-domiciliacion { background: rgba(127,85,211,0.12); color: #5a2db5; }
+  .tipo-tarjeta       { background: rgba(239,159,39,0.12); color: #854f0b; }
+
+  .flash-success { padding: 12px 16px; border-radius: 10px; background: rgba(99,153,34,0.12); border: 1px solid rgba(99,153,34,0.28); color: #2f6b10; font-weight: 600; margin-bottom: 16px; }
+  .flash-error   { padding: 12px 16px; border-radius: 10px; background: rgba(226,75,74,0.10); border: 1px solid rgba(226,75,74,0.28); color: #a32d2d; font-weight: 600; margin-bottom: 16px; }
+
+  .panel-accion { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+  .panel-accion-warn { background: #fefce8; border: 1.5px solid #fde047; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+  .panel-titulo { font-size: 0.95rem; font-weight: 700; color: #166534; margin: 0 0 12px 0; }
+  .panel-titulo-warn { font-size: 0.95rem; font-weight: 700; color: #854d0e; margin: 0 0 12px 0; }
+
+  .campo-form { margin-bottom: 12px; }
+  .campo-form label { display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px; }
+  .select-field, .textarea-field { width: 100%; padding: 7px 9px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; background: white; box-sizing: border-box; }
+  .select-field:focus, .textarea-field:focus { outline: none; border-color: #16a34a; box-shadow: 0 0 0 2px #bbf7d0; }
+  .obligatorio { color: #dc2626; }
+
+  .btn-estado-primary { width: 100%; background: #16a34a; color: white; padding: 10px; border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 700; cursor: pointer; margin-top: 4px; }
+  .btn-estado-primary:hover:not(:disabled) { background: #15803d; }
+  .btn-estado-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+  .btn-estado-warn { width: 100%; background: #fef3c7; color: #854d0e; border: 1.5px solid #fcd34d; padding: 10px; border-radius: 8px; font-size: 0.88rem; font-weight: 700; cursor: pointer; margin-top: 4px; }
+  .btn-estado-warn:hover { background: #fde68a; }
+  .btn-estado-disabled { width: 100%; background: #e5e7eb; color: #9ca3af; border: 1px solid #d1d5db; padding: 10px; border-radius: 10px; font-weight: 700; font-size: 0.88rem; cursor: not-allowed; opacity: 0.75; }
+
+  @media (max-width: 780px) { .info-grid { grid-template-columns: 1fr 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if msg %}
+<div class="flash-{{ msg_type }}">
+  {% if msg_type == 'success' %}✓{% else %}⚠{% endif %} {{ msg }}
+</div>
+{% endif %}
+
+<div style="display: grid; grid-template-columns: 1fr 300px; gap: 18px; align-items: start;">
+
+  <!-- ── COLUMNA PRINCIPAL ── -->
+  <div>
+    <div class="card">
+      <!-- Cabecera -->
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <span class="estado-badge estado-{{ gasto.estado|lower|replace('_','-') }}">
+            {% if gasto.estado == 'BORRADOR' %}Borrador
+            {% elif gasto.estado == 'EN_REVISION' %}En revisión
+            {% elif gasto.estado == 'COTEJADO' %}Cotejado
+            {% elif gasto.estado == 'CERRADO' %}Cerrado
+            {% else %}{{ gasto.estado }}{% endif %}
+          </span>
+          <span class="tipo-badge tipo-{{ gasto.tipo|lower }}">{{ gasto.tipo }}</span>
+        </div>
+        <div class="importe-total">{{ "%.2f"|format(gasto.importe_total) }} €</div>
+      </div>
+
+      <!-- Datos principales -->
+      <div class="info-grid">
+        <div class="info-item"><label>Proveedor</label><span>{{ proveedor.razon_social if proveedor else "—" }}</span></div>
+        <div class="info-item"><label>CIF/NIF</label><span>{{ proveedor.cif_nif if proveedor else "—" }}</span></div>
+        <div class="info-item"><label>Referencia factura</label><span>{{ gasto.referencia_factura or "—" }}</span></div>
+        <div class="info-item"><label>Fecha documento</label><span>{{ gasto.fecha_documento }}</span></div>
+        <div class="info-item"><label>Fecha cargo real</label><span>{{ gasto.fecha_cargo_real or "—" }}</span></div>
+        {% if gasto.tipo == 'TARJETA' %}
+        <div class="info-item"><label>Tarjeta</label><span>{{ tarjeta.nombre if tarjeta else "—" }}{% if tarjeta %} ···{{ tarjeta.ultimos_4 }}{% endif %}</span></div>
+        <div class="info-item"><label>Empleado</label><span>{{ (empleado.nombre ~ ' ' ~ empleado.apellidos) if empleado else "—" }}</span></div>
+        {% endif %}
+        <div class="info-item" style="grid-column:span 2;"><label>Concepto</label><span>{{ gasto.concepto }}</span></div>
+      </div>
+
+      <!-- Importes -->
+      <div style="margin-top:18px; border-top:1px solid var(--line); padding-top:14px; display:flex; gap:24px; flex-wrap:wrap;">
+        <div class="info-item"><label>Base imponible</label><span>{{ "%.2f"|format(gasto.importe_base) }} €</span></div>
+        <div class="info-item"><label>IVA</label><span>{{ "%.2f"|format(gasto.importe_iva) }} €</span></div>
+        <div class="info-item"><label>Total</label><span style="color:var(--fgulem-magenta); font-size:1.1rem;">{{ "%.2f"|format(gasto.importe_total) }} €</span></div>
+      </div>
+
+      <!-- Analíticas asignadas (cuando hay) -->
+      {% if lineas_analitica_completas %}
+      <div style="margin-top:14px; border-top:1px solid var(--line); padding-top:12px;">
+        <div style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em; color:#8a8691; font-weight:700; margin-bottom:8px;">Analíticas contables</div>
+        {% for la in lineas_analitica_completas %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-size:0.9rem; border-bottom:1px solid var(--line);">
+          <span style="color:var(--ink); font-weight:600;">{{ la.nivel_1 }}{% if la.nivel_2 %} / {{ la.nivel_2 }}{% endif %} — {{ la.descripcion }}</span>
+          <span style="font-weight:700; color:var(--fgulem-magenta);">{{ "%.2f"|format(la.porcentaje) }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── COLUMNA LATERAL (ACCIONES) ── -->
+  <div>
+    <div class="card">
+      <h3 style="margin-top:0; margin-bottom:14px;">Acciones</h3>
+
+      {% if gasto.estado == 'BORRADOR' %}
+      <!-- BORRADOR → Enviar a revisión -->
+      <div class="panel-accion" style="background:#eff6ff; border-color:#bfdbfe;">
+        <p class="panel-titulo" style="color:#1d4ed8;">📤 Enviar a revisión</p>
+        <form method="POST" action="/gastos/{{ gasto.id_gasto }}/estado">
+          <input type="hidden" name="nuevo_estado" value="EN_REVISION">
+          <button type="submit" class="btn-estado-primary" style="background:#1d4ed8;">
+            Enviar a revisión
+          </button>
+        </form>
+      </div>
+
+      {% elif gasto.estado == 'EN_REVISION' %}
+      <!-- EN_REVISION → Cotejar (con analítica) -->
+      <div class="panel-accion">
+        <p class="panel-titulo">✅ Cotejar gasto</p>
+        <form method="POST" action="/gastos/{{ gasto.id_gasto }}/estado" id="formCotejar">
+          <input type="hidden" name="nuevo_estado" value="COTEJADO">
+
+          <div class="campo-form">
+            <label>Analíticas contables <span class="obligatorio">*</span></label>
+            {% macro analitica_select(name) %}
+              <select name="{{ name }}" class="select-field analitica-sel" style="flex:2;" onchange="recalcSuma()">
+                <option value="">— Selecciona —</option>
+                {% for a in analiticas %}
+                <option value="{{ a.id_analitica }}">{{ a.nivel_1 }}{% if a.nivel_2 %} / {{ a.nivel_2 }}{% endif %} — {{ a.descripcion }}</option>
+                {% endfor %}
+              </select>
+            {% endmacro %}
+            <div id="analitica-row-1" style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+              {{ analitica_select("analitica_id_1") }}
+              <input type="number" name="analitica_porcentaje_1" class="select-field analitica-pct" step="0.01" min="0.01" max="100" placeholder="%" style="width:64px;" oninput="recalcSuma()" value="100">
+              <span style="font-size:0.8rem;color:#6b7280">%</span>
+            </div>
+            <div id="analitica-row-2" style="display:none; gap:6px; align-items:center; margin-bottom:6px;">
+              {{ analitica_select("analitica_id_2") }}
+              <input type="number" name="analitica_porcentaje_2" class="select-field analitica-pct" step="0.01" min="0.01" max="100" placeholder="%" style="width:64px;" oninput="recalcSuma()">
+              <span style="font-size:0.8rem;color:#6b7280">%</span>
+            </div>
+            <div id="analitica-row-3" style="display:none; gap:6px; align-items:center; margin-bottom:6px;">
+              {{ analitica_select("analitica_id_3") }}
+              <input type="number" name="analitica_porcentaje_3" class="select-field analitica-pct" step="0.01" min="0.01" max="100" placeholder="%" style="width:64px;" oninput="recalcSuma()">
+              <span style="font-size:0.8rem;color:#6b7280">%</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:6px;">
+              <button type="button" id="btn-aniadir-analitica" onclick="mostrarSiguienteFilaAnalitica()"
+                      style="background:transparent;border:1px dashed rgba(22,163,74,0.4);color:#16a34a;border-radius:8px;padding:3px 10px;cursor:pointer;font-size:0.8rem;font-weight:700;">
+                + Añadir analítica
+              </button>
+              <span id="suma-analiticas" style="font-size:0.8rem;color:#6b7280;">
+                Suma: <strong style="color:#16a34a">100.00%</strong>
+              </span>
+            </div>
+            {% if not analiticas %}
+            <p style="font-size:0.78rem; color:#92400e; background:#fef3c7; border:1px solid #fcd34d; border-radius:5px; padding:5px 8px; margin-top:6px;">
+              ⚠️ Sin analíticas configuradas para este servicio.
+            </p>
+            {% endif %}
+          </div>
+
+          <button type="submit" id="btnCotejar" class="btn-estado-primary" {% if not analiticas %}disabled{% endif %}>
+            ✅ Confirmar cotejo
+          </button>
+        </form>
+      </div>
+
+      <!-- EN_REVISION → Devolver a borrador -->
+      <div class="panel-accion-warn">
+        <p class="panel-titulo-warn">↩ Devolver a borrador</p>
+        <form method="POST" action="/gastos/{{ gasto.id_gasto }}/estado">
+          <input type="hidden" name="nuevo_estado" value="BORRADOR">
+          <button type="submit" class="btn-estado-warn">Devolver a borrador</button>
+        </form>
+      </div>
+
+      {% elif gasto.estado == 'COTEJADO' %}
+      <!-- COTEJADO → Añadir a remesa (deshabilitado por ahora) -->
+      <div style="margin-bottom:12px;">
+        <button class="btn-estado-disabled" disabled title="Funcionalidad próximamente disponible">
+          Añadir a remesa directa
+        </button>
+        <p style="font-size:0.78rem; color:#6b7280; margin:6px 0 0;">Las remesas directas estarán disponibles próximamente.</p>
+      </div>
+
+      {% elif gasto.estado == 'CERRADO' %}
+      <div style="padding:12px 14px; border-radius:8px; background:rgba(99,153,34,0.08); border:1px solid rgba(99,153,34,0.25); color:#3b6d11; font-weight:600; font-size:0.9rem; margin-bottom:12px;">
+        ✓ Gasto cerrado
+      </div>
+      {% endif %}
+
+      <a class="btn btn-secondary" href="/gastos/" style="width:100%; justify-content:center; margin-top:8px;">
+        ← Volver al listado
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function recalcSuma() {
+  const pcts = Array.from(document.querySelectorAll('.analitica-pct'))
+    .filter(inp => inp.closest('[style*="display:flex"]') || inp.closest('[style*="display: flex"]'))
+    .map(inp => parseFloat(inp.value) || 0);
+
+  // Solo filas visibles
+  let suma = 0;
+  ['analitica-row-1','analitica-row-2','analitica-row-3'].forEach(id => {
+    const row = document.getElementById(id);
+    if (row && row.style.display !== 'none') {
+      const inp = row.querySelector('.analitica-pct');
+      if (inp) suma += parseFloat(inp.value) || 0;
+    }
+  });
+
+  const span = document.getElementById('suma-analiticas');
+  const btn  = document.getElementById('btnCotejar');
+  const ok   = Math.abs(suma - 100) < 0.01;
+  if (span) {
+    span.innerHTML = `Suma: <strong style="color:${ok ? '#16a34a' : '#dc2626'}">${suma.toFixed(2)}%</strong>`;
+  }
+  if (btn) btn.disabled = !ok;
+}
+
+function mostrarSiguienteFilaAnalitica() {
+  const ids = ['analitica-row-2','analitica-row-3'];
+  for (const id of ids) {
+    const row = document.getElementById(id);
+    if (row && row.style.display === 'none') {
+      row.style.display = 'flex';
+      if (id === 'analitica-row-3') {
+        document.getElementById('btn-aniadir-analitica').style.display = 'none';
+      }
+      recalcSuma();
+      return;
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', recalcSuma);
+</script>
+{% endblock %}

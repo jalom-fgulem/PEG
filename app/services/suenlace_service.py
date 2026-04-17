@@ -6,7 +6,8 @@ Especificación: enlace contable de entrada, registros de 256 bytes.
 import os
 from datetime import datetime
 from typing import Optional
-from app.services import mock_data  # 🔧 PERSONALIZAR: cambiar a acceso real a BD
+from app import mock_data  # 🔧 PERSONALIZAR: cambiar a acceso real a BD
+from app.services.pegs_service import _analiticas as ANALITICAS
 
 # 🔧 PERSONALIZAR: código de empresa en A3Con
 # 00006 = empresa de prueba | 00005 = empresa real
@@ -200,17 +201,14 @@ def _registro_analitica(
     codigo_empresa: str,
     num_linea: int,
     es_unica: bool,
+    analitica: dict,
+    importe_linea: float,
+    porcentaje: float,
 ) -> str:
     """
     Tipo D: Alta distribución analítica del apunte.
-    Solo se genera si el PEG tiene id_analitica asignada.
+    Se genera una vez por cada entrada de lineas_analitica × linea_iva.
     """
-    analitica = None
-    if peg.get("id_analitica"):
-        analitica = mock_data.get_analitica_por_id(peg["id_analitica"])
-    if not analitica:
-        return ""
-
     fecha = _fecha_a3(peg.get("fecha_factura") or datetime.today())
     linea = ""
     linea += "4"                                          # pos 1
@@ -220,24 +218,21 @@ def _registro_analitica(
     linea += _pad_right(servicio.get("cuenta_gasto", "6000000"), 12)  # pos 16-27
     linea += _pad_right(servicio.get("nombre", ""), 30)   # pos 28-57
     linea += " "                                          # pos 58: reserva
-    base = float(linea_iva.get("base_imponible", 0))
-    linea += _importe_a3(base)                            # pos 59-72: importe total
+    linea += _importe_a3(importe_linea)                   # pos 59-72: importe total línea
     linea += _pad_left(str(num_linea), 3)                 # pos 73-75: nº línea apunte
-    marcador_dist = "I" if es_unica else "I"              # única línea de distribución
-    linea += marcador_dist                                # pos 76
-    # Códigos analíticos: nivel_1 (4 chars) y nivel_2 si existe
-    nivel_1 = _pad_right(str(analitica.get("codigo_nivel_1", "")), 4)
-    nivel_2 = _pad_right(str(analitica.get("codigo_nivel_2", "")), 4)
+    linea += "I"                                          # pos 76: marcador distribución
+    nivel_1 = _pad_right(str(analitica.get("nivel_1", "")), 4)
+    nivel_2 = _pad_right(str(analitica.get("nivel_2", "")), 4)
     linea += nivel_1                                      # pos 77-80: código centro
     linea += nivel_2                                      # pos 81-84: código departamento
     linea += " " * 4                                      # pos 85-88: código división
     linea += " " * 4                                      # pos 89-92: código sección
-    linea += _pad_right(analitica.get("nombre_nivel_1", ""), 30)    # pos 93-122
-    linea += _pad_right(analitica.get("nombre_nivel_2", ""), 30)    # pos 123-152
+    linea += _pad_right(analitica.get("descripcion", ""), 30)  # pos 93-122
+    linea += " " * 30                                     # pos 123-152: descripción departamento
     linea += " " * 30                                     # pos 153-182: descripción división
     linea += " " * 30                                     # pos 183-212: descripción sección
-    linea += _importe_a3(base)                            # pos 213-226: importe distribución
-    linea += "100.00"                                     # pos 227-232: porcentaje (100%)
+    linea += _importe_a3(importe_linea)                   # pos 213-226: importe distribución
+    linea += f"{porcentaje:06.2f}"                        # pos 227-232: porcentaje
     linea += " " * 20                                     # pos 233-252: reserva
     linea += "E"                                          # pos 253: moneda
     linea += "N"                                          # pos 254: indicador generado
@@ -305,16 +300,150 @@ def generar_suenlace_remesa(
             peg, servicio, proveedor, codigo_empresa, fecha_pago
         ))
 
-        # Registros tipo D — analítica (uno por línea IVA si tiene analítica)
-        if peg.get("id_analitica"):
+        # Registros tipo D — una entrada por cada (linea_analitica × linea_iva)
+        for linea_anal in peg.get("lineas_analitica", []):
+            analitica = next(
+                (a for a in ANALITICAS if a["id_analitica"] == linea_anal["id_analitica"]),
+                None,
+            )
+            if not analitica:
+                continue
             for idx, liva in enumerate(lineas_iva):
+                importe_base = float(liva.get("base_imponible", 0))
+                importe_linea = round(importe_base * linea_anal["porcentaje"] / 100, 2)
                 contenido_d = _registro_analitica(
                     peg, liva, servicio, codigo_empresa,
-                    num_linea=idx + 2,   # +2 porque la línea 1 es el registro tipo 1
+                    num_linea=idx + 2,
                     es_unica=len(lineas_iva) == 1,
+                    analitica=analitica,
+                    importe_linea=importe_linea,
+                    porcentaje=linea_anal["porcentaje"],
                 )
                 if contenido_d:
                     lineas.append(contenido_d)
 
     contenido = "".join(lineas)
     return contenido, nombre_fichero
+
+
+def _generar_bloques_gasto_directo(
+    gasto: dict,
+    servicio: dict,
+    proveedor: dict,
+    codigo_empresa: str,
+    fecha_pago: str,
+) -> list[str]:
+    """
+    Genera los registros SUENLACE (1, 9, V, D) para un gasto directo.
+    Reutiliza exactamente la misma lógica que los PEGs.
+    El gasto se adapta al formato que esperan las funciones de registro.
+    """
+    # Adaptar campos del gasto directo al esquema que usan las funciones internas
+    peg_compat = {
+        "id_peg": gasto["id_gasto"],
+        "codigo_peg": gasto["codigo"],
+        "referencia_factura": gasto.get("referencia_factura") or str(gasto["id_gasto"]),
+        "fecha_factura": gasto.get("fecha_documento"),
+        "importe_total": gasto["importe_total"],
+        "importe_irpf": gasto.get("irpf", 0),
+        "lineas_analitica": gasto.get("lineas_analitica", []),
+    }
+
+    lineas_iva_raw = gasto.get("lineas_iva", [])
+    if not lineas_iva_raw:
+        lineas_iva_raw = [{"porcentaje_iva": 0, "base": gasto["importe_total"], "cuota": 0}]
+
+    # Normalizar nombres de campos (el gasto usa "base"/"cuota", los registros esperan
+    # "base_imponible"/"cuota_iva")
+    lineas_iva = [
+        {
+            "base_imponible": l.get("base_imponible", l.get("base", 0)),
+            "porcentaje_iva": l.get("porcentaje_iva", 0),
+            "cuota_iva":      l.get("cuota_iva", l.get("cuota", 0)),
+        }
+        for l in lineas_iva_raw
+    ]
+
+    tiene_irpf = float(gasto.get("irpf", 0)) > 0
+    bloques: list[str] = []
+
+    bloques.append(_registro_cabecera_factura(
+        peg_compat, servicio, proveedor, codigo_empresa
+    ))
+
+    for idx, liva in enumerate(lineas_iva):
+        bloques.append(_registro_detalle_iva(
+            peg_compat, liva, servicio, codigo_empresa,
+            es_ultima=idx == len(lineas_iva) - 1,
+            es_primera=idx == 0,
+            tiene_irpf=tiene_irpf,
+        ))
+
+    bloques.append(_registro_vencimiento(
+        peg_compat, servicio, proveedor, codigo_empresa, fecha_pago
+    ))
+
+    for linea_anal in peg_compat["lineas_analitica"]:
+        analitica = next(
+            (a for a in ANALITICAS if a["id_analitica"] == linea_anal["id_analitica"]),
+            None,
+        )
+        if not analitica:
+            continue
+        for idx, liva in enumerate(lineas_iva):
+            importe_base  = float(liva.get("base_imponible", 0))
+            importe_linea = round(importe_base * linea_anal["porcentaje"] / 100, 2)
+            bloques.append(_registro_analitica(
+                peg_compat, liva, servicio, codigo_empresa,
+                num_linea=idx + 2,
+                es_unica=len(lineas_iva) == 1,
+                analitica=analitica,
+                importe_linea=importe_linea,
+                porcentaje=linea_anal["porcentaje"],
+            ))
+
+    return bloques
+
+
+def generar_suenlace_remesa_directa(
+    id_remesa_directa: int,
+    empresa: str = "real",
+) -> tuple[str, str]:
+    """
+    Genera el fichero SUENLACE para una remesa directa cerrada.
+
+    Devuelve: (contenido_fichero: str, nombre_fichero: str)
+    El nombre sigue el patrón: RM{numero}D{aaaammdd}.DAT
+    La 'D' distingue remesa Directa de remesa normal.
+    """
+    from app.mock_data import GASTOS_DIRECTOS, REMESAS_DIRECTAS
+    from app.services.pegs_service import _servicios
+    from app.services.proveedores_service import proveedores_db
+
+    codigo_empresa = CODIGO_EMPRESA_REAL if empresa == "real" else CODIGO_EMPRESA_PRUEBA
+
+    remesa = next((r for r in REMESAS_DIRECTAS if r["id_remesa_directa"] == id_remesa_directa), None)
+    if not remesa:
+        raise ValueError(f"Remesa directa {id_remesa_directa} no encontrada")
+    if remesa["estado"] not in ("CERRADA",):
+        raise ValueError("Solo se puede exportar una remesa directa cerrada")
+
+    fecha_cierre  = remesa.get("fecha_cierre") or datetime.today().strftime("%Y-%m-%d")
+    fecha_fichero = _fecha_a3(fecha_cierre)
+    numero        = remesa.get("numero", id_remesa_directa)
+    nombre_fichero = f"RM{numero}D{fecha_fichero}.DAT"
+
+    servicios_map   = {s["id_servicio"]: s for s in _servicios}
+    proveedores_map = {p["id_proveedor"]: p for p in proveedores_db}
+
+    gastos = [g for g in GASTOS_DIRECTOS if g.get("remesa_directa_id") == id_remesa_directa]
+
+    lineas: list[str] = []
+    for gasto in gastos:
+        servicio  = servicios_map.get(gasto.get("servicio_id"), {})
+        proveedor = proveedores_map.get(gasto.get("proveedor_id"), {})
+        lineas.extend(_generar_bloques_gasto_directo(
+            gasto, servicio, proveedor, codigo_empresa, fecha_cierre
+        ))
+
+    return "".join(lineas), nombre_fichero

@@ -229,8 +229,20 @@
 
         <!-- Bancario -->
         <div class="field" style="margin:0;">
-          <label>IBAN</label>
+          <label>IBAN
+            <span style="font-size:0.78rem;color:#6b7280;font-weight:400;">— Obligatorio para pagos por transferencia</span>
+          </label>
           <input type="text" id="mp-iban" placeholder="ES00 0000 0000 0000 0000 0000">
+        </div>
+
+        <div class="field" style="margin:0;">
+          <label>Tipo de proveedor</label>
+          <select id="mp-tipo-proveedor">
+            <option value="TRANSFERENCIA">Transferencia</option>
+            <option value="DOMICILIACION">Domiciliación</option>
+            <option value="TARJETA">Tarjeta</option>
+            <option value="MIXTO">Mixto</option>
+          </select>
         </div>
 
         <div class="field" style="margin:0;">
@@ -335,8 +347,9 @@
                  "mp-telefono","mp-email","mp-direccion","mp-localidad",
                  "mp-codigo-postal","mp-provincia","mp-cuenta-cliente"];
     ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
-    document.getElementById("mp-tipo-persona").value  = "JURIDICA";
-    document.getElementById("mp-error").style.display = "none";
+    document.getElementById("mp-tipo-persona").value    = "JURIDICA";
+    document.getElementById("mp-tipo-proveedor").value  = "TRANSFERENCIA";
+    document.getElementById("mp-error").style.display   = "none";
     document.getElementById("modalNuevoProveedor").classList.add("active");
     document.getElementById("mp-razon-social").focus();
   }
@@ -396,6 +409,7 @@
           cif_nif:                cifNif,
           nombre_comercial:       nombreComercial || null,
           iban:                   iban            || null,
+          tipo_proveedor:         document.getElementById("mp-tipo-proveedor")?.value || "TRANSFERENCIA",
           id_forma_pago_habitual: parseInt(formaPago) || null,
           telefono:               telefono        || null,
           email:                  email           || null,
@@ -579,6 +593,7 @@
                         <div><p><strong>Email</strong><br><span id="v-email-${id}">${data.email||"—"}</span></p></div>
                         <div><p><strong>Teléfono</strong><br><span id="v-tel-${id}">${data.telefono||"—"}</span></p></div>
                         <div><p><strong>IBAN</strong><br><span id="v-iban-${id}" style="font-family:monospace;font-size:0.9rem">${data.iban||"—"}</span></p></div>
+                        <div><p><strong>Tipo de proveedor</strong><br><span id="v-tipo-prov-${id}">${{TRANSFERENCIA:"Transferencia",DOMICILIACION:"Domiciliación",TARJETA:"Tarjeta",MIXTO:"Mixto"}[data.tipo_proveedor||"TRANSFERENCIA"]||data.tipo_proveedor||"—"}</span></p></div>
                         ${esGestorEco ? `<div><p><strong>Cuenta cliente</strong><br><span id="v-cuenta-${id}" style="font-family:monospace">${data.cuenta_cliente||"—"}</span></p></div>` : `<div></div>`}
                         <div style="grid-column:span 2;border-top:1px solid #e8ecf0;padding-top:12px;margin-top:4px;">
                             <strong style="font-size:0.84rem;color:#888;text-transform:uppercase;letter-spacing:0.04em;">Dirección postal</strong>
@@ -646,11 +661,21 @@
                         </div>
 
                         <div class="field">
-                            <label>IBAN</label>
+                            <label>IBAN <span style="font-size:0.78rem;color:#6b7280;font-weight:400;">— Obligatorio para pagos por transferencia</span></label>
                             <input id="e-iban-${id}" name="iban" type="text"
                                    value="${data.iban||""}" placeholder="ES00 0000 0000 0000 0000 0000"
                                    style="${inputStyle}" oninput="validarCampoIban(${id})">
                             <p id="err-iban-${id}" style="${errStyle}">IBAN español no válido (ESxx + 22 dígitos).</p>
+                        </div>
+
+                        <div class="field">
+                            <label>Tipo de proveedor</label>
+                            <select id="e-tipo-prov-${id}" name="tipo_proveedor" style="${inputStyle}">
+                                <option value="TRANSFERENCIA" ${(data.tipo_proveedor||"TRANSFERENCIA")==="TRANSFERENCIA"?"selected":""}>Transferencia</option>
+                                <option value="DOMICILIACION" ${data.tipo_proveedor==="DOMICILIACION"?"selected":""}>Domiciliación</option>
+                                <option value="TARJETA"       ${data.tipo_proveedor==="TARJETA"?"selected":""}>Tarjeta</option>
+                                <option value="MIXTO"         ${data.tipo_proveedor==="MIXTO"?"selected":""}>Mixto</option>
+                            </select>
                         </div>
 
                         ${esGestorEco ? `
@@ -898,6 +923,9 @@
             document.getElementById(`v-email-${id}`).textContent = data.email             || "—";
             document.getElementById(`v-tel-${id}`).textContent   = data.telefono          || "—";
             document.getElementById(`v-iban-${id}`).textContent  = data.iban              || "—";
+            const tpMap = {TRANSFERENCIA:"Transferencia",DOMICILIACION:"Domiciliación",TARJETA:"Tarjeta",MIXTO:"Mixto"};
+            const tpEl = document.getElementById(`v-tipo-prov-${id}`);
+            if (tpEl) tpEl.textContent = tpMap[data.tipo_proveedor||"TRANSFERENCIA"] || data.tipo_proveedor || "—";
             document.getElementById(`v-dir-${id}`).textContent   = data.direccion         || "—";
             document.getElementById(`v-loc-${id}`).textContent   = data.localidad         || "—";
             document.getElementById(`v-cp-${id}`).textContent    = data.codigo_postal     || "—";
