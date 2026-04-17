@@ -3,4 +3,5 @@ __pycache__/
 .env
 media/
 *.db
-.DS_Store.claude/worktrees/
+.DS_Store
+.claude/worktrees/
