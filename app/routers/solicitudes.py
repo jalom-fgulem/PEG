@@ -57,13 +57,19 @@ def solicitudes_nueva_get(
     request: Request,
     usuario: dict = Depends(require_login),
 ):
-    servicios = [s for s in listar_servicios(solo_activos=True) if s.get("requiere_autorizacion")]
+    todos = listar_servicios(solo_activos=True)
     if usuario["rol"] == "GESTOR_SERVICIO":
-        servicios = [s for s in servicios if s["id_servicio"] == usuario["id_servicio"]]
+        # GS: solo su servicio, y solo si requiere autorización
+        servicios = [s for s in todos
+                     if s["id_servicio"] == usuario["id_servicio"]
+                     and s.get("requiere_autorizacion")]
+    else:
+        # GE / Admin: todos los servicios activos
+        servicios = todos
 
     if not servicios:
         return HTMLResponse(
-            "No hay servicios que requieran autorización previa o no tienes acceso.",
+            "No tienes servicios disponibles para crear solicitudes de autorización.",
             status_code=403,
         )
 
@@ -90,6 +96,7 @@ async def solicitudes_nueva_post(
     concepto: str = Form(...),
     fecha_estimada_gasto: str = Form(...),
     id_forma_pago: int = Form(1),
+    iban_proveedor: Optional[str] = Form(None),
     lineas_tipo_iva: List[str] = Form(...),
     lineas_base_imponible: List[str] = Form(...),
     tiene_irpf: Optional[str] = Form(None),
@@ -98,12 +105,21 @@ async def solicitudes_nueva_post(
     tipos_documento: List[str] = Form(default=[]),
     usuario: dict = Depends(require_login),
 ):
-    if usuario["rol"] == "GESTOR_SERVICIO" and id_servicio != usuario["id_servicio"]:
-        return HTMLResponse("Sin permisos para crear solicitudes en este servicio", status_code=403)
+    # GS: solo puede crear en su propio servicio y solo si requiere autorización
+    if usuario["rol"] == "GESTOR_SERVICIO":
+        if id_servicio != usuario["id_servicio"]:
+            return HTMLResponse("Sin permisos para crear solicitudes en este servicio", status_code=403)
+        servicio = obtener_servicio(id_servicio)
+        if not servicio or not servicio.get("requiere_autorizacion"):
+            return HTMLResponse("El servicio seleccionado no requiere autorización previa", status_code=400)
 
-    servicio = obtener_servicio(id_servicio)
-    if not servicio or not servicio.get("requiere_autorizacion"):
-        return HTMLResponse("El servicio seleccionado no requiere autorización previa", status_code=400)
+    # Actualizar IBAN del proveedor si se ha introducido uno nuevo
+    iban_limpio = (iban_proveedor or "").strip().upper().replace(" ", "")
+    if iban_limpio:
+        from app.services.proveedores_service import obtener_proveedor, actualizar_iban
+        prov = obtener_proveedor(id_proveedor)
+        if prov and not prov.get("iban"):
+            actualizar_iban(id_proveedor, iban_limpio)
 
     # Calcular importes
     lineas = [
@@ -122,12 +138,13 @@ async def solicitudes_nueva_post(
     importe_total = base_total + iva_total - irpf_total
 
     # Guardar adjuntos en carpeta temporal
-    archivos_con_nombre = [a for a in archivos if a.filename]
+    # Parea archivo+tipo por posición, descartar slots vacíos
+    pares_adj = [(a, t) for a, t in zip(archivos, tipos_documento) if a.filename]
     rutas_tmp: list[tuple[str, str, str]] = []  # (ruta, nombre, tipo)
     carpeta_tmp = f"media/autorizaciones/tmp_{usuario['id_usuario']}"
-    if archivos_con_nombre:
+    if pares_adj:
         os.makedirs(carpeta_tmp, exist_ok=True)
-        for archivo, tipo in zip(archivos_con_nombre, tipos_documento):
+        for archivo, tipo in pares_adj:
             ruta = f"{carpeta_tmp}/{archivo.filename}"
             with open(ruta, "wb") as f:
                 shutil.copyfileobj(archivo.file, f)

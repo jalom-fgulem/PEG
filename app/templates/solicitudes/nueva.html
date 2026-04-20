@@ -6,66 +6,102 @@
 {% block extra_head %}
 <style>
   .grid-form { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px 18px; }
+  .col-3  { grid-column: span 3; }
   .col-4  { grid-column: span 4; }
   .col-6  { grid-column: span 6; }
+  .col-8  { grid-column: span 8; }
   .col-12 { grid-column: span 12; }
   .section-title {
     font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em;
     color: #8a8691; font-weight: 700; margin: 8px 0 4px;
     grid-column: span 12; border-top: 1px solid var(--line); padding-top: 14px;
   }
-  @media (max-width: 780px) { .col-4,.col-6 { grid-column: span 12; } }
+  .calc-badge {
+    display: inline-block; padding: 12px 14px;
+    background: rgba(194,27,132,0.06); border: 1px solid rgba(194,27,132,0.15);
+    border-radius: 12px; font-weight: 700; color: var(--fgulem-magenta);
+    font-size: 1rem; min-width: 120px; text-align: right;
+  }
+  @media (max-width: 780px) { .col-3,.col-4,.col-6,.col-8 { grid-column: span 12; } }
 
-  .adj-slot { display: flex; flex-direction: column; gap: 6px; }
+  /* Ocultar buscador externo y select nativo del componente — usamos nuestro dropdown */
+  #ps-buscador { display: none !important; }
+  #ps-select   { display: none !important; }
+
+  /* Dropdown personalizado con búsqueda integrada */
+  .prov-trigger {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; border: 1px solid #d8dce2; border-radius: 12px;
+    background: white; cursor: pointer; user-select: none; min-height: 46px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .prov-trigger:hover  { border-color: var(--fgulem-blue); }
+  .prov-trigger.open   { border-color: var(--fgulem-blue); box-shadow: 0 0 0 4px rgba(95,159,211,0.14); }
+  .prov-panel {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    z-index: 999; background: white; border: 1px solid #d8dce2; border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12); overflow: hidden;
+  }
+  .prov-panel.open { display: block; }
+  .prov-opt {
+    padding: 10px 14px; cursor: pointer; font-size: 0.9rem;
+    border-bottom: 1px solid #f5f5f5; transition: background 0.1s;
+  }
+  .prov-opt:hover { background: rgba(95,159,211,0.07); }
+  .prov-opt.selected { background: rgba(194,27,132,0.06); }
+  .prov-opt.hidden-opt { display: none; }
+
+  /* Adjuntos — mismo sistema que PEGs */
+  .adj-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .adj-item { display:flex; align-items:center; gap:12px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#fafafa; flex-wrap:wrap; }
   .adj-file-label {
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 9px 14px;
-    background: rgba(160,32,100,0.07); border: 1px solid rgba(160,32,100,0.22);
-    border-radius: 10px; color: var(--fgulem-magenta);
-    font-weight: 700; font-size: 0.88rem; cursor: pointer;
-    position: relative; overflow: hidden;
+    display:inline-flex; align-items:center; gap:7px; padding:8px 14px;
+    background:rgba(160,32,100,0.07); border:1px solid rgba(160,32,100,0.22);
+    border-radius:10px; color:var(--fgulem-magenta); font-weight:700;
+    font-size:0.88rem; cursor:pointer; position:relative; overflow:hidden;
   }
-  .adj-file-label:hover { background: rgba(160,32,100,0.14); }
+  .adj-file-label:hover { background:rgba(160,32,100,0.14); }
   .adj-file-label input[type=file] {
-    position: absolute; top: 0; left: 0; opacity: 0;
-    width: 100%; height: 100%; cursor: pointer; font-size: 0;
+    position:absolute; top:0; left:0; opacity:0; width:100%; height:100%; cursor:pointer; font-size:0;
   }
-  .adj-file-label span { font-weight: 400; color: var(--ink-soft);
-    max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .adj-file-label span { font-weight:400; color:var(--ink-soft); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .btn-adj-del { background:transparent; border:1px solid rgba(194,27,132,0.25); color:var(--fgulem-magenta); border-radius:8px; padding:4px 10px; cursor:pointer; font-size:0.82rem; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="card">
+  <form method="post" action="/solicitudes/nueva" id="formSolicitud"
+        enctype="multipart/form-data" novalidate>
 
-  {% if error %}
-  <div style="padding:12px 16px;border-radius:10px;background:rgba(226,75,74,0.10);
-              border:1px solid rgba(226,75,74,0.28);color:#a32d2d;font-weight:600;margin-bottom:16px;">
-    ⚠ {{ error }}
-  </div>
-  {% endif %}
-
-  <form method="post" action="/solicitudes/nueva" enctype="multipart/form-data" novalidate>
+    {% if error %}
+    <div style="padding:12px 16px;border-radius:10px;background:rgba(226,75,74,0.10);
+                border:1px solid rgba(226,75,74,0.28);color:#a32d2d;font-weight:600;margin-bottom:16px;">
+      ⚠ {{ error }}
+    </div>
+    {% endif %}
 
     <!-- ── SECCIÓN: SERVICIO ── -->
     <div class="grid-form">
       <div class="section-title">Servicio</div>
 
       {% if usuario.rol == 'GESTOR_SERVICIO' %}
-      <div class="col-6 field">
+      <div class="col-4 field">
         <label>Servicio</label>
         <input type="text" readonly tabindex="-1"
                style="background:#f7f7f8;color:var(--ink-soft);"
                value="{{ servicios[0].nombre if servicios else '' }}">
-        <input type="hidden" name="id_servicio" value="{{ servicios[0].id_servicio if servicios else '' }}">
+        <input type="hidden" name="id_servicio" value="{{ usuario.id_servicio }}">
       </div>
       {% else %}
-      <div class="col-6 field">
+      <div class="col-4 field">
         <label for="id_servicio">Servicio <span style="color:var(--fgulem-magenta)">*</span></label>
         <select id="id_servicio" name="id_servicio" required>
           <option value="">— Seleccionar —</option>
           {% for s in servicios %}
-          <option value="{{ s.id_servicio }}">{{ s.nombre }}</option>
+          <option value="{{ s.id_servicio }}">
+            {{ s.nombre }}{% if not s.requiere_autorizacion %} ·{% endif %}
+          </option>
           {% endfor %}
         </select>
       </div>
@@ -76,260 +112,463 @@
     <div class="grid-form" style="margin-top:4px;">
       <div class="section-title">Proveedor</div>
 
-      <div class="col-12 field">
-        <div style="display:flex;gap:8px;margin-bottom:8px;">
-          <button type="button" onclick="abrirModalNuevoProveedor()"
-                  class="btn btn-secondary" style="font-size:0.8rem">
-            ＋ Nuevo proveedor
-          </button>
+      <div class="col-12 field" style="position:relative;">
+
+        {#
+          Incluimos el componente para obtener:
+            - Los botones "+ Nuevo proveedor" y "✏ Editar proveedor"
+            - El modal crear/editar con toda su lógica JS
+            - El <select id="ps-select" name="id_proveedor"> como campo de formulario
+          El buscador externo (#ps-buscador) y el select nativo (#ps-select) se ocultan
+          con CSS; los reemplazamos con nuestro dropdown con búsqueda integrada.
+        #}
+        {% include "components/proveedor_selector.html" %}
+
+        <!-- Dropdown personalizado con búsqueda integrada -->
+        <div id="prov-custom-wrapper" style="position:relative;margin-top:8px;">
+          <div class="prov-trigger" id="prov-trigger" onclick="_provToggle()" role="combobox">
+            <span id="prov-trigger-text" style="color:#9ca3af;">— Seleccionar proveedor —</span>
+            <span style="color:#9ca3af;font-size:0.8rem;">▾</span>
+          </div>
+
+          <div class="prov-panel" id="prov-panel">
+            <!-- Búsqueda dentro del panel -->
+            <div style="padding:10px 12px;border-bottom:1px solid #eef0f3;">
+              <input type="text" id="prov-search" autocomplete="off"
+                     placeholder="Buscar por nombre o NIF…"
+                     oninput="_provFiltrar(this.value)"
+                     style="width:100%;padding:8px 10px;border:1px solid #d8dce2;
+                            border-radius:8px;font-size:0.9rem;box-sizing:border-box;">
+            </div>
+            <!-- Lista de proveedores -->
+            <div id="prov-lista" style="max-height:260px;overflow-y:auto;">
+              <div id="prov-sin-resultados"
+                   style="display:none;padding:12px 14px;color:#9ca3af;font-size:0.88rem;">
+                Sin resultados para esa búsqueda.
+              </div>
+              {% for p in proveedores %}
+              <div class="prov-opt"
+                   data-id="{{ p.id_proveedor }}"
+                   data-forma="{{ p.id_forma_pago_habitual or '' }}"
+                   data-texto="{{ p.razon_social }} — {{ p.cif_nif }}"
+                   onclick="_provSeleccionar(this)">
+                <span style="font-weight:600;">{{ p.razon_social }}</span>
+                <span style="color:#6b7280;font-size:0.82rem;"> — {{ p.cif_nif }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
         </div>
 
-        <label for="id_proveedor">Proveedor <span style="color:var(--fgulem-magenta)">*</span></label>
-        <select id="id_proveedor" name="id_proveedor" required style="max-width:520px;">
-          <option value="">— Seleccionar proveedor —</option>
-          {% for p in proveedores %}
-          <option value="{{ p.id_proveedor }}">
-            {{ p.razon_social }} — {{ p.cif_nif }}
-          </option>
+      </div>{# col-12 #}
+
+      <!-- Forma de pago + Fecha en la misma fila -->
+      <div class="col-3 field">
+        <label for="id_forma_pago">Forma de pago <span style="color:var(--fgulem-magenta)">*</span></label>
+        <select id="id_forma_pago" name="id_forma_pago" required>
+          {% for fp in formas_pago %}
+          <option value="{{ fp.id_forma_pago }}">{{ fp.nombre }}</option>
           {% endfor %}
         </select>
       </div>
-    </div>
 
-    <!-- ── SECCIÓN: DATOS DEL GASTO ── -->
-    <div class="grid-form" style="margin-top:4px;">
-      <div class="section-title">Datos del gasto previsto</div>
-
-      <div class="col-6 field">
-        <label for="importe_estimado">Importe estimado (€) <span style="color:var(--fgulem-magenta)">*</span></label>
-        <input id="importe_estimado" name="importe_estimado" type="number"
-               step="0.01" min="0.01" required placeholder="0.00">
-      </div>
-
-      <div class="col-6 field">
+      <div class="col-3 field">
         <label for="fecha_estimada_gasto">Fecha estimada del gasto <span style="color:var(--fgulem-magenta)">*</span></label>
         <input id="fecha_estimada_gasto" name="fecha_estimada_gasto" type="date" required>
       </div>
+    </div>
 
+    <!-- ── SECCIÓN: CONCEPTO ── -->
+    <div class="grid-form" style="margin-top:4px;">
+      <div class="section-title">Concepto</div>
       <div class="col-12 field">
-        <label for="concepto">Concepto <span style="color:var(--fgulem-magenta)">*</span></label>
+        <label for="concepto">Describe el gasto a autorizar <span style="color:var(--fgulem-magenta)">*</span></label>
         <textarea id="concepto" name="concepto" rows="3" required
                   placeholder="Describe el gasto que necesitas autorizar…"></textarea>
       </div>
     </div>
 
-    <!-- ── SECCIÓN: ADJUNTOS ── -->
+    <!-- ── SECCIÓN: ADJUNTOS — igual que PEGs ── -->
+    <div style="margin-top:18px;">
+      <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.1em;color:#8a8691;
+                  font-weight:700;border-top:1px solid var(--line);padding-top:14px;margin-bottom:12px;">
+        Documentación justificativa
+        <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.82rem;"> (opcional)</span>
+      </div>
+      <ul class="adj-list" id="lista-docs-sol">
+        <li class="adj-item" id="sol-fila-doc-0"
+            style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <label class="adj-file-label">
+            📎 Seleccionar archivo
+            <input type="file" name="archivos"
+                   accept=".pdf,.jpg,.jpeg,.png"
+                   onchange="this.parentElement.querySelector('span').textContent = this.files[0]?.name || ''">
+            <span></span>
+          </label>
+          <select name="tipos_documento"
+                  style="width:190px;padding:8px 10px;border:1px solid #d8dce2;border-radius:10px;font-size:0.9rem;">
+            <option value="PRESUPUESTO">Presupuesto</option>
+            <option value="FACTURA_PROFORMA">Factura proforma</option>
+            <option value="OTRO">Otros</option>
+          </select>
+          <button type="button" onclick="solEliminarFila(this, 0)"
+                  class="btn-adj-del">Eliminar</button>
+        </li>
+      </ul>
+
+      <button type="button" onclick="solAñadirFila()"
+              class="btn btn-secondary"
+              style="font-size:0.82rem;margin-top:8px;">
+        ＋ Añadir otro documento
+      </button>
+    </div>
+
+    <!-- ── SECCIÓN: IMPORTES / LÍNEAS IVA ── -->
     <div class="grid-form" style="margin-top:4px;">
-      <div class="section-title">Documentación justificativa (opcional)</div>
+      <div class="section-title">Importes</div>
 
-      <div class="col-4 adj-slot">
-        <label>Adjunto 1</label>
-        <label class="adj-file-label">
-          📎 Seleccionar archivo
-          <input type="file" name="adjunto_1" accept=".pdf,.jpg,.jpeg,.png"
-                 onchange="this.parentElement.querySelector('span').textContent = this.files[0]?.name || ''">
-          <span></span>
-        </label>
-        <span style="font-size:0.75rem;color:#6b7280">PDF, JPG o PNG</span>
+      <div class="col-12">
+        <table id="tablaLineas" style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:8px 10px;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;color:#86828b;border-bottom:1px solid var(--line);width:160px;">Tipo IVA</th>
+              <th style="text-align:left;padding:8px 10px;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;color:#86828b;border-bottom:1px solid var(--line);">Base imponible (€)</th>
+              <th style="text-align:right;padding:8px 10px;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;color:#86828b;border-bottom:1px solid var(--line);width:120px;">IVA (€)</th>
+              <th style="text-align:right;padding:8px 10px;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;color:#86828b;border-bottom:1px solid var(--line);width:130px;">Total línea (€)</th>
+              <th style="padding:8px 10px;border-bottom:1px solid var(--line);width:48px;"></th>
+            </tr>
+          </thead>
+          <tbody id="lineasBody"></tbody>
+        </table>
+
+        <button type="button" onclick="añadirLinea()"
+          style="background:transparent;border:1px dashed rgba(194,27,132,0.35);color:var(--fgulem-magenta);
+                 border-radius:10px;padding:7px 18px;cursor:pointer;font-weight:700;font-size:0.88rem;">
+          + Añadir línea
+        </button>
       </div>
 
-      <div class="col-4 adj-slot">
-        <label>Adjunto 2</label>
-        <label class="adj-file-label">
-          📎 Seleccionar archivo
-          <input type="file" name="adjunto_2" accept=".pdf,.jpg,.jpeg,.png"
-                 onchange="this.parentElement.querySelector('span').textContent = this.files[0]?.name || ''">
-          <span></span>
+      <!-- IRPF -->
+      <div class="col-12" style="margin-top:8px;">
+        <label style="display:flex;align-items:center;gap:10px;font-weight:600;cursor:pointer;">
+          <input type="checkbox" id="tiene_irpf" name="tiene_irpf"
+            onchange="toggleIrpf()" style="width:auto;accent-color:var(--fgulem-magenta);">
+          Esta solicitud tiene retención de IRPF
         </label>
-        <span style="font-size:0.75rem;color:#6b7280">PDF, JPG o PNG</span>
+        <div id="bloqueIrpf" style="display:none;margin-top:12px;
+             align-items:center;gap:16px;flex-wrap:wrap;">
+          <div class="field" style="margin:0;">
+            <label for="tipo_irpf">Tipo retención</label>
+            <select id="tipo_irpf" name="tipo_irpf" onchange="recalcularTotales()"
+              style="padding:10px 14px;border:1px solid #d8dce2;border-radius:12px;font-size:0.95rem;">
+              <option value="7">7%</option>
+              <option value="15" selected>15%</option>
+              <option value="19">19%</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0;">
+            <label>Importe retención (€)</label>
+            <div class="calc-badge" id="importeIrpfDisplay" style="min-width:100px;">0.00 €</div>
+          </div>
+        </div>
       </div>
 
-      <div class="col-4 adj-slot">
-        <label>Adjunto 3</label>
-        <label class="adj-file-label">
-          📎 Seleccionar archivo
-          <input type="file" name="adjunto_3" accept=".pdf,.jpg,.jpeg,.png"
-                 onchange="this.parentElement.querySelector('span').textContent = this.files[0]?.name || ''">
-          <span></span>
-        </label>
-        <span style="font-size:0.75rem;color:#6b7280">PDF, JPG o PNG</span>
+      <!-- Totales -->
+      <div class="col-12" style="margin-top:14px;">
+        <div style="display:grid;grid-template-columns:1fr auto;gap:6px 32px;
+                    background:rgba(194,27,132,0.04);border:1px solid rgba(194,27,132,0.12);
+                    border-radius:14px;padding:18px 24px;max-width:480px;margin-left:auto;">
+          <span style="font-size:0.9rem;color:var(--ink-soft);">Base imponible total</span>
+          <span id="resumenBase" style="text-align:right;font-weight:700;">0,00 €</span>
+
+          <span style="font-size:0.9rem;color:var(--ink-soft);">IVA total</span>
+          <span id="resumenIva" style="text-align:right;font-weight:700;">0,00 €</span>
+
+          <span id="labelIrpf" style="font-size:0.9rem;color:var(--ink-soft);display:none;">Retención IRPF</span>
+          <span id="resumenIrpf" style="text-align:right;font-weight:700;color:var(--fgulem-magenta);display:none;">-0,00 €</span>
+
+          <span style="font-size:1rem;font-weight:700;border-top:1px solid var(--line);padding-top:10px;margin-top:4px;">IMPORTE ESTIMADO</span>
+          <span id="resumenTotal" class="calc-badge"
+                style="font-size:1.1rem;border-top:1px solid var(--line);padding-top:10px;margin-top:4px;
+                       background:none;border:none;padding:10px 0 0;">0,00 €</span>
+        </div>
       </div>
     </div>
 
     <!-- ── ACCIONES ── -->
-    <div style="display:flex;gap:12px;margin-top:28px;justify-content:flex-end;">
-      <a href="/solicitudes/" class="btn btn-secondary">Cancelar</a>
-      <button type="submit" class="btn btn-primary">Enviar solicitud</button>
+    <div id="errores-validacion"
+         style="display:none;padding:12px 16px;border-radius:10px;
+                background:rgba(226,75,74,0.10);border:1px solid rgba(226,75,74,0.28);
+                color:#a32d2d;font-weight:600;margin-bottom:14px;"></div>
+    <div class="actions" style="margin-top:22px;">
+      <button class="btn btn-primary" type="button" onclick="validarYEnviar()">
+        Enviar solicitud
+      </button>
+      <a class="btn btn-secondary" href="/solicitudes/">Cancelar</a>
     </div>
 
   </form>
-</div>
-
-<!-- ── MODAL: NUEVO PROVEEDOR RÁPIDO ── -->
-<div id="modalNuevoProveedor" class="modal-backdrop">
-  <div class="modal-panel" style="max-width:560px">
-    <div class="modal-header">
-      <h3 style="margin:0;">Nuevo proveedor</h3>
-      <button type="button" class="modal-close" onclick="cerrarModalProveedor()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px;">
-
-        <div class="field" style="margin:0;">
-          <label>Tipo de persona</label>
-          <select id="mp-tipo-persona">
-            <option value="JURIDICA">Jurídica</option>
-            <option value="FISICA">Física</option>
-          </select>
-        </div>
-
-        <div class="field" style="margin:0;">
-          <label>CIF/NIF <span style="color:var(--fgulem-magenta)">*</span></label>
-          <input type="text" id="mp-cif-nif" placeholder="B12345678">
-        </div>
-
-        <div class="field" style="grid-column:span 2;margin:0;">
-          <label>Razón social <span style="color:var(--fgulem-magenta)">*</span></label>
-          <input type="text" id="mp-razon-social" placeholder="Nombre o denominación social">
-        </div>
-
-        <div class="field" style="grid-column:span 2;margin:0;">
-          <label>Nombre comercial</label>
-          <input type="text" id="mp-nombre-comercial" placeholder="Si difiere de la razón social">
-        </div>
-
-        <div class="field" style="margin:0;">
-          <label>Teléfono</label>
-          <input type="text" id="mp-telefono" placeholder="987 000 000">
-        </div>
-
-        <div class="field" style="margin:0;">
-          <label>Email</label>
-          <input type="email" id="mp-email" placeholder="contacto@empresa.com">
-        </div>
-
-        <div class="field" style="grid-column:span 2;margin:0;">
-          <label>IBAN</label>
-          <input type="text" id="mp-iban" placeholder="ES00 0000 0000 0000 0000 0000">
-        </div>
-
-        <div style="grid-column:span 2;border-top:1px solid var(--line);padding-top:12px;
-                    font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;
-                    color:#8a8691;font-weight:700;">
-          Dirección postal
-        </div>
-
-        <div class="field" style="grid-column:span 2;margin:0;">
-          <label>Dirección</label>
-          <input type="text" id="mp-direccion" placeholder="Calle, número, piso…">
-        </div>
-
-        <div class="field" style="margin:0;">
-          <label>Localidad</label>
-          <input type="text" id="mp-localidad">
-        </div>
-
-        <div class="field" style="margin:0;">
-          <label>Provincia</label>
-          <input type="text" id="mp-provincia">
-        </div>
-
-        <div class="field" style="margin:0;">
-          <label>Código postal</label>
-          <input type="text" id="mp-codigo-postal" placeholder="24001" maxlength="5">
-        </div>
-
-        <div id="mp-error" style="grid-column:span 2;color:var(--fgulem-magenta);
-             font-size:0.88rem;display:none;padding:8px 12px;
-             background:rgba(194,27,132,0.07);border-radius:8px;margin:0;"></div>
-      </div>
-
-      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
-        <button type="button" onclick="cerrarModalProveedor()"
-          style="background:transparent;border:1px solid #d8dce2;border-radius:10px;
-                 padding:9px 18px;cursor:pointer;font-size:0.9rem;">
-          Cancelar
-        </button>
-        <button type="button" onclick="guardarProveedorRapido()"
-          style="background:linear-gradient(135deg,var(--fgulem-magenta),var(--fgulem-magenta-soft));
-                 color:#fff;border:none;border-radius:10px;padding:9px 22px;
-                 cursor:pointer;font-weight:700;font-size:0.9rem;">
-          Guardar
-        </button>
-      </div>
-    </div>
-  </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-  // ── Modal nuevo proveedor ──────────────────────────────────────────────────
-  function abrirModalNuevoProveedor() {
-    document.getElementById("modalNuevoProveedor").classList.add("active");
-  }
-  function cerrarModalProveedor() {
-    document.getElementById("modalNuevoProveedor").classList.remove("active");
-    document.getElementById("mp-error").style.display = "none";
+  // ────────────────────────────────────────────────────────────────────────────
+  // DROPDOWN DE PROVEEDOR CON BÚSQUEDA INTEGRADA
+  // El componente incluido gestiona el modal de nuevo/editar y mantiene
+  // #ps-select (oculto) como campo de formulario real.
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // Interceptar el callback del componente para actualizar nuestro display
+  window._psOnProveedorSeleccionado = function(prov) {
+    // Actualizar display del dropdown personalizado
+    _provActualizarDisplay(prov.id, prov.razon_social + " — " + prov.cif_nif);
+    // Actualizar forma de pago si el proveedor tiene una habitual
+    if (prov.id_forma_pago_habitual) {
+      const fp = document.getElementById("id_forma_pago");
+      if (fp) fp.value = String(prov.id_forma_pago_habitual);
+    }
+  };
+
+  function _provActualizarDisplay(id, texto) {
+    document.getElementById("prov-trigger-text").textContent = texto;
+    document.getElementById("prov-trigger-text").style.color = "var(--ink)";
+    // Sincronizar con el select real del componente (campo de formulario)
+    const sel = document.getElementById("ps-select");
+    if (sel) sel.value = String(id);
+    // Habilitar botón editar del componente
+    const btnEd = document.getElementById("ps-btn-editar");
+    if (btnEd) btnEd.disabled = false;
+    // Marcar opción seleccionada visualmente
+    document.querySelectorAll(".prov-opt").forEach(el => {
+      el.classList.toggle("selected", el.dataset.id === String(id));
+    });
   }
 
-  async function guardarProveedorRapido() {
-    const cif       = document.getElementById("mp-cif-nif").value.trim();
-    const razon     = document.getElementById("mp-razon-social").value.trim();
-    const errEl     = document.getElementById("mp-error");
-    errEl.style.display = "none";
+  function _provToggle() {
+    const trigger = document.getElementById("prov-trigger");
+    const panel   = document.getElementById("prov-panel");
+    const isOpen  = panel.classList.contains("open");
+    if (isOpen) {
+      panel.classList.remove("open");
+      trigger.classList.remove("open");
+    } else {
+      panel.classList.add("open");
+      trigger.classList.add("open");
+      setTimeout(() => document.getElementById("prov-search").focus(), 40);
+    }
+  }
 
-    if (!cif || !razon) {
-      errEl.textContent = "CIF/NIF y Razón social son obligatorios.";
-      errEl.style.display = "block";
+  function _provFiltrar(q) {
+    const texto = q.toLowerCase().trim();
+    let vis = 0;
+    document.querySelectorAll(".prov-opt").forEach(el => {
+      const match = !texto || el.dataset.texto.toLowerCase().includes(texto);
+      el.classList.toggle("hidden-opt", !match);
+      if (match) vis++;
+    });
+    document.getElementById("prov-sin-resultados").style.display = vis === 0 ? "" : "none";
+  }
+
+  function _provSeleccionar(el) {
+    _provActualizarDisplay(el.dataset.id, el.dataset.texto);
+    if (el.dataset.forma) {
+      const fp = document.getElementById("id_forma_pago");
+      if (fp) fp.value = el.dataset.forma;
+    }
+    document.getElementById("prov-panel").classList.remove("open");
+    document.getElementById("prov-trigger").classList.remove("open");
+    document.getElementById("prov-search").value = "";
+    _provFiltrar("");
+  }
+
+  // Cerrar dropdown al hacer clic fuera
+  document.addEventListener("click", function(e) {
+    const wrapper = document.getElementById("prov-custom-wrapper");
+    if (wrapper && !wrapper.contains(e.target)) {
+      document.getElementById("prov-panel").classList.remove("open");
+      document.getElementById("prov-trigger").classList.remove("open");
+    }
+  });
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // ADJUNTOS — misma lógica que PEGs
+  // ────────────────────────────────────────────────────────────────────────────
+  let _solContadorFilas = 1;
+
+  function solAñadirFila() {
+    const lista = document.getElementById("lista-docs-sol");
+    const id    = _solContadorFilas++;
+    const li    = document.createElement("li");
+    li.className = "adj-item";
+    li.id = `sol-fila-doc-${id}`;
+    li.style.cssText = "display:flex;align-items:center;gap:10px;flex-wrap:wrap";
+    li.innerHTML = `
+      <label class="adj-file-label">
+        📎 Seleccionar archivo
+        <input type="file" name="archivos" accept=".pdf,.jpg,.jpeg,.png"
+               onchange="this.parentElement.querySelector('span').textContent =
+                         this.files[0]?.name || ''">
+        <span></span>
+      </label>
+      <select name="tipos_documento"
+              style="width:190px;padding:8px 10px;border:1px solid #d8dce2;border-radius:10px;font-size:0.9rem;">
+        <option value="PRESUPUESTO">Presupuesto</option>
+        <option value="FACTURA_PROFORMA">Factura proforma</option>
+        <option value="OTRO">Otros</option>
+      </select>
+      <button type="button" onclick="solEliminarFila(this, ${id})"
+              class="btn-adj-del">Eliminar</button>
+    `;
+    lista.appendChild(li);
+  }
+
+  function solEliminarFila(btn, id) {
+    const filas = document.querySelectorAll("#lista-docs-sol .adj-item");
+    if (filas.length <= 1) { alert("Debe haber al menos un documento."); return; }
+    document.getElementById(`sol-fila-doc-${id}`).remove();
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // LÍNEAS DE IVA + IRPF + TOTALES — idéntico a PEGs
+  // ────────────────────────────────────────────────────────────────────────────
+  const MAX_LINEAS = 5;
+
+  function fmt(n) {
+    return n.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+  }
+
+  function crearFila() {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="padding:6px 8px;">
+        <select name="lineas_tipo_iva" onchange="recalcularTotales()"
+          style="padding:8px 10px;border:1px solid #d8dce2;border-radius:10px;font-size:0.93rem;width:100%;">
+          <option value="0">0%</option>
+          <option value="5">5%</option>
+          <option value="10">10%</option>
+          <option value="21" selected>21%</option>
+        </select>
+      </td>
+      <td style="padding:6px 8px;">
+        <input type="number" name="lineas_base_imponible" step="0.01" min="0" placeholder="0.00"
+          oninput="recalcularTotales()"
+          style="padding:8px 10px;border:1px solid #d8dce2;border-radius:10px;font-size:0.93rem;width:100%;text-align:right;">
+      </td>
+      <td style="padding:6px 8px;text-align:right;font-weight:600;" class="col-iva">—</td>
+      <td style="padding:6px 8px;text-align:right;font-weight:600;" class="col-total">—</td>
+      <td style="padding:6px 8px;text-align:center;">
+        <button type="button" onclick="eliminarFila(this)"
+          style="background:transparent;border:1px solid rgba(194,27,132,0.25);color:var(--fgulem-magenta);
+                 border-radius:8px;padding:4px 10px;cursor:pointer;font-size:0.85rem;font-weight:700;">✕</button>
+      </td>`;
+    return tr;
+  }
+
+  function añadirLinea() {
+    const tbody = document.getElementById("lineasBody");
+    if (tbody.rows.length >= MAX_LINEAS) return;
+    tbody.appendChild(crearFila());
+    actualizarBotonesEliminar();
+    recalcularTotales();
+  }
+
+  function eliminarFila(btn) {
+    const tbody = document.getElementById("lineasBody");
+    if (tbody.rows.length <= 1) return;
+    btn.closest("tr").remove();
+    actualizarBotonesEliminar();
+    recalcularTotales();
+  }
+
+  function actualizarBotonesEliminar() {
+    const tbody = document.getElementById("lineasBody");
+    tbody.querySelectorAll("button").forEach(b => b.disabled = tbody.rows.length <= 1);
+  }
+
+  function toggleIrpf() {
+    const cb     = document.getElementById("tiene_irpf");
+    const bloque = document.getElementById("bloqueIrpf");
+    bloque.style.display = cb.checked ? "flex" : "none";
+    recalcularTotales();
+  }
+
+  function recalcularTotales() {
+    const tbody = document.getElementById("lineasBody");
+    let sumaBase = 0, sumaIva = 0;
+
+    Array.from(tbody.rows).forEach(tr => {
+      const tipo = parseFloat(tr.querySelector("select").value) || 0;
+      const base = parseFloat(tr.querySelector("input[type=number]").value) || 0;
+      const iva  = Math.round(base * tipo * 100) / 10000;
+      tr.querySelector(".col-iva").textContent   = base > 0 ? iva.toFixed(2) : "—";
+      tr.querySelector(".col-total").textContent = base > 0 ? (base + iva).toFixed(2) : "—";
+      sumaBase += base;
+      sumaIva  += iva;
+    });
+
+    const tieneIrpf = document.getElementById("tiene_irpf").checked;
+    const tipoIrpf  = tieneIrpf ? (parseFloat(document.getElementById("tipo_irpf").value) || 0) : 0;
+    const irpf      = Math.round(sumaBase * tipoIrpf * 100) / 10000;
+    const total     = sumaBase + sumaIva - irpf;
+
+    document.getElementById("resumenBase").textContent  = fmt(sumaBase);
+    document.getElementById("resumenIva").textContent   = fmt(sumaIva);
+    document.getElementById("resumenTotal").textContent = fmt(total);
+
+    const labelIrpf   = document.getElementById("labelIrpf");
+    const resumenIrpf = document.getElementById("resumenIrpf");
+    const importeDisp = document.getElementById("importeIrpfDisplay");
+    if (tieneIrpf) {
+      labelIrpf.style.display   = "";
+      resumenIrpf.style.display = "";
+      resumenIrpf.textContent   = "-" + fmt(irpf);
+      importeDisp.textContent   = fmt(irpf);
+    } else {
+      labelIrpf.style.display   = "none";
+      resumenIrpf.style.display = "none";
+    }
+  }
+
+  // Inicialización
+  añadirLinea();
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // VALIDACIÓN Y ENVÍO
+  // ────────────────────────────────────────────────────────────────────────────
+  function validarYEnviar() {
+    const errores = [];
+
+    {% if usuario.rol != 'GESTOR_SERVICIO' %}
+    if (!document.getElementById("id_servicio").value)
+      errores.push("Selecciona un servicio.");
+    {% endif %}
+
+    if (!document.getElementById("ps-select").value)
+      errores.push("Selecciona un proveedor.");
+
+    if (!document.getElementById("concepto").value.trim())
+      errores.push("Introduce el concepto del gasto.");
+
+    if (!document.getElementById("fecha_estimada_gasto").value)
+      errores.push("Indica la fecha estimada del gasto.");
+
+    const bases = document.querySelectorAll("input[name='lineas_base_imponible']");
+    const hayBase = Array.from(bases).some(i => parseFloat(i.value) > 0);
+    if (!hayBase)
+      errores.push("Introduce al menos una línea de importe.");
+
+    const div = document.getElementById("errores-validacion");
+    if (errores.length > 0) {
+      div.innerHTML = "⚠ Corrige los siguientes campos:<ul style='margin:6px 0 0 18px;font-weight:400'>"
+        + errores.map(e => `<li>${e}</li>`).join("") + "</ul>";
+      div.style.display = "block";
+      div.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
-    const payload = {
-      tipo_persona:     document.getElementById("mp-tipo-persona").value,
-      cif_nif:          cif,
-      razon_social:     razon,
-      nombre_comercial: document.getElementById("mp-nombre-comercial").value.trim() || null,
-      telefono:         document.getElementById("mp-telefono").value.trim() || null,
-      email:            document.getElementById("mp-email").value.trim() || null,
-      iban:             document.getElementById("mp-iban").value.trim() || null,
-      direccion:        document.getElementById("mp-direccion").value.trim() || null,
-      localidad:        document.getElementById("mp-localidad").value.trim() || null,
-      provincia:        document.getElementById("mp-provincia").value.trim() || null,
-      codigo_postal:    document.getElementById("mp-codigo-postal").value.trim() || null,
-      pais:             "ES",
-      servicios:        [],
-    };
-
-    try {
-      const res  = await fetch("/proveedores/api/crear", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        errEl.textContent = data.error || "Error al guardar el proveedor.";
-        errEl.style.display = "block";
-        return;
-      }
-      // Añadir al select y seleccionar
-      const sel = document.getElementById("id_proveedor");
-      const opt = document.createElement("option");
-      opt.value = data.id_proveedor;
-      opt.textContent = `${data.razon_social} — ${data.cif_nif}`;
-      opt.selected = true;
-      sel.appendChild(opt);
-      cerrarModalProveedor();
-    } catch (e) {
-      errEl.textContent = "Error de conexión.";
-      errEl.style.display = "block";
-    }
+    div.style.display = "none";
+    document.getElementById("formSolicitud").submit();
   }
-
-  // Cerrar modal al pulsar fuera
-  document.getElementById("modalNuevoProveedor").addEventListener("click", function(e) {
-    if (e.target === this) cerrarModalProveedor();
-  });
 </script>
 {% endblock %}

@@ -128,6 +128,16 @@
   .factura-estado.ok { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
   .factura-estado.pendiente { background: #fef9c3; border: 1px solid #fde047; color: #854d0e; }
   .btn-toggle-factura { background: none; border: none; text-decoration: underline; cursor: pointer; font-size: 0.8rem; margin-left: 8px; color: inherit; }
+  /* Panel de acciones */
+  .panel-acciones { background: #f8f9fb; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .panel-acciones-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .panel-validacion-inline { margin-top: 14px; padding-top: 14px; border-top: 1px solid #e2e8f0; }
+  .val-fila1 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .val-linea-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .val-linea-sel { flex: 1; min-width: 180px; padding: 7px 9px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.88rem; }
+  .val-linea-pct { width: 80px; padding: 7px 9px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.88rem; text-align: right; }
+  .val-linea-del { background: transparent; border: 1px solid rgba(194,27,132,0.25); color: var(--fgulem-magenta); border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 0.85rem; line-height:1; }
+  .panel-validado-info { margin-top: 12px; padding: 10px 14px; background: rgba(95,159,211,0.07); border: 1px solid rgba(95,159,211,0.18); border-radius: 8px; font-size: 0.9rem; color: var(--ink); }
 </style>
 {% endblock %}
 
@@ -137,10 +147,85 @@
     {% if msg_type == 'success' %}✓{% else %}⚠{% endif %} {{ msg }}
   </div>
 {% endif %}
-<div style="display: grid; grid-template-columns: 1fr 320px; gap: 18px; align-items: start;">
+<!-- PANEL DE ACCIONES -->
+<div class="panel-acciones">
+  <div class="panel-acciones-btns">
+    {% if puede_editar %}
+    <button onclick="mostrarEdicion()" class="btn-accion btn-editar" style="width:auto;padding:8px 16px;">✏️ Editar PEG</button>
+    {% endif %}
 
-  <!-- COLUMNA PRINCIPAL -->
-  <div>
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'VALIDADO' %}
+      {% if peg.lineas_analitica %}
+      <button class="btn-remesa-active" onclick="abrirModalRemesa()" style="width:auto;padding:8px 16px;">Añadir a Remesa</button>
+      {% else %}
+      <button class="btn-remesa-disabled" disabled style="width:auto;padding:8px 16px;">Añadir a Remesa</button>
+      {% endif %}
+    {% endif %}
+
+    {% if peg.codigo_estado == 'EN_REMESA' %}
+    <span class="badge-remesa">En remesa: <a href="/remesas/{{ peg.id_remesa }}" style="font-weight:800;">{{ peg.codigo_remesa }}</a></span>
+    {% elif peg.codigo_estado == 'PAGADO' %}
+    <span class="badge-pagado">Pagado</span>
+    {% endif %}
+
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'INCIDENCIA' %}
+    <form method="post" action="/pegs/{{ peg.id_peg }}/reabrir" style="display:inline">
+      <button class="btn btn-secondary" type="submit">Reabrir como pendiente</button>
+    </form>
+    {% endif %}
+
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado in ['PENDIENTE', 'VALIDADO', 'INCIDENCIA'] %}
+    <button onclick="confirmarEliminar()" class="btn-accion btn-eliminar" style="width:auto;padding:8px 14px;">🗑️ Eliminar</button>
+    <form id="form-eliminar" method="POST" action="/pegs/{{ peg.id_peg }}/eliminar" style="display:none"></form>
+    {% endif %}
+
+    <a class="btn btn-secondary" href="/pegs/" style="margin-left:auto;">← Volver a PEGs</a>
+  </div>
+
+  {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
+  <div class="panel-validacion-inline">
+    <div class="val-fila1">
+      <label style="font-size:0.85rem;font-weight:700;white-space:nowrap;color:#166534;">Cuenta de gasto</label>
+      <input type="text" id="val-cuenta-gasto" placeholder="621000" oninput="valRecalc()"
+             style="width:110px;padding:7px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:0.88rem;">
+      <button type="button" onclick="valAñadirLinea()"
+              style="background:transparent;border:1px dashed rgba(22,163,74,0.4);color:#16a34a;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:0.85rem;font-weight:700;">
+        + Añadir línea analítica
+      </button>
+      <span style="font-size:0.85rem;color:#6b7280;white-space:nowrap;">Total: <strong id="val-total-pct" style="color:#16a34a">0.00%</strong></span>
+      <button type="button" id="btn-validar-peg" onclick="validarPeg()" disabled
+              style="background:#16a34a;color:white;border:none;border-radius:8px;padding:8px 18px;font-weight:700;font-size:0.88rem;cursor:pointer;opacity:0.5;transition:opacity 0.15s;">
+        ✅ Validar PEG
+      </button>
+    </div>
+    <div id="val-lineas-container"></div>
+    <div id="val-error" style="display:none;margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(226,75,74,0.09);border:1px solid rgba(226,75,74,0.25);color:#a32d2d;font-size:0.87rem;font-weight:600;"></div>
+  </div>
+
+  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">
+    <form method="post" action="/pegs/{{ peg.id_peg }}/incidencia"
+          style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <textarea name="comentario" rows="1" placeholder="Motivo de la incidencia..."
+                style="flex:1;min-width:200px;max-width:480px;padding:7px 9px;border:1px solid #d8dce2;border-radius:8px;font-size:0.88rem;resize:none;"></textarea>
+      <button class="btn-incidencia" type="submit" style="width:auto;white-space:nowrap;padding:8px 16px;">Marcar incidencia</button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if peg.cuenta_gasto %}
+  <div class="panel-validado-info">
+    Cuenta de gasto: <strong>{{ peg.cuenta_gasto }}</strong>
+    {% if lineas_analitica_completas %}
+    &nbsp;|&nbsp; Analítica:
+    {% for l in lineas_analitica_completas %}
+    <strong>{{ l.nombre_servicio }}{% if l.nombre_proyecto %}/{{ l.nombre_proyecto }}{% endif %}</strong>&nbsp;{{ "%.0f"|format(l.porcentaje) }}%{% if not loop.last %} · {% endif %}
+    {% endfor %}
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div>
 
     <!-- Vista solo lectura -->
     <div id="vista-lectura">
@@ -225,7 +310,7 @@
         <div style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em; color:#8a8691; font-weight:700; margin-bottom:8px;">Analíticas contables</div>
         {% for la in lineas_analitica_completas %}
         <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-size:0.9rem; border-bottom:1px solid var(--line);">
-          <span style="color:var(--ink); font-weight:600;">{{ la.nivel_1 }}{% if la.nivel_2 %} / {{ la.nivel_2 }}{% endif %} — {{ la.descripcion }}</span>
+          <span style="color:var(--ink); font-weight:600;">{{ la.nombre_servicio }}{% if la.nombre_proyecto %} / {{ la.nombre_proyecto }}{% endif %}</span>
           <span style="font-weight:700; color:var(--fgulem-magenta);">{{ "%.2f"|format(la.porcentaje) }}%</span>
         </div>
         {% endfor %}
@@ -276,29 +361,78 @@
         <!-- Proveedor (edición) -->
         <div style="margin-top:14px; border-top:1px solid var(--line); padding-top:16px;">
           <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;color:#8a8691;font-weight:700;margin-bottom:10px;">Proveedor</div>
-          {% include "components/proveedor_selector.html" %}
+
           {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
-          <div style="margin-top:10px;" id="bloque-cuenta-cliente">
-            <label class="form-label">Cuenta cliente</label>
-            <div style="display:flex;gap:6px;align-items:center">
-              <input type="text" name="cuenta_cliente_proveedor"
-                     id="input-cuenta-cliente"
-                     class="select-field" style="width:120px"
-                     placeholder="4100000"
-                     value="{{ peg.cuenta_cliente_proveedor or cuenta_proveedor or '' }}">
-              <button type="button"
-                      onclick="usarCuentaSaco()"
-                      class="btn btn-secondary"
-                      style="font-size:0.75rem;white-space:nowrap;padding:4px 8px"
-                      title="Usar cuenta saco">
-                Saco
-              </button>
-            </div>
-            <span style="font-size:0.75rem;color:#6b7280">
-              Cuenta propia, saco ({{ cuenta_saco }}) o nueva
-            </span>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <button type="button" onclick="abrirModalEditarProveedor()"
+                    class="btn btn-secondary" style="font-size:0.8rem"
+                    id="btn-editar-proveedor" disabled>
+              ✏ Editar proveedor
+            </button>
+            <button type="button" onclick="editAbrirModalProveedor()"
+                    class="btn btn-secondary" style="font-size:0.8rem">
+              ＋ Nuevo proveedor
+            </button>
           </div>
           {% endif %}
+
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+            <div style="flex:2;min-width:200px">
+              <label class="form-label">Proveedor *</label>
+              <select name="id_proveedor" id="select-proveedor"
+                      class="select-field" required
+                      onchange="onProveedorCambiado(this)">
+                <option value="">— Selecciona proveedor —</option>
+                {% for p in proveedores %}
+                <option value="{{ p.id_proveedor }}"
+                        data-cuenta="{{ p.cuenta_cliente or '' }}"
+                        {% if peg is defined and peg.id_proveedor == p.id_proveedor %}selected{% endif %}>
+                  {{ p.razon_social }} — {{ p.cif_nif }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+            <div style="flex:1;min-width:160px" id="bloque-cuenta-cliente">
+              <label class="form-label">Cuenta cliente</label>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input type="text" name="cuenta_cliente_proveedor"
+                       id="input-cuenta-cliente"
+                       class="select-field" style="width:120px"
+                       placeholder="4100000"
+                       value="{{ peg.cuenta_cliente_proveedor or cuenta_proveedor or '' }}">
+                <button type="button"
+                        onclick="usarCuentaSaco()"
+                        class="btn btn-secondary"
+                        style="font-size:0.75rem;white-space:nowrap;padding:4px 8px"
+                        title="Usar cuenta saco">
+                  Saco
+                </button>
+              </div>
+              <span style="font-size:0.75rem;color:#6b7280">
+                Cuenta propia, saco ({{ cuenta_saco }}) o nueva
+              </span>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Modal editar proveedor -->
+          <div id="modal-editar-proveedor"
+               style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);
+                      z-index:1000;align-items:center;justify-content:center">
+            <div style="background:white;border-radius:10px;padding:28px;
+                        width:100%;max-width:640px;max-height:90vh;overflow-y:auto">
+              <h3 style="margin:0 0 16px;font-size:1rem;font-weight:700">Editar proveedor</h3>
+              <div id="modal-editar-proveedor-contenido"></div>
+              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+                <button type="button" onclick="cerrarModalEditarProveedor()"
+                        class="btn btn-secondary">Cancelar</button>
+                <button type="button" onclick="guardarProveedorEditado()"
+                        class="btn btn-primary">Guardar cambios</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Editor de líneas IVA -->
@@ -379,6 +513,113 @@
         <div style="display:flex; gap:10px; margin-top:18px;">
           <button type="submit" class="btn btn-primary">Guardar cambios</button>
           <button type="button" class="btn-cancelar-edicion" onclick="ocultarEdicion()">Cancelar</button>
+        </div>
+
+        <!-- Modal nuevo proveedor (completo, desde edición) -->
+        <div id="modalNuevoProveedor" class="modal-backdrop">
+          <div class="modal-panel" style="max-width:560px">
+            <div class="modal-header">
+              <h3 style="margin:0;">Nuevo proveedor</h3>
+              <button type="button" class="modal-close" onclick="cerrarModalProveedor()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px;">
+                <div class="field" style="margin:0;">
+                  <label>Tipo de persona</label>
+                  <select id="mp-tipo-persona">
+                    <option value="JURIDICA">Jurídica</option>
+                    <option value="FISICA">Física</option>
+                  </select>
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>CIF/NIF <span style="color:var(--fgulem-magenta)">*</span></label>
+                  <input type="text" id="mp-cif-nif" placeholder="B12345678">
+                </div>
+                <div class="field" style="grid-column:span 2;margin:0;">
+                  <label>Razón social <span style="color:var(--fgulem-magenta)">*</span></label>
+                  <input type="text" id="mp-razon-social" placeholder="Nombre o denominación social">
+                </div>
+                <div class="field" style="grid-column:span 2;margin:0;">
+                  <label>Nombre comercial</label>
+                  <input type="text" id="mp-nombre-comercial" placeholder="Si difiere de la razón social">
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>Teléfono</label>
+                  <input type="text" id="mp-telefono" placeholder="987 000 000">
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>Email</label>
+                  <input type="email" id="mp-email" placeholder="contacto@empresa.com">
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>IBAN</label>
+                  <input type="text" id="mp-iban" placeholder="ES00 0000 0000 0000 0000 0000">
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>Forma de pago habitual</label>
+                  <select id="mp-forma-pago">
+                    {% for fp in formas_pago %}
+                    <option value="{{ fp.id_forma_pago }}">{{ fp.nombre }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+                <div class="field" style="grid-column:span 2;margin:0;border-top:1px solid var(--line);padding-top:12px;">
+                  <label>Cuenta cliente (grupo 4)</label>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <input type="text" id="mp-cuenta-cliente" placeholder="Sin asignar"
+                           style="width:130px;font-family:monospace" maxlength="10">
+                    <button type="button" onclick="usarCuentaSacoMp()"
+                            class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px">
+                      Saco ({{ cuenta_saco }})
+                    </button>
+                    <button type="button" onclick="calcularNuevaCuentaMp()"
+                            class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px">
+                      Nueva correlativa
+                    </button>
+                  </div>
+                </div>
+                {% endif %}
+                <div style="grid-column:span 2;border-top:1px solid var(--line);padding-top:12px;
+                            font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;
+                            color:#8a8691;font-weight:700;">
+                  Dirección postal
+                </div>
+                <div class="field" style="grid-column:span 2;margin:0;">
+                  <label>Dirección</label>
+                  <input type="text" id="mp-direccion" placeholder="Calle, número, piso…">
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>Localidad</label>
+                  <input type="text" id="mp-localidad">
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>Provincia</label>
+                  <input type="text" id="mp-provincia">
+                </div>
+                <div class="field" style="margin:0;">
+                  <label>Código postal</label>
+                  <input type="text" id="mp-codigo-postal" placeholder="24001" maxlength="5">
+                </div>
+                <div id="mp-error" style="grid-column:span 2;color:var(--fgulem-magenta);
+                     font-size:0.88rem;display:none;padding:8px 12px;
+                     background:rgba(194,27,132,0.07);border-radius:8px;margin:0;"></div>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+                <button type="button" onclick="cerrarModalProveedor()"
+                  style="background:transparent;border:1px solid #d8dce2;border-radius:10px;
+                         padding:9px 18px;cursor:pointer;font-size:0.9rem;">
+                  Cancelar
+                </button>
+                <button type="button" onclick="guardarProveedorRapido()"
+                  style="background:linear-gradient(135deg,var(--fgulem-magenta),var(--fgulem-magenta-soft));
+                         color:#fff;border:none;border-radius:10px;padding:9px 22px;
+                         cursor:pointer;font-weight:700;font-size:0.9rem;">
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
       </form>
@@ -488,181 +729,6 @@
 
   </div>
 
-  <!-- COLUMNA LATERAL -->
-  <div>
-
-    <div class="card">
-      <h3 style="margin-top:0; margin-bottom:14px;">Acciones</h3>
-
-      <!-- ACCIÓN: EDITAR -->
-      {% if puede_editar %}
-      <div class="accion-bloque">
-        <button onclick="mostrarEdicion()" class="btn-accion btn-editar">
-          ✏️ Editar PEG
-        </button>
-      </div>
-      {% endif %}
-
-      <!-- ACCIÓN: VALIDAR (solo GESTOR_ECONOMICO/ADMIN, solo PENDIENTE) -->
-      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
-      <div class="accion-bloque panel-validacion">
-        <h3 class="panel-titulo">✅ Validar PEG</h3>
-        <form method="POST" action="/pegs/{{ peg.id_peg }}/validar">
-          <div class="campo-form">
-            <label>Cuenta cliente (grupo 4) <span class="obligatorio">*</span></label>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <input type="text" name="cuenta_cliente_proveedor" id="cuenta_cliente_validar" required
-                     class="select-field"
-                     value="{{ peg.cuenta_cliente_proveedor or cuenta_proveedor or '' }}"
-                     placeholder="4100000"
-                     style="font-family:monospace;width:130px;">
-              {% if not (peg.cuenta_cliente_proveedor or cuenta_proveedor) %}
-              <select onchange="aplicarOpcionCuentaValidar(this)"
-                      style="padding:9px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.95rem">
-                <option value="">— Elegir —</option>
-                <option value="saco">Cuenta saco ({{ cuenta_saco }})</option>
-                <option value="nueva">Nueva cuenta correlativa</option>
-              </select>
-              {% endif %}
-            </div>
-            <span style="font-size:0.75rem;color:#6b7280;margin-top:4px;display:block">
-              {% if peg.cuenta_cliente_proveedor or cuenta_proveedor %}
-                Cuenta del proveedor asignada. Modifícala si es necesario.
-              {% else %}
-                Sin cuenta asignada. Elige una opción o introduce el número manualmente.
-              {% endif %}
-            </span>
-          </div>
-          <div class="campo-form">
-            <label>Cuenta de gasto (grupo 6) <span class="obligatorio">*</span></label>
-            <select name="id_cuenta_gasto" required class="select-field">
-              <option value="">— Selecciona —</option>
-              {% for cg in cuentas_gasto %}
-              <option value="{{ cg.id_cuenta_gasto }}"
-                      {% if peg.id_cuenta_gasto == cg.id_cuenta_gasto %}selected{% endif %}>
-                {{ cg.codigo }} — {{ cg.descripcion }}
-              </option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="campo-form" id="panel-analiticas">
-            <label>Analíticas contables <span class="obligatorio">*</span></label>
-            {% macro analitica_select(name) %}
-              <select name="{{ name }}" class="select-field analitica-sel" style="flex:2;" onchange="recalcSuma()">
-                <option value="">— Selecciona —</option>
-                {% for a in analiticas %}
-                <option value="{{ a.id_analitica }}">{{ a.nivel_1 }}{% if a.nivel_2 %} / {{ a.nivel_2 }}{% endif %} — {{ a.descripcion }}</option>
-                {% endfor %}
-              </select>
-            {% endmacro %}
-            <div id="analitica-row-1" style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
-              {{ analitica_select("analitica_id_1") }}
-              <input type="number" name="analitica_porcentaje_1" class="select-field analitica-pct" step="0.01" min="0.01" max="100" placeholder="%" style="width:70px;" oninput="recalcSuma()" value="100">
-              <span style="font-size:0.8rem;color:#6b7280">%</span>
-            </div>
-            <div id="analitica-row-2" style="display:none; gap:8px; align-items:center; margin-bottom:6px;">
-              {{ analitica_select("analitica_id_2") }}
-              <input type="number" name="analitica_porcentaje_2" class="select-field analitica-pct" step="0.01" min="0.01" max="100" placeholder="%" style="width:70px;" oninput="recalcSuma()">
-              <span style="font-size:0.8rem;color:#6b7280">%</span>
-            </div>
-            <div id="analitica-row-3" style="display:none; gap:8px; align-items:center; margin-bottom:6px;">
-              {{ analitica_select("analitica_id_3") }}
-              <input type="number" name="analitica_porcentaje_3" class="select-field analitica-pct" step="0.01" min="0.01" max="100" placeholder="%" style="width:70px;" oninput="recalcSuma()">
-              <span style="font-size:0.8rem;color:#6b7280">%</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
-              <button type="button" id="btn-aniadir-analitica" onclick="mostrarSiguienteFilaAnalitica()"
-                      style="background:transparent;border:1px dashed rgba(22,163,74,0.4);color:#16a34a;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:0.83rem;font-weight:700;">
-                + Añadir analítica
-              </button>
-              <span id="suma-analiticas" style="font-size:0.83rem;color:#6b7280;">Suma: <strong style="color:#16a34a">100.00%</strong></span>
-            </div>
-            {% if not analiticas %}
-            <p class="aviso-warning">⚠️ Sin analíticas configuradas para este servicio.</p>
-            {% endif %}
-          </div>
-          <div class="campo-form">
-            <label>Observaciones</label>
-            <textarea name="observaciones" rows="3" class="textarea-field"
-                      placeholder="Opcional..."></textarea>
-          </div>
-          <button type="submit" class="btn-validar"
-                  {% if not analiticas %}disabled{% endif %}>
-            ✅ Confirmar validación
-          </button>
-          <p style="font-size:0.80rem; color:#4a7c59; margin:8px 0 0; line-height:1.4;">
-            Al validar se generará automáticamente el número de factura interno.
-          </p>
-        </form>
-      </div>
-      {% endif %}
-
-      <!-- Remesa (estado VALIDADO) -->
-      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'VALIDADO' %}
-      <div class="accion-bloque">
-        {% if peg.lineas_analitica %}
-        <button class="btn-remesa-active" onclick="abrirModalRemesa()">Añadir a Remesa</button>
-        {% else %}
-        <button class="btn-remesa-disabled" disabled title="Debe asignar una analítica al PEG antes de añadirlo a una remesa">Añadir a Remesa</button>
-        {% endif %}
-      </div>
-      {% endif %}
-
-      <!-- Incidencia (solo PENDIENTE) -->
-      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
-      <div class="accion-bloque">
-        <form method="post" action="/pegs/{{ peg.id_peg }}/incidencia">
-          <div style="margin-bottom:8px;">
-            <textarea name="comentario" rows="2" placeholder="Motivo de la incidencia..." style="width:100%; padding:8px; border:1px solid #d8dce2; border-radius:8px; font-size:0.88rem; resize:vertical; box-sizing:border-box;"></textarea>
-          </div>
-          <button class="btn-incidencia" type="submit">Marcar incidencia</button>
-        </form>
-      </div>
-      {% endif %}
-
-      <!-- Reabrir (INCIDENCIA) -->
-      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'INCIDENCIA' %}
-      <div class="accion-bloque">
-        <form method="post" action="/pegs/{{ peg.id_peg }}/reabrir">
-          <button class="btn btn-secondary" type="submit" style="width:100%;">Reabrir como pendiente</button>
-        </form>
-      </div>
-      {% endif %}
-
-      <!-- Badge remesa / pagado -->
-      {% if peg.codigo_estado == 'EN_REMESA' %}
-      <div class="accion-bloque">
-        <span class="badge-remesa">
-          En remesa: <a href="/remesas/{{ peg.id_remesa }}" style="font-weight:800;">{{ peg.codigo_remesa }}</a>
-        </span>
-      </div>
-      {% elif peg.codigo_estado == 'PAGADO' %}
-      <div class="accion-bloque">
-        <span class="badge-pagado">Pagado</span>
-      </div>
-      {% endif %}
-
-      <!-- ACCIÓN: ELIMINAR (solo GESTOR_ECONOMICO/ADMIN, estados permitidos) -->
-      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN']
-            and peg.codigo_estado in ['PENDIENTE', 'VALIDADO', 'INCIDENCIA'] %}
-      <div class="accion-bloque">
-        <button onclick="confirmarEliminar()" class="btn-accion btn-eliminar">
-          🗑️ Eliminar PEG
-        </button>
-        <form id="form-eliminar" method="POST"
-              action="/pegs/{{ peg.id_peg }}/eliminar" style="display:none">
-        </form>
-      </div>
-      {% endif %}
-
-    </div>
-
-    <div class="actions" style="flex-direction: column;">
-      <a class="btn btn-secondary" href="/pegs/" style="width:100%; justify-content:center;">← Volver a todos los PEGs</a>
-    </div>
-
-  </div>
-</div>
 
 <!-- Historial de cambios (full-width) -->
 <div class="card historial-section" style="margin-top:18px;">
@@ -739,6 +805,86 @@ function confirmarEliminar() {
   }
 }
 </script>
+{% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
+<script>
+const SERVICIOS_PROYECTOS = {{ servicios_proyectos_todos | tojson }};
+
+function _renderOpcionesLinea() {
+  return SERVICIOS_PROYECTOS.flatMap(s =>
+    s.proyectos.map(p =>
+      `<option value="${s.id}-${p.id}">${s.nombre} / ${p.nombre}</option>`
+    )
+  ).join('');
+}
+
+function valAñadirLinea() {
+  const container = document.getElementById('val-lineas-container');
+  if (container.children.length >= 3) return;
+  const row = document.createElement('div');
+  row.className = 'val-linea-row';
+  row.innerHTML = `
+    <select class="val-linea-sel" onchange="valRecalc()">${_renderOpcionesLinea()}</select>
+    <input type="number" class="val-linea-pct" value="${container.children.length === 0 ? 100 : ''}"
+           min="0.01" max="100" step="0.01" oninput="valRecalc()">
+    <span style="font-size:0.85rem;color:#6b7280">%</span>
+    <button type="button" class="val-linea-del" onclick="valEliminarLinea(this)">×</button>
+  `;
+  container.appendChild(row);
+  valRecalc();
+}
+
+function valEliminarLinea(btn) {
+  btn.closest('.val-linea-row').remove();
+  valRecalc();
+}
+
+function valRecalc() {
+  const rows = document.querySelectorAll('.val-linea-row');
+  const total = Array.from(rows).reduce((sum, row) => {
+    return sum + (parseFloat(row.querySelector('.val-linea-pct').value) || 0);
+  }, 0);
+  document.getElementById('val-total-pct').textContent = total.toFixed(2) + '%';
+  const cuentaOk = document.getElementById('val-cuenta-gasto').value.trim().length > 0;
+  const sumOk = Math.abs(total - 100) <= 0.01 && rows.length > 0;
+  const btn = document.getElementById('btn-validar-peg');
+  btn.disabled = !(cuentaOk && sumOk);
+  btn.style.opacity = (cuentaOk && sumOk) ? '1' : '0.5';
+  btn.style.cursor = (cuentaOk && sumOk) ? 'pointer' : 'not-allowed';
+}
+
+async function validarPeg() {
+  const cuenta = document.getElementById('val-cuenta-gasto').value.trim();
+  const rows = document.querySelectorAll('.val-linea-row');
+  const lineas = Array.from(rows).map(row => {
+    const partes = row.querySelector('.val-linea-sel').value.split('-');
+    return {
+      servicio_id: parseInt(partes[0]),
+      proyecto_id: parseInt(partes[1]),
+      porcentaje: parseFloat(row.querySelector('.val-linea-pct').value),
+    };
+  });
+  const errEl = document.getElementById('val-error');
+  errEl.style.display = 'none';
+  try {
+    const res = await fetch('/pegs/{{ peg.id_peg }}/validar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cuenta_gasto: cuenta, lineas_analitica: lineas }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      location.reload();
+    } else {
+      errEl.textContent = 'Error: ' + (data.error || 'No se pudo validar');
+      errEl.style.display = 'block';
+    }
+  } catch (e) {
+    errEl.textContent = 'Error de red. Inténtelo de nuevo.';
+    errEl.style.display = 'block';
+  }
+}
+</script>
+{% endif %}
 {% if puede_editar %}
 <script>
 function mostrarEdicion() {
@@ -831,9 +977,149 @@ function editToggleMotivo() {
   if (ta) ta.required = requiere;
 }
 
+// ── Proveedor (edición) ───────────────────────────────────────────────────────
+function editFiltrarProveedores() {
+  const termino = document.getElementById('editBuscadorProveedor').value.trim().toLowerCase();
+  const sel = document.getElementById('editIdProveedor');
+  Array.from(sel.options).forEach(opt => {
+    if (!opt.value) return;
+    opt.hidden = termino.length > 0 && !opt.text.toLowerCase().includes(termino);
+  });
+}
+
+async function editCargarDatosProveedor() {
+  const id = document.getElementById('editIdProveedor').value;
+  if (!id) return;
+  try {
+    const res  = await fetch(`/pegs/proveedor/${id}/json`);
+    const data = await res.json();
+    document.getElementById('editIbanProveedor').value = data.iban || '';
+    if (data.id_forma_pago_habitual) {
+      document.getElementById('editFormaPago').value = data.id_forma_pago_habitual;
+    }
+  } catch(e) {}
+}
+
+function editAbrirModalProveedor() {
+  abrirModalProveedor();
+}
+
+function abrirModalProveedor() {
+  ['mp-razon-social','mp-cif-nif','mp-nombre-comercial','mp-iban',
+   'mp-telefono','mp-email','mp-direccion','mp-localidad',
+   'mp-provincia','mp-codigo-postal','mp-cuenta-cliente']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const tp = document.getElementById('mp-tipo-persona');
+  if (tp) tp.value = 'JURIDICA';
+  document.getElementById('mp-error').style.display = 'none';
+  document.getElementById('modalNuevoProveedor').classList.add('active');
+  document.getElementById('mp-razon-social').focus();
+}
+
+function cerrarModalProveedor() {
+  document.getElementById('modalNuevoProveedor').classList.remove('active');
+}
+
+async function guardarProveedorRapido() {
+  const razonSocial     = document.getElementById('mp-razon-social').value.trim();
+  const cifNif          = document.getElementById('mp-cif-nif').value.trim();
+  const tipoPersona     = document.getElementById('mp-tipo-persona').value;
+  const nombreComercial = document.getElementById('mp-nombre-comercial').value.trim();
+  const iban            = document.getElementById('mp-iban').value.trim();
+  const formaPago       = document.getElementById('mp-forma-pago').value;
+  const telefono        = document.getElementById('mp-telefono').value.trim();
+  const email           = document.getElementById('mp-email').value.trim();
+  const direccion       = document.getElementById('mp-direccion').value.trim();
+  const localidad       = document.getElementById('mp-localidad').value.trim();
+  const provincia       = document.getElementById('mp-provincia').value.trim();
+  const codigoPostal    = document.getElementById('mp-codigo-postal').value.trim();
+  const cuentaEl        = document.getElementById('mp-cuenta-cliente');
+  const cuentaCliente   = cuentaEl ? cuentaEl.value.trim() : null;
+  const errEl           = document.getElementById('mp-error');
+
+  if (!razonSocial || !cifNif) {
+    errEl.textContent   = 'Razón social y CIF/NIF son obligatorios.';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  try {
+    const res = await fetch('/proveedores/rapido', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tipo_persona:           tipoPersona,
+        razon_social:           razonSocial,
+        cif_nif:                cifNif,
+        nombre_comercial:       nombreComercial || null,
+        iban:                   iban            || null,
+        id_forma_pago_habitual: parseInt(formaPago) || null,
+        telefono:               telefono        || null,
+        email:                  email           || null,
+        direccion:              direccion       || null,
+        localidad:              localidad       || null,
+        provincia:              provincia       || null,
+        codigo_postal:          codigoPostal    || null,
+        cuenta_cliente:         cuentaCliente   || null,
+      }),
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      errEl.textContent   = data.detail || data.error || 'Error al crear el proveedor.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // Añadir a select-proveedor y seleccionarlo
+    const sel = document.getElementById('select-proveedor');
+    const opt = new Option(`${data.razon_social} — ${data.cif_nif}`, data.id);
+    opt.dataset.cuenta = cuentaCliente || '';
+    sel.add(opt);
+    sel.value = data.id;
+
+    // Actualizar campo cuenta cliente del formulario de edición
+    const inputCuenta = document.getElementById('input-cuenta-cliente');
+    if (inputCuenta) inputCuenta.value = cuentaCliente || '';
+
+    // Habilitar botón editar proveedor
+    const btnEditar = document.getElementById('btn-editar-proveedor');
+    if (btnEditar) btnEditar.disabled = false;
+
+    cerrarModalProveedor();
+  } catch(e) {
+    errEl.textContent   = 'Error de red. Inténtelo de nuevo.';
+    errEl.style.display = 'block';
+  }
+}
+
+function usarCuentaSacoMp() {
+  const campo = document.getElementById('mp-cuenta-cliente');
+  if (campo) campo.value = '{{ cuenta_saco }}';
+}
+
+function calcularNuevaCuentaMp() {
+  fetch('/proveedores/siguiente-cuenta-cliente')
+    .then(r => r.json())
+    .then(data => {
+      const campo = document.getElementById('mp-cuenta-cliente');
+      if (campo) campo.value = data.cuenta;
+    })
+    .catch(() => alert('Error al calcular la siguiente cuenta.'));
+}
+
+document.getElementById('modalNuevoProveedor').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModalProveedor();
+});
+
 // Inicializar botones al cargar
 document.addEventListener('DOMContentLoaded', function () {
   editActualizarBotones();
+  // Habilitar "Editar proveedor" si ya hay un proveedor seleccionado
+  const selProv  = document.getElementById('select-proveedor');
+  const btnEditar = document.getElementById('btn-editar-proveedor');
+  if (selProv && btnEditar) btnEditar.disabled = !selProv.value;
 });
 </script>
 {% endif %}
@@ -931,54 +1217,196 @@ document.getElementById('modalRemesa').addEventListener('click', function(e) {
 {% endif %}
 
 <script>
-// ── Proveedor: callback del componente selector ───────────────────────────
-window._psOnProveedorSeleccionado = function(prov) {
+// ── Proveedor: editar / cuenta saco ──────────────────────────────────────
+const CUENTA_SACO = "{{ cuenta_saco }}";
+
+function onProveedorCambiado(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  const cuenta = opt.dataset.cuenta || "";
   const inputCuenta = document.getElementById("input-cuenta-cliente");
-  if (inputCuenta) inputCuenta.value = prov.cuenta_cliente || "";
-};
+  if (inputCuenta) inputCuenta.value = cuenta;
+  const btnEditar = document.getElementById("btn-editar-proveedor");
+  if (btnEditar) btnEditar.disabled = !sel.value;
+}
 
 function usarCuentaSaco() {
-  document.getElementById("input-cuenta-cliente").value = "{{ cuenta_saco }}";
-}
-</script>
-{% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
-<script>
-let _filaAnalitica = 1;
-
-function mostrarSiguienteFilaAnalitica() {
-  if (_filaAnalitica >= 3) return;
-  _filaAnalitica++;
-  const row = document.getElementById('analitica-row-' + _filaAnalitica);
-  if (row) row.style.display = 'flex';
-  if (_filaAnalitica >= 3) {
-    document.getElementById('btn-aniadir-analitica').style.display = 'none';
-  }
-  recalcSuma();
+  document.getElementById("input-cuenta-cliente").value = CUENTA_SACO;
 }
 
-function recalcSuma() {
-  let suma = 0;
-  let alguno = false;
-  for (let i = 1; i <= 3; i++) {
-    const row = document.getElementById('analitica-row-' + i);
-    if (!row || row.style.display === 'none') continue;
-    const sel = row.querySelector('.analitica-sel');
-    const pct = row.querySelector('.analitica-pct');
-    if (sel && sel.value && pct && pct.value) {
-      suma += parseFloat(pct.value) || 0;
-      alguno = true;
+const PAISES = [
+  ["ES","España"],["","──────────"],
+  ["DE","Alemania"],["AT","Austria"],["BE","Bélgica"],["BG","Bulgaria"],
+  ["HR","Croacia"],["CY","Chipre"],["CZ","Chequia"],["DK","Dinamarca"],
+  ["SK","Eslovaquia"],["SI","Eslovenia"],["EE","Estonia"],["FI","Finlandia"],
+  ["FR","Francia"],["GR","Grecia"],["HU","Hungría"],["IE","Irlanda"],
+  ["IT","Italia"],["LV","Letonia"],["LT","Lituania"],["LU","Luxemburgo"],
+  ["MT","Malta"],["NL","Países Bajos"],["PL","Polonia"],["PT","Portugal"],
+  ["RO","Rumanía"],["SE","Suecia"],["","──────────"],
+  ["CH","Suiza"],["NO","Noruega"],["IS","Islandia"],["GB","Reino Unido"],
+  ["TR","Turquía"],["UA","Ucrania"],["","──────────"],
+  ["US","Estados Unidos"],["CA","Canadá"],["MX","México"],["BR","Brasil"],
+  ["AR","Argentina"],["CO","Colombia"],["CL","Chile"],["PE","Perú"],["VE","Venezuela"],
+  ["","──────────"],
+  ["CN","China"],["JP","Japón"],["KR","Corea del Sur"],["IN","India"],
+  ["MA","Marruecos"],["ZA","Sudáfrica"],["OTHER","Otro"],
+];
+
+function poblarSelectPais(el, valorActual) {
+  el.innerHTML = PAISES.map(([v, t]) =>
+    v === ""
+      ? `<option value="" disabled>${t}</option>`
+      : `<option value="${v}"${v === (valorActual||"ES") ? " selected" : ""}>${t}</option>`
+  ).join("");
+}
+
+function abrirModalEditarProveedor() {
+  const idProv = document.getElementById("select-proveedor").value;
+  if (!idProv) return;
+  fetch(`/proveedores/${idProv}/datos-json`)
+    .then(r => r.json())
+    .then(p => {
+      {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+      const camposCuentaCliente = `
+        <div style="grid-column:span 2;margin-top:4px;border-top:1px solid #e8ecf0;padding-top:10px;">
+          <label style="display:block;font-size:0.85rem;font-weight:600;color:#374151;margin-bottom:4px;">Cuenta cliente</label>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <input type="text" id="ep-cuenta-cliente"
+                   style="width:120px;padding:8px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.93rem;"
+                   value="${p.cuenta_cliente || ''}">
+            <button type="button" onclick="usarCuentaSacoModal()"
+                    class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px">Saco</button>
+            <button type="button" onclick="calcularNuevaCuenta()"
+                    class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px">Nueva cuenta</button>
+          </div>
+          <span style="font-size:0.75rem;color:#6b7280">Saco: {{ cuenta_saco }} · o introduce una nueva</span>
+        </div>
+      `;
+      {% else %}
+      const camposCuentaCliente = '';
+      {% endif %}
+      const fs = "width:100%;padding:8px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.93rem;box-sizing:border-box;";
+      const lb = "display:block;font-size:0.85rem;font-weight:600;color:#374151;margin-bottom:4px;";
+      document.getElementById("modal-editar-proveedor-contenido").innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px 16px;">
+          <div>
+            <label style="${lb}">Tipo de persona</label>
+            <select id="ep-tipo" style="${fs}">
+              <option value="JURIDICA" ${p.tipo_persona==="JURIDICA"?"selected":""}>Jurídica</option>
+              <option value="FISICA"   ${p.tipo_persona==="FISICA"?"selected":""}>Física</option>
+            </select>
+          </div>
+          <div>
+            <label style="${lb}">CIF/NIF</label>
+            <input type="text" id="ep-nif" style="${fs}" value="${p.nif||p.cif_nif||''}">
+          </div>
+          <div style="grid-column:span 2">
+            <label style="${lb}">Razón social <span style="color:#c21b84">*</span></label>
+            <input type="text" id="ep-razon" style="${fs}" value="${p.razon_social||''}">
+          </div>
+          <div style="grid-column:span 2">
+            <label style="${lb}">Nombre comercial</label>
+            <input type="text" id="ep-nombre-comercial" style="${fs}" value="${p.nombre_comercial||''}">
+          </div>
+          <div>
+            <label style="${lb}">Teléfono</label>
+            <input type="text" id="ep-telefono" style="${fs}" value="${p.telefono||''}">
+          </div>
+          <div>
+            <label style="${lb}">Email</label>
+            <input type="text" id="ep-email" style="${fs}" value="${p.email||''}">
+          </div>
+          <div style="grid-column:span 2">
+            <label style="${lb}">IBAN</label>
+            <input type="text" id="ep-iban" style="${fs}" value="${p.iban||''}">
+          </div>
+          <div style="grid-column:span 2;border-top:1px solid #e8ecf0;padding-top:10px;
+                      font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;
+                      color:#8a8691;font-weight:700;">Dirección postal</div>
+          <div style="grid-column:span 2">
+            <label style="${lb}">Dirección</label>
+            <input type="text" id="ep-direccion" style="${fs}" value="${p.direccion||''}">
+          </div>
+          <div>
+            <label style="${lb}">Localidad</label>
+            <input type="text" id="ep-localidad" style="${fs}" value="${p.localidad||''}">
+          </div>
+          <div>
+            <label style="${lb}">Código postal</label>
+            <input type="text" id="ep-cp" style="${fs}" value="${p.codigo_postal||''}">
+          </div>
+          <div>
+            <label style="${lb}">Provincia</label>
+            <input type="text" id="ep-provincia" style="${fs}" value="${p.provincia||''}">
+          </div>
+          <div>
+            <label style="${lb}">País</label>
+            <select id="ep-pais" style="${fs}"></select>
+          </div>
+          <input type="hidden" id="ep-id" value="${p.id_proveedor}">
+          ${camposCuentaCliente}
+        </div>`;
+      poblarSelectPais(document.getElementById("ep-pais"), p.pais || "ES");
+      document.getElementById("modal-editar-proveedor").style.display = "flex";
+    });
+}
+
+function cerrarModalEditarProveedor() {
+  document.getElementById("modal-editar-proveedor").style.display = "none";
+}
+
+function guardarProveedorEditado() {
+  const id = document.getElementById("ep-id").value;
+  const datos = {
+    tipo_persona:     document.getElementById("ep-tipo").value,
+    nif:              document.getElementById("ep-nif").value,
+    razon_social:     document.getElementById("ep-razon").value,
+    nombre_comercial: document.getElementById("ep-nombre-comercial").value,
+    telefono:         document.getElementById("ep-telefono").value,
+    email:            document.getElementById("ep-email").value,
+    iban:             document.getElementById("ep-iban").value,
+    direccion:        document.getElementById("ep-direccion").value,
+    localidad:        document.getElementById("ep-localidad").value,
+    codigo_postal:    document.getElementById("ep-cp").value,
+    provincia:        document.getElementById("ep-provincia").value,
+    pais:             document.getElementById("ep-pais").value,
+  };
+  {% if usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
+  const epCuenta = document.getElementById("ep-cuenta-cliente");
+  if (epCuenta) datos.cuenta_cliente = epCuenta.value;
+  {% endif %}
+  fetch(`/proveedores/${id}/editar-json`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(datos),
+  }).then(r => {
+    if (r.ok) {
+      cerrarModalEditarProveedor();
+      const opt = document.querySelector(`#select-proveedor option[value="${id}"]`);
+      if (opt) opt.textContent = datos.razon_social + " — " + datos.nif;
+      if (opt) {
+        opt.dataset.cuenta = datos.cuenta_cliente || "";
+        const inputCuenta = document.getElementById("input-cuenta-cliente");
+        if (inputCuenta) inputCuenta.value = datos.cuenta_cliente || "";
+      }
+    } else {
+      alert("Error al guardar el proveedor.");
     }
-  }
-  const sumaEl = document.getElementById('suma-analiticas');
-  const ok = alguno && Math.abs(suma - 100) < 0.01;
-  if (sumaEl) {
-    sumaEl.innerHTML = `Suma: <strong style="color:${ok ? '#16a34a' : '#dc2626'}">${suma.toFixed(2)}%</strong>`;
-  }
-  const btnValidar = document.querySelector('.btn-validar');
-  if (btnValidar) btnValidar.disabled = !ok;
+  });
 }
 
-document.addEventListener('DOMContentLoaded', recalcSuma);
+function usarCuentaSacoModal() {
+  const campo = document.getElementById("ep-cuenta-cliente");
+  if (campo) campo.value = "{{ cuenta_saco }}";
+}
+
+function calcularNuevaCuenta() {
+  fetch("/proveedores/siguiente-cuenta-cliente")
+    .then(r => r.json())
+    .then(data => {
+      const campo = document.getElementById("ep-cuenta-cliente");
+      if (campo) campo.value = data.cuenta;
+    })
+    .catch(() => alert("Error al calcular la siguiente cuenta."));
+}
 </script>
-{% endif %}
 {% endblock %}

@@ -80,8 +80,8 @@ def pegs_nuevo(
         srv = _obtener_servicio(usuario.get("id_servicio"))
         if srv and srv.get("requiere_autorizacion"):
             request.session["flash_error"] = (
-                "Este servicio requiere autorización previa. "
-                "Crea primero una solicitud."
+                "Este servicio requiere autorización previa al gasto. "
+                "Crea primero una solicitud de autorización."
             )
             return RedirectResponse(url="/solicitudes/nueva", status_code=303)
 
@@ -144,8 +144,8 @@ async def pegs_nuevo_post(
         srv = _obtener_servicio(id_servicio)
         if srv and srv.get("requiere_autorizacion"):
             request.session["flash_error"] = (
-                "Este servicio requiere autorización previa. "
-                "Crea primero una solicitud."
+                "Este servicio requiere autorización previa al gasto. "
+                "Crea primero una solicitud de autorización."
             )
             return RedirectResponse(url="/solicitudes/nueva", status_code=303)
 
@@ -413,20 +413,27 @@ def peg_detalle(
     estados = pegs_service.obtener_estados()
     formas_pago = pegs_service.obtener_datos_formulario()["formas_pago"]
     proveedores = pegs_service.get_proveedores()
-    analiticas = pegs_service.obtener_analiticas_servicio(peg["id_servicio"])
-    cuentas_gasto = pegs_service.listar_cuentas_gasto()
 
-    # Cuenta grupo 4 del proveedor asociado al PEG (para pre-rellenar en validación)
+    # Cuenta grupo 4 del proveedor asociado al PEG (para pre-rellenar en edición)
     proveedor_peg = next((p for p in proveedores if p["id_proveedor"] == peg.get("id_proveedor")), None)
     cuenta_proveedor = (proveedor_peg or {}).get("cuenta_cliente") or ""
 
     return templates.TemplateResponse(
         request=request,
         name="pegs/detalle.html",
-        context={"peg": peg, "estados": estados, "formas_pago": formas_pago, "proveedores": proveedores, "analiticas": analiticas, "cuentas_gasto": cuentas_gasto, "usuario": usuario, "msg": msg, "msg_type": msg_type,
-                 "cuenta_saco": pegs_service.get_parametro("cuenta_saco"),
-                 "cuenta_proveedor": cuenta_proveedor,
-                 "lineas_analitica_completas": pegs_service.obtener_lineas_analitica_peg(id_peg)},
+        context={
+            "peg": peg,
+            "estados": estados,
+            "formas_pago": formas_pago,
+            "proveedores": proveedores,
+            "usuario": usuario,
+            "msg": msg,
+            "msg_type": msg_type,
+            "cuenta_saco": pegs_service.get_parametro("cuenta_saco"),
+            "cuenta_proveedor": cuenta_proveedor,
+            "lineas_analitica_completas": pegs_service.obtener_lineas_analitica_peg(id_peg),
+            "servicios_proyectos_todos": pegs_service.get_servicios_proyectos_todos(),
+        },
     )
 
 
@@ -634,49 +641,25 @@ def post_eliminar_peg(
         )
 
 
+class _ValidarPegBody(BaseModel):
+    cuenta_gasto: str
+    lineas_analitica: List[dict]
+
+
 @router.post("/{id_peg}/validar")
 def post_validar_peg(
     id_peg: int,
-    analitica_id_1: Optional[int] = Form(None),
-    analitica_porcentaje_1: Optional[str] = Form(None),
-    analitica_id_2: Optional[int] = Form(None),
-    analitica_porcentaje_2: Optional[str] = Form(None),
-    analitica_id_3: Optional[int] = Form(None),
-    analitica_porcentaje_3: Optional[str] = Form(None),
-    observaciones: str = Form(""),
-    id_cuenta_gasto: Optional[int] = Form(None),
-    cuenta_cliente_proveedor: str = Form(""),
+    body: _ValidarPegBody,
     usuario: dict = Depends(require_login),
 ):
     if usuario["rol"] not in ["GESTOR_ECONOMICO", "ADMIN"]:
-        return RedirectResponse(f"/pegs/{id_peg}?msg=Sin+permiso&msg_type=error", status_code=303)
-    if not id_cuenta_gasto:
-        return HTMLResponse("Campo obligatorio: cuenta de gasto", status_code=400)
-    if not cuenta_cliente_proveedor.strip():
-        return HTMLResponse("Campo obligatorio: cuenta del proveedor (cliente A3Con)", status_code=400)
-    lineas_analitica = []
-    for id_a, pct_s in [
-        (analitica_id_1, analitica_porcentaje_1),
-        (analitica_id_2, analitica_porcentaje_2),
-        (analitica_id_3, analitica_porcentaje_3),
-    ]:
-        if id_a and pct_s:
-            try:
-                lineas_analitica.append({"id_analitica": id_a, "porcentaje": float(pct_s)})
-            except ValueError:
-                pass
+        return JSONResponse({"ok": False, "error": "Sin permiso"}, status_code=403)
     resultado = pegs_service.validar_peg(
-        id_peg, lineas_analitica, observaciones, usuario,
-        id_cuenta_gasto=id_cuenta_gasto,
-        cuenta_cliente_proveedor=cuenta_cliente_proveedor,
+        id_peg, body.cuenta_gasto, body.lineas_analitica, usuario
     )
     if resultado["ok"]:
-        return RedirectResponse(f"/pegs/{id_peg}?msg=PEG+validado+correctamente", status_code=303)
-    else:
-        return RedirectResponse(
-            f"/pegs/{id_peg}?msg={resultado['error']}&msg_type=error",
-            status_code=303,
-        )
+        return JSONResponse({"ok": True})
+    return JSONResponse({"ok": False, "error": resultado.get("error", "Error al validar")}, status_code=400)
 
 
 @router.post("/{id_peg}/incidencia")
