@@ -20,6 +20,20 @@ _proyectos = [
     {"id_proyecto": 5, "id_servicio": 3, "codigo": "EXP",    "nombre": "Experience Plus"},
 ]
 
+SERVICIOS_PROYECTOS_TODOS = [
+    {"id": 1, "nombre": "Hospital Veterinario", "proyectos": [
+        {"id": 1, "nombre": "Hospital Veterinario General"},
+    ]},
+    {"id": 2, "nombre": "Centro de Idiomas", "proyectos": [
+        {"id": 2, "nombre": "Español"},
+        {"id": 3, "nombre": "Idiomas Modernos"},
+    ]},
+    {"id": 3, "nombre": "Desarrollo Profesional", "proyectos": [
+        {"id": 4, "nombre": "Incofi"},
+        {"id": 5, "nombre": "Experience Plus"},
+    ]},
+]
+
 _analiticas = [
     {"id_analitica": 1, "id_servicio": 1, "id_proyecto": 1, "nivel_1": "6", "nivel_2": "2", "descripcion": "Hospital Veterinario General",          "activo": True},
     {"id_analitica": 2, "id_servicio": 2, "id_proyecto": 2, "nivel_1": "2", "nivel_2": "1", "descripcion": "Centro de Idiomas - Español",            "activo": True},
@@ -62,9 +76,9 @@ _pegs = [
         "id_forma_pago_prevista": 1,
         "lineas": [{"tipo_iva": 21, "base_imponible": 1000.00}],
         "base_imponible": 1000.00, "importe_iva": 210.00, "importe_irpf": 0.00, "importe_total": 1210.00,
-        "id_peg_estado": 4, "lineas_analitica": [{"id_analitica": 1, "porcentaje": 100.0}], "id_remesa": None, "creado_por": 1,
+        "id_peg_estado": 4, "lineas_analitica": [{"servicio_id": 1, "proyecto_id": 1, "porcentaje": 100.0}], "id_remesa": None, "creado_por": 1,
         "fecha_creacion": "2026-01-16", "fecha_actualizacion": "2026-01-22", "fecha_pago": "2026-01-22",
-        "numero_factura_interno": "F6001ENE", "id_cuenta_gasto": 3, "cuenta_cliente_proveedor": "4100003", "factura_recibida": True,
+        "numero_factura_interno": "F6001ENE", "id_cuenta_gasto": 3, "cuenta_gasto": "623000", "cuenta_cliente_proveedor": "4100003", "factura_recibida": True,
     },
     {
         "id_peg": 2, "codigo_peg": "PEG-2026-0002",
@@ -76,9 +90,9 @@ _pegs = [
         "id_forma_pago_prevista": 1,
         "lineas": [{"tipo_iva": 21, "base_imponible": 500.00}],
         "base_imponible": 500.00, "importe_iva": 105.00, "importe_irpf": 0.00, "importe_total": 605.00,
-        "id_peg_estado": 3, "lineas_analitica": [{"id_analitica": 2, "porcentaje": 100.0}], "id_remesa": 2, "creado_por": 2,
+        "id_peg_estado": 3, "lineas_analitica": [{"servicio_id": 2, "proyecto_id": 2, "porcentaje": 100.0}], "id_remesa": 2, "creado_por": 2,
         "fecha_creacion": "2026-02-10", "fecha_actualizacion": "2026-02-10", "fecha_pago": None,
-        "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_cliente_proveedor": "", "factura_recibida": False,
+        "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_gasto": "", "cuenta_cliente_proveedor": "", "factura_recibida": False,
     },
     {
         "id_peg": 3, "codigo_peg": "PEG-2026-0003",
@@ -90,9 +104,9 @@ _pegs = [
         "id_forma_pago_prevista": 1,
         "lineas": [{"tipo_iva": 21, "base_imponible": 320.00}],
         "base_imponible": 320.00, "importe_iva": 67.20, "importe_irpf": 0.00, "importe_total": 387.20,
-        "id_peg_estado": 3, "lineas_analitica": [{"id_analitica": 3, "porcentaje": 100.0}], "id_remesa": 2, "creado_por": 2,
+        "id_peg_estado": 3, "lineas_analitica": [{"servicio_id": 2, "proyecto_id": 3, "porcentaje": 100.0}], "id_remesa": 2, "creado_por": 2,
         "fecha_creacion": "2026-02-21", "fecha_actualizacion": "2026-02-22", "fecha_pago": None,
-        "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_cliente_proveedor": "", "factura_recibida": False,
+        "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_gasto": "", "cuenta_cliente_proveedor": "", "factura_recibida": False,
     },
     {
         "id_peg": 4, "codigo_peg": "PEG-2026-0004",
@@ -107,9 +121,9 @@ _pegs = [
             {"tipo_iva": 10, "base_imponible": 200.00},
         ],
         "base_imponible": 700.00, "importe_iva": 125.00, "importe_irpf": 0.00, "importe_total": 825.00,
-        "id_peg_estado": 5, "lineas_analitica": [{"id_analitica": 4, "porcentaje": 100.0}], "id_remesa": None, "creado_por": 3,
+        "id_peg_estado": 5, "lineas_analitica": [], "id_remesa": None, "creado_por": 3,
         "fecha_creacion": "2026-03-02", "fecha_actualizacion": "2026-03-03", "fecha_pago": None,
-        "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_cliente_proveedor": "", "factura_recibida": False,
+        "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_gasto": "", "cuenta_cliente_proveedor": "", "factura_recibida": False,
     },
     {
         "id_peg": 5, "codigo_peg": "PEG-2026-0005",
@@ -121,9 +135,9 @@ _pegs = [
         "id_forma_pago_prevista": 1,
         "lineas": [{"tipo_iva": 21, "base_imponible": 750.00}],
         "base_imponible": 750.00, "importe_iva": 157.50, "importe_irpf": 0.00, "importe_total": 907.50,
-        "id_peg_estado": 2, "lineas_analitica": [{"id_analitica": 1, "porcentaje": 100.0}], "id_remesa": None, "creado_por": 1,
+        "id_peg_estado": 2, "lineas_analitica": [{"servicio_id": 1, "proyecto_id": 1, "porcentaje": 100.0}], "id_remesa": None, "creado_por": 1,
         "fecha_creacion": "2026-03-11", "fecha_actualizacion": "2026-03-12", "fecha_pago": None,
-        "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_cliente_proveedor": "", "factura_recibida": False,
+        "numero_factura_interno": None, "id_cuenta_gasto": None, "cuenta_gasto": "", "cuenta_cliente_proveedor": "", "factura_recibida": False,
     },
 ]
 
@@ -347,6 +361,8 @@ def crear_peg(data: PegCrear) -> dict:
         "importe_iva":         totales["importe_iva_total"],
         "importe_irpf":        totales["importe_irpf"],
         "importe_total":       totales["importe_total"],
+        "lineas_analitica":    [],
+        "cuenta_gasto":        "",
     }
     _pegs.append(nuevo)
     _historial.append({
@@ -648,60 +664,55 @@ def obtener_analiticas_servicio(id_servicio: int) -> list:
     return [a for a in _analiticas if a["id_servicio"] == id_servicio]
 
 
+def get_servicios_proyectos_todos() -> list:
+    return SERVICIOS_PROYECTOS_TODOS
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # VALIDAR PEG (con analítica)
 # ──────────────────────────────────────────────────────────────────────────────
 
 def validar_peg(
     id_peg: int,
+    cuenta_gasto: str,
     lineas_analitica: list,
-    observaciones: str,
     usuario: dict,
-    id_cuenta_gasto: int | None = None,
-    cuenta_cliente_proveedor: str = "",
 ) -> dict:
+    """Valida un PEG asignando cuenta_gasto (str) y líneas analíticas {servicio_id, proyecto_id, porcentaje}."""
     peg = next((p for p in _pegs if p["id_peg"] == id_peg), None)
     if not peg:
         return {"ok": False, "error": "PEG no encontrado"}
     estado = _estado_por_id(peg["id_peg_estado"])
     if estado.get("codigo") != "PENDIENTE":
         return {"ok": False, "error": "Solo se pueden validar PEGs en estado PENDIENTE"}
+    if not cuenta_gasto.strip():
+        return {"ok": False, "error": "La cuenta de gasto es obligatoria"}
     if not lineas_analitica:
-        return {"ok": False, "error": "Debe asignar al menos una analítica"}
+        return {"ok": False, "error": "Debe añadir al menos una línea analítica"}
     if len(lineas_analitica) > 3:
-        return {"ok": False, "error": "Máximo 3 analíticas permitidas"}
-    if any(l["porcentaje"] <= 0 for l in lineas_analitica):
+        return {"ok": False, "error": "Máximo 3 líneas analíticas permitidas"}
+    if any(l.get("porcentaje", 0) <= 0 for l in lineas_analitica):
         return {"ok": False, "error": "Todos los porcentajes deben ser positivos"}
-    suma = sum(l["porcentaje"] for l in lineas_analitica)
+    suma = sum(l.get("porcentaje", 0) for l in lineas_analitica)
     if abs(suma - 100.0) > 0.01:
         return {"ok": False, "error": f"La suma de porcentajes debe ser 100 (actual: {suma:.2f})"}
-    if not id_cuenta_gasto or not get_cuenta_gasto_por_id(id_cuenta_gasto):
-        return {"ok": False, "error": "La cuenta de gasto no es válida"}
-    if not cuenta_cliente_proveedor.strip():
-        return {"ok": False, "error": "La cuenta del proveedor (cliente A3Con) es obligatoria"}
 
     from app.services.factura_interna_service import generar_numero_factura
     numero = generar_numero_factura()
 
     estado_origen = estado.get("nombre")
-    peg["id_peg_estado"]            = 2  # VALIDADO
-    peg["lineas_analitica"]         = lineas_analitica
-    peg["id_cuenta_gasto"]          = id_cuenta_gasto
-    peg["cuenta_cliente_proveedor"] = cuenta_cliente_proveedor.strip()
-    peg["numero_factura_interno"]   = numero
-    peg["fecha_actualizacion"]      = datetime.now().strftime("%Y-%m-%d")
-
-    # Actualizar cuenta_cliente en el proveedor si ha cambiado
-    proveedor = _proveedor_por_id(peg["id_proveedor"])
-    if proveedor and proveedor.get("cuenta_cliente") != cuenta_cliente_proveedor.strip():
-        proveedor["cuenta_cliente"] = cuenta_cliente_proveedor.strip()
+    peg["id_peg_estado"]          = 2  # VALIDADO
+    peg["lineas_analitica"]       = lineas_analitica
+    peg["cuenta_gasto"]           = cuenta_gasto.strip()
+    peg["numero_factura_interno"] = numero
+    peg["fecha_actualizacion"]    = datetime.now().strftime("%Y-%m-%d")
 
     _historial.append({
         "id_peg":          id_peg,
         "fecha_cambio":    datetime.now().strftime("%Y-%m-%d %H:%M"),
         "estado_origen":   estado_origen,
         "estado_destino":  "Validado",
-        "comentario":      observaciones or "Validado por gestor económico",
+        "comentario":      "Validado por gestor económico",
         "realizado_por":   usuario.get("nombre_completo", usuario.get("login", "")),
     })
     return {"ok": True, "numero_factura_interno": numero}
@@ -711,10 +722,16 @@ def obtener_lineas_analitica_peg(id_peg: int) -> list:
     peg = next((p for p in _pegs if p["id_peg"] == id_peg), None)
     if not peg:
         return []
-    return [
-        {**l, **next((a for a in _analiticas if a["id_analitica"] == l["id_analitica"]), {})}
-        for l in peg.get("lineas_analitica", [])
-    ]
+    result = []
+    for l in peg.get("lineas_analitica", []):
+        servicio = _servicio_por_id(l.get("servicio_id", 0))
+        proyecto = _proyecto_por_id(l.get("proyecto_id"))
+        result.append({
+            **l,
+            "nombre_servicio": servicio.get("nombre", ""),
+            "nombre_proyecto": proyecto.get("nombre", "") if proyecto else "",
+        })
+    return result
 
 
 # ──────────────────────────────────────────────────────────────────────────────

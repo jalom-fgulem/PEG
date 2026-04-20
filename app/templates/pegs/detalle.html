@@ -128,6 +128,16 @@
   .factura-estado.ok { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
   .factura-estado.pendiente { background: #fef9c3; border: 1px solid #fde047; color: #854d0e; }
   .btn-toggle-factura { background: none; border: none; text-decoration: underline; cursor: pointer; font-size: 0.8rem; margin-left: 8px; color: inherit; }
+  /* Panel de acciones */
+  .panel-acciones { background: #f8f9fb; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .panel-acciones-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .panel-validacion-inline { margin-top: 14px; padding-top: 14px; border-top: 1px solid #e2e8f0; }
+  .val-fila1 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .val-linea-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .val-linea-sel { flex: 1; min-width: 180px; padding: 7px 9px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.88rem; }
+  .val-linea-pct { width: 80px; padding: 7px 9px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.88rem; text-align: right; }
+  .val-linea-del { background: transparent; border: 1px solid rgba(194,27,132,0.25); color: var(--fgulem-magenta); border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 0.85rem; line-height:1; }
+  .panel-validado-info { margin-top: 12px; padding: 10px 14px; background: rgba(95,159,211,0.07); border: 1px solid rgba(95,159,211,0.18); border-radius: 8px; font-size: 0.9rem; color: var(--ink); }
 </style>
 {% endblock %}
 
@@ -137,10 +147,85 @@
     {% if msg_type == 'success' %}✓{% else %}⚠{% endif %} {{ msg }}
   </div>
 {% endif %}
-<div style="display: grid; grid-template-columns: 1fr 320px; gap: 18px; align-items: start;">
+<!-- PANEL DE ACCIONES -->
+<div class="panel-acciones">
+  <div class="panel-acciones-btns">
+    {% if puede_editar %}
+    <button onclick="mostrarEdicion()" class="btn-accion btn-editar" style="width:auto;padding:8px 16px;">✏️ Editar PEG</button>
+    {% endif %}
 
-  <!-- COLUMNA PRINCIPAL -->
-  <div>
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'VALIDADO' %}
+      {% if peg.lineas_analitica %}
+      <button class="btn-remesa-active" onclick="abrirModalRemesa()" style="width:auto;padding:8px 16px;">Añadir a Remesa</button>
+      {% else %}
+      <button class="btn-remesa-disabled" disabled style="width:auto;padding:8px 16px;">Añadir a Remesa</button>
+      {% endif %}
+    {% endif %}
+
+    {% if peg.codigo_estado == 'EN_REMESA' %}
+    <span class="badge-remesa">En remesa: <a href="/remesas/{{ peg.id_remesa }}" style="font-weight:800;">{{ peg.codigo_remesa }}</a></span>
+    {% elif peg.codigo_estado == 'PAGADO' %}
+    <span class="badge-pagado">Pagado</span>
+    {% endif %}
+
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'INCIDENCIA' %}
+    <form method="post" action="/pegs/{{ peg.id_peg }}/reabrir" style="display:inline">
+      <button class="btn btn-secondary" type="submit">Reabrir como pendiente</button>
+    </form>
+    {% endif %}
+
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado in ['PENDIENTE', 'VALIDADO', 'INCIDENCIA'] %}
+    <button onclick="confirmarEliminar()" class="btn-accion btn-eliminar" style="width:auto;padding:8px 14px;">🗑️ Eliminar</button>
+    <form id="form-eliminar" method="POST" action="/pegs/{{ peg.id_peg }}/eliminar" style="display:none"></form>
+    {% endif %}
+
+    <a class="btn btn-secondary" href="/pegs/" style="margin-left:auto;">← Volver a PEGs</a>
+  </div>
+
+  {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
+  <div class="panel-validacion-inline">
+    <div class="val-fila1">
+      <label style="font-size:0.85rem;font-weight:700;white-space:nowrap;color:#166534;">Cuenta de gasto</label>
+      <input type="text" id="val-cuenta-gasto" placeholder="621000" oninput="valRecalc()"
+             style="width:110px;padding:7px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:0.88rem;">
+      <button type="button" onclick="valAñadirLinea()"
+              style="background:transparent;border:1px dashed rgba(22,163,74,0.4);color:#16a34a;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:0.85rem;font-weight:700;">
+        + Añadir línea analítica
+      </button>
+      <span style="font-size:0.85rem;color:#6b7280;white-space:nowrap;">Total: <strong id="val-total-pct" style="color:#16a34a">0.00%</strong></span>
+      <button type="button" id="btn-validar-peg" onclick="validarPeg()" disabled
+              style="background:#16a34a;color:white;border:none;border-radius:8px;padding:8px 18px;font-weight:700;font-size:0.88rem;cursor:pointer;opacity:0.5;transition:opacity 0.15s;">
+        ✅ Validar PEG
+      </button>
+    </div>
+    <div id="val-lineas-container"></div>
+    <div id="val-error" style="display:none;margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(226,75,74,0.09);border:1px solid rgba(226,75,74,0.25);color:#a32d2d;font-size:0.87rem;font-weight:600;"></div>
+  </div>
+
+  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">
+    <form method="post" action="/pegs/{{ peg.id_peg }}/incidencia"
+          style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <textarea name="comentario" rows="1" placeholder="Motivo de la incidencia..."
+                style="flex:1;min-width:200px;max-width:480px;padding:7px 9px;border:1px solid #d8dce2;border-radius:8px;font-size:0.88rem;resize:none;"></textarea>
+      <button class="btn-incidencia" type="submit" style="width:auto;white-space:nowrap;padding:8px 16px;">Marcar incidencia</button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if peg.cuenta_gasto %}
+  <div class="panel-validado-info">
+    Cuenta de gasto: <strong>{{ peg.cuenta_gasto }}</strong>
+    {% if lineas_analitica_completas %}
+    &nbsp;|&nbsp; Analítica:
+    {% for l in lineas_analitica_completas %}
+    <strong>{{ l.nombre_servicio }}{% if l.nombre_proyecto %}/{{ l.nombre_proyecto }}{% endif %}</strong>&nbsp;{{ "%.0f"|format(l.porcentaje) }}%{% if not loop.last %} · {% endif %}
+    {% endfor %}
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div>
 
     <!-- Vista solo lectura -->
     <div id="vista-lectura">
@@ -225,7 +310,7 @@
         <div style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em; color:#8a8691; font-weight:700; margin-bottom:8px;">Analíticas contables</div>
         {% for la in lineas_analitica_completas %}
         <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-size:0.9rem; border-bottom:1px solid var(--line);">
-          <span style="color:var(--ink); font-weight:600;">{{ la.nivel_1 }}{% if la.nivel_2 %} / {{ la.nivel_2 }}{% endif %} — {{ la.descripcion }}</span>
+          <span style="color:var(--ink); font-weight:600;">{{ la.nombre_servicio }}{% if la.nombre_proyecto %} / {{ la.nombre_proyecto }}{% endif %}</span>
           <span style="font-weight:700; color:var(--fgulem-magenta);">{{ "%.2f"|format(la.porcentaje) }}%</span>
         </div>
         {% endfor %}
@@ -644,181 +729,6 @@
 
   </div>
 
-  <!-- COLUMNA LATERAL -->
-  <div>
-
-    <div class="card">
-      <h3 style="margin-top:0; margin-bottom:14px;">Acciones</h3>
-
-      <!-- ACCIÓN: EDITAR -->
-      {% if puede_editar %}
-      <div class="accion-bloque">
-        <button onclick="mostrarEdicion()" class="btn-accion btn-editar">
-          ✏️ Editar PEG
-        </button>
-      </div>
-      {% endif %}
-
-      <!-- ACCIÓN: VALIDAR (solo GESTOR_ECONOMICO/ADMIN, solo PENDIENTE) -->
-      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
-      <div class="accion-bloque panel-validacion">
-        <h3 class="panel-titulo">✅ Validar PEG</h3>
-        <form method="POST" action="/pegs/{{ peg.id_peg }}/validar">
-          <div class="campo-form">
-            <label>Cuenta cliente (grupo 4) <span class="obligatorio">*</span></label>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <input type="text" name="cuenta_cliente_proveedor" id="cuenta_cliente_validar" required
-                     class="select-field"
-                     value="{{ peg.cuenta_cliente_proveedor or cuenta_proveedor or '' }}"
-                     placeholder="4100000"
-                     style="font-family:monospace;width:130px;">
-              {% if not (peg.cuenta_cliente_proveedor or cuenta_proveedor) %}
-              <select onchange="aplicarOpcionCuentaValidar(this)"
-                      style="padding:9px 12px;border:1px solid #d8dce2;border-radius:10px;font-size:0.95rem">
-                <option value="">— Elegir —</option>
-                <option value="saco">Cuenta saco ({{ cuenta_saco }})</option>
-                <option value="nueva">Nueva cuenta correlativa</option>
-              </select>
-              {% endif %}
-            </div>
-            <span style="font-size:0.75rem;color:#6b7280;margin-top:4px;display:block">
-              {% if peg.cuenta_cliente_proveedor or cuenta_proveedor %}
-                Cuenta del proveedor asignada. Modifícala si es necesario.
-              {% else %}
-                Sin cuenta asignada. Elige una opción o introduce el número manualmente.
-              {% endif %}
-            </span>
-          </div>
-          <div class="campo-form">
-            <label>Cuenta de gasto (grupo 6) <span class="obligatorio">*</span></label>
-            <select name="id_cuenta_gasto" required class="select-field">
-              <option value="">— Selecciona —</option>
-              {% for cg in cuentas_gasto %}
-              <option value="{{ cg.id_cuenta_gasto }}"
-                      {% if peg.id_cuenta_gasto == cg.id_cuenta_gasto %}selected{% endif %}>
-                {{ cg.codigo }} — {{ cg.descripcion }}
-              </option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="campo-form" id="panel-analiticas">
-            <label>Analíticas contables <span class="obligatorio">*</span></label>
-            {% macro analitica_select(name) %}
-              <select name="{{ name }}" class="select-field analitica-sel" style="flex:2;" onchange="recalcSuma()">
-                <option value="">— Selecciona —</option>
-                {% for a in analiticas %}
-                <option value="{{ a.id_analitica }}">{{ a.nivel_1 }}{% if a.nivel_2 %} / {{ a.nivel_2 }}{% endif %} — {{ a.descripcion }}</option>
-                {% endfor %}
-              </select>
-            {% endmacro %}
-            <div id="analitica-row-1" style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
-              {{ analitica_select("analitica_id_1") }}
-              <input type="number" name="analitica_porcentaje_1" class="select-field analitica-pct" step="0.01" min="0.01" max="100" placeholder="%" style="width:70px;" oninput="recalcSuma()" value="100">
-              <span style="font-size:0.8rem;color:#6b7280">%</span>
-            </div>
-            <div id="analitica-row-2" style="display:none; gap:8px; align-items:center; margin-bottom:6px;">
-              {{ analitica_select("analitica_id_2") }}
-              <input type="number" name="analitica_porcentaje_2" class="select-field analitica-pct" step="0.01" min="0.01" max="100" placeholder="%" style="width:70px;" oninput="recalcSuma()">
-              <span style="font-size:0.8rem;color:#6b7280">%</span>
-            </div>
-            <div id="analitica-row-3" style="display:none; gap:8px; align-items:center; margin-bottom:6px;">
-              {{ analitica_select("analitica_id_3") }}
-              <input type="number" name="analitica_porcentaje_3" class="select-field analitica-pct" step="0.01" min="0.01" max="100" placeholder="%" style="width:70px;" oninput="recalcSuma()">
-              <span style="font-size:0.8rem;color:#6b7280">%</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
-              <button type="button" id="btn-aniadir-analitica" onclick="mostrarSiguienteFilaAnalitica()"
-                      style="background:transparent;border:1px dashed rgba(22,163,74,0.4);color:#16a34a;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:0.83rem;font-weight:700;">
-                + Añadir analítica
-              </button>
-              <span id="suma-analiticas" style="font-size:0.83rem;color:#6b7280;">Suma: <strong style="color:#16a34a">100.00%</strong></span>
-            </div>
-            {% if not analiticas %}
-            <p class="aviso-warning">⚠️ Sin analíticas configuradas para este servicio.</p>
-            {% endif %}
-          </div>
-          <div class="campo-form">
-            <label>Observaciones</label>
-            <textarea name="observaciones" rows="3" class="textarea-field"
-                      placeholder="Opcional..."></textarea>
-          </div>
-          <button type="submit" class="btn-validar"
-                  {% if not analiticas %}disabled{% endif %}>
-            ✅ Confirmar validación
-          </button>
-          <p style="font-size:0.80rem; color:#4a7c59; margin:8px 0 0; line-height:1.4;">
-            Al validar se generará automáticamente el número de factura interno.
-          </p>
-        </form>
-      </div>
-      {% endif %}
-
-      <!-- Remesa (estado VALIDADO) -->
-      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'VALIDADO' %}
-      <div class="accion-bloque">
-        {% if peg.lineas_analitica %}
-        <button class="btn-remesa-active" onclick="abrirModalRemesa()">Añadir a Remesa</button>
-        {% else %}
-        <button class="btn-remesa-disabled" disabled title="Debe asignar una analítica al PEG antes de añadirlo a una remesa">Añadir a Remesa</button>
-        {% endif %}
-      </div>
-      {% endif %}
-
-      <!-- Incidencia (solo PENDIENTE) -->
-      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
-      <div class="accion-bloque">
-        <form method="post" action="/pegs/{{ peg.id_peg }}/incidencia">
-          <div style="margin-bottom:8px;">
-            <textarea name="comentario" rows="2" placeholder="Motivo de la incidencia..." style="width:100%; padding:8px; border:1px solid #d8dce2; border-radius:8px; font-size:0.88rem; resize:vertical; box-sizing:border-box;"></textarea>
-          </div>
-          <button class="btn-incidencia" type="submit">Marcar incidencia</button>
-        </form>
-      </div>
-      {% endif %}
-
-      <!-- Reabrir (INCIDENCIA) -->
-      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'INCIDENCIA' %}
-      <div class="accion-bloque">
-        <form method="post" action="/pegs/{{ peg.id_peg }}/reabrir">
-          <button class="btn btn-secondary" type="submit" style="width:100%;">Reabrir como pendiente</button>
-        </form>
-      </div>
-      {% endif %}
-
-      <!-- Badge remesa / pagado -->
-      {% if peg.codigo_estado == 'EN_REMESA' %}
-      <div class="accion-bloque">
-        <span class="badge-remesa">
-          En remesa: <a href="/remesas/{{ peg.id_remesa }}" style="font-weight:800;">{{ peg.codigo_remesa }}</a>
-        </span>
-      </div>
-      {% elif peg.codigo_estado == 'PAGADO' %}
-      <div class="accion-bloque">
-        <span class="badge-pagado">Pagado</span>
-      </div>
-      {% endif %}
-
-      <!-- ACCIÓN: ELIMINAR (solo GESTOR_ECONOMICO/ADMIN, estados permitidos) -->
-      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN']
-            and peg.codigo_estado in ['PENDIENTE', 'VALIDADO', 'INCIDENCIA'] %}
-      <div class="accion-bloque">
-        <button onclick="confirmarEliminar()" class="btn-accion btn-eliminar">
-          🗑️ Eliminar PEG
-        </button>
-        <form id="form-eliminar" method="POST"
-              action="/pegs/{{ peg.id_peg }}/eliminar" style="display:none">
-        </form>
-      </div>
-      {% endif %}
-
-    </div>
-
-    <div class="actions" style="flex-direction: column;">
-      <a class="btn btn-secondary" href="/pegs/" style="width:100%; justify-content:center;">← Volver a todos los PEGs</a>
-    </div>
-
-  </div>
-</div>
 
 <!-- Historial de cambios (full-width) -->
 <div class="card historial-section" style="margin-top:18px;">
@@ -895,6 +805,86 @@ function confirmarEliminar() {
   }
 }
 </script>
+{% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
+<script>
+const SERVICIOS_PROYECTOS = {{ servicios_proyectos_todos | tojson }};
+
+function _renderOpcionesLinea() {
+  return SERVICIOS_PROYECTOS.flatMap(s =>
+    s.proyectos.map(p =>
+      `<option value="${s.id}-${p.id}">${s.nombre} / ${p.nombre}</option>`
+    )
+  ).join('');
+}
+
+function valAñadirLinea() {
+  const container = document.getElementById('val-lineas-container');
+  if (container.children.length >= 3) return;
+  const row = document.createElement('div');
+  row.className = 'val-linea-row';
+  row.innerHTML = `
+    <select class="val-linea-sel" onchange="valRecalc()">${_renderOpcionesLinea()}</select>
+    <input type="number" class="val-linea-pct" value="${container.children.length === 0 ? 100 : ''}"
+           min="0.01" max="100" step="0.01" oninput="valRecalc()">
+    <span style="font-size:0.85rem;color:#6b7280">%</span>
+    <button type="button" class="val-linea-del" onclick="valEliminarLinea(this)">×</button>
+  `;
+  container.appendChild(row);
+  valRecalc();
+}
+
+function valEliminarLinea(btn) {
+  btn.closest('.val-linea-row').remove();
+  valRecalc();
+}
+
+function valRecalc() {
+  const rows = document.querySelectorAll('.val-linea-row');
+  const total = Array.from(rows).reduce((sum, row) => {
+    return sum + (parseFloat(row.querySelector('.val-linea-pct').value) || 0);
+  }, 0);
+  document.getElementById('val-total-pct').textContent = total.toFixed(2) + '%';
+  const cuentaOk = document.getElementById('val-cuenta-gasto').value.trim().length > 0;
+  const sumOk = Math.abs(total - 100) <= 0.01 && rows.length > 0;
+  const btn = document.getElementById('btn-validar-peg');
+  btn.disabled = !(cuentaOk && sumOk);
+  btn.style.opacity = (cuentaOk && sumOk) ? '1' : '0.5';
+  btn.style.cursor = (cuentaOk && sumOk) ? 'pointer' : 'not-allowed';
+}
+
+async function validarPeg() {
+  const cuenta = document.getElementById('val-cuenta-gasto').value.trim();
+  const rows = document.querySelectorAll('.val-linea-row');
+  const lineas = Array.from(rows).map(row => {
+    const partes = row.querySelector('.val-linea-sel').value.split('-');
+    return {
+      servicio_id: parseInt(partes[0]),
+      proyecto_id: parseInt(partes[1]),
+      porcentaje: parseFloat(row.querySelector('.val-linea-pct').value),
+    };
+  });
+  const errEl = document.getElementById('val-error');
+  errEl.style.display = 'none';
+  try {
+    const res = await fetch('/pegs/{{ peg.id_peg }}/validar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cuenta_gasto: cuenta, lineas_analitica: lineas }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      location.reload();
+    } else {
+      errEl.textContent = 'Error: ' + (data.error || 'No se pudo validar');
+      errEl.style.display = 'block';
+    }
+  } catch (e) {
+    errEl.textContent = 'Error de red. Inténtelo de nuevo.';
+    errEl.style.display = 'block';
+  }
+}
+</script>
+{% endif %}
 {% if puede_editar %}
 <script>
 function mostrarEdicion() {
@@ -1419,44 +1409,4 @@ function calcularNuevaCuenta() {
     .catch(() => alert("Error al calcular la siguiente cuenta."));
 }
 </script>
-{% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
-<script>
-let _filaAnalitica = 1;
-
-function mostrarSiguienteFilaAnalitica() {
-  if (_filaAnalitica >= 3) return;
-  _filaAnalitica++;
-  const row = document.getElementById('analitica-row-' + _filaAnalitica);
-  if (row) row.style.display = 'flex';
-  if (_filaAnalitica >= 3) {
-    document.getElementById('btn-aniadir-analitica').style.display = 'none';
-  }
-  recalcSuma();
-}
-
-function recalcSuma() {
-  let suma = 0;
-  let alguno = false;
-  for (let i = 1; i <= 3; i++) {
-    const row = document.getElementById('analitica-row-' + i);
-    if (!row || row.style.display === 'none') continue;
-    const sel = row.querySelector('.analitica-sel');
-    const pct = row.querySelector('.analitica-pct');
-    if (sel && sel.value && pct && pct.value) {
-      suma += parseFloat(pct.value) || 0;
-      alguno = true;
-    }
-  }
-  const sumaEl = document.getElementById('suma-analiticas');
-  const ok = alguno && Math.abs(suma - 100) < 0.01;
-  if (sumaEl) {
-    sumaEl.innerHTML = `Suma: <strong style="color:${ok ? '#16a34a' : '#dc2626'}">${suma.toFixed(2)}%</strong>`;
-  }
-  const btnValidar = document.querySelector('.btn-validar');
-  if (btnValidar) btnValidar.disabled = !ok;
-}
-
-document.addEventListener('DOMContentLoaded', recalcSuma);
-</script>
-{% endif %}
 {% endblock %}

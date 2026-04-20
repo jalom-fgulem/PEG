@@ -56,30 +56,10 @@
       {% else %}
       <div class="col-4 field">
         <label for="id_servicio">Servicio <span style="color:var(--fgulem-magenta)">*</span></label>
-        <select id="id_servicio" name="id_servicio" required onchange="actualizarProyectos()">
+        <select id="id_servicio" name="id_servicio" required>
           <option value="">— Seleccionar —</option>
           {% for s in servicios %}
           <option value="{{ s.id_servicio }}">{{ s.nombre }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div class="col-4 field">
-        <label for="id_proyecto">Proyecto</label>
-        <select id="id_proyecto" name="id_proyecto">
-          <option value="">— Seleccionar servicio primero —</option>
-          {% for p in proyectos %}
-          <option value="{{ p.id_proyecto }}" data-servicio="{{ p.id_servicio }}">{{ p.nombre }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div class="col-4 field">
-        <label for="id_analitica">Analítica</label>
-        <select id="id_analitica" name="id_analitica">
-          <option value="">— Opcional —</option>
-          {% for a in analiticas %}
-          <option value="{{ a.id_analitica }}" data-servicio="{{ a.id_servicio }}">{{ a.nivel_1 }}.{{ a.nivel_2 }} — {{ a.descripcion }}</option>
           {% endfor %}
         </select>
       </div>
@@ -493,26 +473,6 @@
 
 {% block extra_scripts %}
 <script>
-  // ── Filtro proyectos/analíticas por servicio ──────────────────────────────
-  {% if usuario.rol != 'GESTOR_SERVICIO' %}
-  const todosProyectos  = [...document.querySelectorAll("#id_proyecto option[data-servicio]")];
-  const todasAnaliticas = [...document.querySelectorAll("#id_analitica option[data-servicio]")];
-
-  function actualizarProyectos() {
-    const idServicio = document.getElementById("id_servicio").value;
-    const selProy = document.getElementById("id_proyecto");
-    const selAna  = document.getElementById("id_analitica");
-    selProy.innerHTML = '<option value="">— Sin proyecto —</option>';
-    selAna.innerHTML  = '<option value="">— Opcional —</option>';
-    todosProyectos.forEach(opt => {
-      if (!idServicio || opt.dataset.servicio === idServicio) selProy.appendChild(opt.cloneNode(true));
-    });
-    todasAnaliticas.forEach(opt => {
-      if (!idServicio || opt.dataset.servicio === idServicio) selAna.appendChild(opt.cloneNode(true));
-    });
-  }
-  {% endif %}
-
   // ── Buscador de proveedor ─────────────────────────────────────────────────
   function filtrarProveedores() {
     const termino = document.getElementById("buscador-proveedor").value.trim().toLowerCase();

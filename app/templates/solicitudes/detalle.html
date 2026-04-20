@@ -23,9 +23,7 @@
 
   .importe-grande { font-size: 1.8rem; font-weight: 800; color: var(--fgulem-magenta); }
 
-  .panel-accion {
-    padding: 16px 18px; border-radius: 12px; margin-bottom: 14px;
-  }
+  .panel-accion { padding: 16px 18px; border-radius: 12px; margin-bottom: 14px; }
   .panel-autorizar { background: #f0fdf4; border: 1.5px solid #86efac; }
   .panel-denegar   { background: #fff7ed; border: 1.5px solid #fed7aa; }
   .panel-titulo { font-size: 0.9rem; font-weight: 700; margin: 0 0 12px; }
@@ -58,19 +56,22 @@
   .denegacion-box {
     padding: 14px 16px; border-radius: 10px;
     background: rgba(226,75,74,0.07); border: 1px solid rgba(226,75,74,0.22);
-    color: #7f1d1d; font-size: 0.93rem; margin-top: 10px;
+    color: #7f1d1d; font-size: 0.93rem; margin-top: 14px;
   }
-  .denegacion-box strong { display: block; font-size: 0.78rem; text-transform: uppercase;
-    letter-spacing: 0.07em; color: #a32d2d; margin-bottom: 5px; }
+  .denegacion-box strong {
+    display: block; font-size: 0.78rem; text-transform: uppercase;
+    letter-spacing: 0.07em; color: #a32d2d; margin-bottom: 5px;
+  }
 
   .adj-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-  .adj-item {
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px 12px; border: 1px solid var(--line);
-    border-radius: 10px; background: #fafafa;
-  }
+  .adj-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fafafa; flex-wrap: wrap; }
   .adj-icon { font-size: 1.4rem; flex-shrink: 0; }
-  .adj-nombre { font-size: 0.9rem; font-weight: 600; color: var(--ink); }
+  .adj-nombre { font-size: 0.9rem; font-weight: 600; color: var(--ink); flex:1; }
+
+  .doc-badge { display:inline-flex; align-items:center; padding:2px 9px; border-radius:999px; font-size:0.73rem; font-weight:700; }
+  .doc-badge-presupuesto { background:rgba(239,159,39,0.14);  color:#854f0b; }
+  .doc-badge-proforma    { background:rgba(59,130,246,0.14);  color:#1d4ed8; }
+  .doc-badge-otro        { background:rgba(156,163,175,0.20); color:#4b5563; }
 
   .flash-success { padding: 12px 16px; border-radius: 10px; background: rgba(99,153,34,0.12); border: 1px solid rgba(99,153,34,0.28); color: #2f6b10; font-weight: 600; margin-bottom: 16px; }
   .flash-error   { padding: 12px 16px; border-radius: 10px; background: rgba(226,75,74,0.10); border: 1px solid rgba(226,75,74,0.28); color: #a32d2d; font-weight: 600; margin-bottom: 16px; }
@@ -81,13 +82,12 @@
 
 {% block content %}
 
-{# Flash messages desde session #}
-{% if request.session.get('flash_success') %}
-  <div class="flash-success">✓ {{ request.session.pop('flash_success') }}</div>
-{% endif %}
-{% if request.session.get('flash_error') %}
-  <div class="flash-error">⚠ {{ request.session.pop('flash_error') }}</div>
-{% endif %}
+{% with msgs = request.session.pop('flash_success', None) %}{% if msgs %}
+  <div class="flash-success">✓ {{ msgs }}</div>
+{% endif %}{% endwith %}
+{% with msgs = request.session.pop('flash_error', None) %}{% if msgs %}
+  <div class="flash-error">⚠ {{ msgs }}</div>
+{% endif %}{% endwith %}
 
 <div style="display: grid; grid-template-columns: 1fr 300px; gap: 18px; align-items: start;">
 
@@ -99,8 +99,8 @@
       <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
         <div>
           <span class="estado-badge estado-{{ solicitud.badge_clase }}">
-            {% if solicitud.estado == 'PENDIENTE_AUTORIZACION' %}⏳ Pendiente de autorización
-            {% elif solicitud.estado == 'AUTORIZADA' %}✓ Autorizada
+            {% if solicitud.estado_solicitud == 'PENDIENTE_AUTORIZACION' %}⏳ Pendiente de autorización
+            {% elif solicitud.estado_solicitud == 'AUTORIZADA' %}✓ Autorizada
             {% else %}✗ Denegada{% endif %}
           </span>
         </div>
@@ -131,7 +131,7 @@
         </div>
         {% if solicitud.nombre_autorizador %}
         <div class="info-item">
-          <label>{{ 'Autorizado' if solicitud.estado == 'AUTORIZADA' else 'Resuelto' }} por</label>
+          <label>{{ 'Autorizado' if solicitud.estado_solicitud == 'AUTORIZADA' else 'Resuelto' }} por</label>
           <span>{{ solicitud.nombre_autorizador }}</span>
         </div>
         {% endif %}
@@ -155,9 +155,47 @@
         <p style="margin:6px 0 0;font-size:0.97rem;color:var(--ink);line-height:1.55;">{{ solicitud.concepto }}</p>
       </div>
 
+      <!-- Desglose importes (si hay lineas) -->
+      {% if solicitud.lineas %}
+      <div style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px;">
+        <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;color:#8a8691;font-weight:700;margin-bottom:10px;">
+          Desglose de importes
+        </div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:6px 10px;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;color:#86828b;border-bottom:1px solid var(--line);width:120px;">Tipo IVA</th>
+              <th style="text-align:right;padding:6px 10px;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;color:#86828b;border-bottom:1px solid var(--line);">Base (€)</th>
+              <th style="text-align:right;padding:6px 10px;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;color:#86828b;border-bottom:1px solid var(--line);width:100px;">IVA (€)</th>
+              <th style="text-align:right;padding:6px 10px;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;color:#86828b;border-bottom:1px solid var(--line);width:120px;">Total línea (€)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linea in solicitud.lineas %}
+            {% set iva_linea = linea.base_imponible * linea.tipo_iva / 100 %}
+            <tr>
+              <td style="padding:6px 10px;font-size:0.9rem;">{{ linea.tipo_iva|int }}%</td>
+              <td style="padding:6px 10px;text-align:right;font-size:0.9rem;font-variant-numeric:tabular-nums;">{{ "%.2f"|format(linea.base_imponible) }}</td>
+              <td style="padding:6px 10px;text-align:right;font-size:0.9rem;font-variant-numeric:tabular-nums;">{{ "%.2f"|format(iva_linea) }}</td>
+              <td style="padding:6px 10px;text-align:right;font-weight:600;font-size:0.9rem;font-variant-numeric:tabular-nums;">{{ "%.2f"|format(linea.base_imponible + iva_linea) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;background:rgba(194,27,132,0.04);border:1px solid rgba(194,27,132,0.12);border-radius:10px;padding:12px 18px;">
+          <div class="info-item"><label>Base imponible</label><span>{{ "%.2f"|format(solicitud.base_imponible) }} €</span></div>
+          <div class="info-item"><label>IVA</label><span>{{ "%.2f"|format(solicitud.importe_iva) }} €</span></div>
+          {% if solicitud.tiene_irpf and solicitud.importe_irpf %}
+          <div class="info-item"><label>IRPF ({{ solicitud.tipo_irpf|int }}%)</label><span style="color:#dc2626;">–{{ "%.2f"|format(solicitud.importe_irpf) }} €</span></div>
+          {% endif %}
+          <div class="info-item"><label>Total estimado</label><span style="color:var(--fgulem-magenta);font-size:1.1rem;">{{ "%.2f"|format(solicitud.importe_estimado) }} €</span></div>
+        </div>
+      </div>
+      {% endif %}
+
       <!-- Motivo denegación -->
-      {% if solicitud.estado == 'DENEGADA' and solicitud.motivo_denegacion %}
-      <div class="denegacion-box" style="margin-top:18px;">
+      {% if solicitud.estado_solicitud == 'DENEGADA' and solicitud.motivo_denegacion %}
+      <div class="denegacion-box">
         <strong>Motivo de denegación</strong>
         {{ solicitud.motivo_denegacion }}
       </div>
@@ -165,36 +203,57 @@
     </div>
 
     <!-- Adjuntos -->
-    {% if solicitud.adjuntos %}
     <div class="card">
-      <h3 style="margin-top:0;font-size:1rem;">Documentación adjunta</h3>
+      <h3 style="margin-top:0;font-size:1rem;margin-bottom:14px;">Documentación adjunta</h3>
+
+      {% if solicitud.documentos %}
       <ul class="adj-list">
-        {% for ruta in solicitud.adjuntos %}
+        {% for doc in solicitud.documentos %}
         <li class="adj-item">
           <span class="adj-icon">📄</span>
-          <span class="adj-nombre">{{ ruta.split('/')[-1] }}</span>
+          <span class="adj-nombre">{{ doc.nombre_archivo }}</span>
+          {% if doc.tipo == 'PRESUPUESTO' %}
+            <span class="doc-badge doc-badge-presupuesto">Presupuesto</span>
+          {% elif doc.tipo == 'FACTURA_PROFORMA' %}
+            <span class="doc-badge doc-badge-proforma">Factura proforma</span>
+          {% else %}
+            <span class="doc-badge doc-badge-otro">Doc. adicional</span>
+          {% endif %}
+          {% if solicitud.estado_solicitud == 'PENDIENTE_AUTORIZACION' and
+                (usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] or
+                 (usuario.rol == 'GESTOR_SERVICIO' and solicitud.id_servicio == usuario.id_servicio)) %}
+          <form method="POST"
+                action="/solicitudes/{{ solicitud.id_solicitud }}/adjuntos/{{ doc.id_sol_adj }}/eliminar"
+                style="display:inline;margin:0"
+                onsubmit="return confirm('¿Eliminar este adjunto?')">
+            <button type="submit"
+                    style="background:rgba(226,75,74,0.10);color:#a32d2d;border:1px solid rgba(226,75,74,0.25);padding:5px 12px;border-radius:8px;font-size:0.83rem;font-weight:700;cursor:pointer;">
+              Eliminar
+            </button>
+          </form>
+          {% endif %}
         </li>
         {% endfor %}
       </ul>
+      {% else %}
+      <p class="muted" style="font-size:0.9rem;padding:6px 0;">Sin documentos adjuntos.</p>
+      {% endif %}
     </div>
-    {% endif %}
 
   </div>
 
   <!-- ── COLUMNA LATERAL: ACCIONES ── -->
   <div>
 
-    <!-- Volver al listado -->
     <div class="card" style="margin-bottom:14px;">
       <a href="/solicitudes/" class="btn btn-secondary" style="width:100%;text-align:center;display:block;">
         ← Volver al listado
       </a>
     </div>
 
-    {# ── Botones de resolución: solo GE y Admin, solo si PENDIENTE ── #}
-    {% if solicitud.estado == 'PENDIENTE_AUTORIZACION' and usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+    {# ── Botones de resolución: GE y Admin, solo si PENDIENTE ── #}
+    {% if solicitud.estado_solicitud == 'PENDIENTE_AUTORIZACION' and usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
 
-    <!-- Autorizar -->
     <div class="panel-accion panel-autorizar">
       <p class="panel-titulo">✓ Autorizar solicitud</p>
       <p style="font-size:0.82rem;color:#166534;margin:0 0 12px;">
@@ -208,7 +267,6 @@
       </form>
     </div>
 
-    <!-- Denegar -->
     <div class="panel-accion panel-denegar">
       <p class="panel-titulo">✗ Denegar solicitud</p>
       <form method="post" action="/solicitudes/{{ solicitud.id_solicitud }}/denegar">
@@ -217,7 +275,7 @@
             Motivo <span style="color:#dc2626">*</span>
           </label>
           <textarea id="motivo" name="motivo" rows="3" required
-                    style="width:100%;padding:8px 10px;border:1px solid #fed7aa;border-radius:8px;font-size:0.88rem;resize:vertical;"
+                    style="width:100%;padding:8px 10px;border:1px solid #fed7aa;border-radius:8px;font-size:0.88rem;resize:vertical;box-sizing:border-box;"
                     placeholder="Explica el motivo de denegación…"></textarea>
         </div>
         <button type="submit" class="btn-denegar"
@@ -229,11 +287,11 @@
 
     {% endif %}
 
-    {# ── Convertir en PEG: solo si AUTORIZADA y sin PEG generado ── #}
-    {% if solicitud.estado == 'AUTORIZADA' and solicitud.id_peg_generado is none %}
+    {# ── Convertir en PEG ── #}
+    {% if solicitud.estado_solicitud == 'AUTORIZADA' and solicitud.id_peg_generado is none %}
     <div class="card">
       <p style="font-size:0.88rem;color:var(--ink-soft);margin:0 0 12px;">
-        Esta solicitud está autorizada. Cuando recibas el documento crea el PEG correspondiente; se pre-rellenará con los datos de la solicitud.
+        Esta solicitud está autorizada. Cuando dispongas del documento crea el PEG correspondiente; se pre-rellenará con los datos de la solicitud.
       </p>
       <form method="post" action="/solicitudes/{{ solicitud.id_solicitud }}/convertir-en-peg">
         <button type="submit" class="btn-convertir"

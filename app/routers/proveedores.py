@@ -222,7 +222,7 @@ def proveedor_datos_json(
 async def proveedor_editar_json(
     id_proveedor: int,
     request: Request,
-    usuario: dict = Depends(require_rol("GESTOR_ECONOMICO", "ADMIN")),
+    usuario: dict = Depends(require_login),
 ):
     datos = await request.json()
     p = obtener_proveedor(id_proveedor)

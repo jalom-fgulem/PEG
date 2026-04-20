@@ -14,10 +14,14 @@ SOLICITUDES_AUTORIZACION: list[dict] = [
         "importe_estimado": Decimal("1250.00"),
         "concepto": "Material quirúrgico desechable — reposición trimestral",
         "fecha_estimada_gasto": date(2026, 4, 30),
-        "adjunto_1": "media/autorizaciones/1/presupuesto_material.pdf",
-        "adjunto_2": None,
-        "adjunto_3": None,
-        "estado": "PENDIENTE_AUTORIZACION",
+        "lineas": [{"tipo_iva": 21, "base_imponible": 1033.06}],
+        "base_imponible": 1033.06,
+        "importe_iva": 216.94,
+        "importe_irpf": 0.0,
+        "tiene_irpf": False,
+        "tipo_irpf": 0.0,
+        "id_forma_pago": 1,
+        "estado_solicitud": "PENDIENTE_AUTORIZACION",
         "id_usuario_autorizador": None,
         "fecha_resolucion": None,
         "motivo_denegacion": None,
@@ -32,10 +36,14 @@ SOLICITUDES_AUTORIZACION: list[dict] = [
         "importe_estimado": Decimal("480.50"),
         "concepto": "Servicio de mantenimiento equipos diagnóstico — febrero 2026",
         "fecha_estimada_gasto": date(2026, 3, 15),
-        "adjunto_1": "media/autorizaciones/2/presupuesto_mantenimiento.pdf",
-        "adjunto_2": "media/autorizaciones/2/contrato_marco.pdf",
-        "adjunto_3": None,
-        "estado": "AUTORIZADA",
+        "lineas": [{"tipo_iva": 21, "base_imponible": 397.11}],
+        "base_imponible": 397.11,
+        "importe_iva": 83.39,
+        "importe_irpf": 0.0,
+        "tiene_irpf": False,
+        "tipo_irpf": 0.0,
+        "id_forma_pago": 1,
+        "estado_solicitud": "AUTORIZADA",
         "id_usuario_autorizador": 3,       # Gestor Económico FGULEM
         "fecha_resolucion": datetime(2026, 3, 10, 11, 42, 0),
         "motivo_denegacion": None,
@@ -50,10 +58,14 @@ SOLICITUDES_AUTORIZACION: list[dict] = [
         "importe_estimado": Decimal("3900.00"),
         "concepto": "Adquisición analizador hematológico portátil",
         "fecha_estimada_gasto": date(2026, 2, 28),
-        "adjunto_1": "media/autorizaciones/3/oferta_analizador.pdf",
-        "adjunto_2": None,
-        "adjunto_3": None,
-        "estado": "DENEGADA",
+        "lineas": [{"tipo_iva": 21, "base_imponible": 3223.14}],
+        "base_imponible": 3223.14,
+        "importe_iva": 676.86,
+        "importe_irpf": 0.0,
+        "tiene_irpf": False,
+        "tipo_irpf": 0.0,
+        "id_forma_pago": 1,
+        "estado_solicitud": "DENEGADA",
         "id_usuario_autorizador": 3,       # Gestor Económico FGULEM
         "fecha_resolucion": datetime(2026, 2, 20, 9, 0, 0),
         "motivo_denegacion": (
@@ -66,6 +78,50 @@ SOLICITUDES_AUTORIZACION: list[dict] = [
 ]
 
 _next_solicitud_id = 4
+
+solicitud_adjuntos: list[dict] = [
+    {
+        "id_sol_adj": 1,
+        "id_solicitud": 1,
+        "tipo": "PRESUPUESTO",
+        "nombre_archivo": "presupuesto_material.pdf",
+        "ruta": "media/autorizaciones/1/presupuesto_material.pdf",
+        "fecha_subida": "2026-04-14",
+    },
+    {
+        "id_sol_adj": 2,
+        "id_solicitud": 2,
+        "tipo": "PRESUPUESTO",
+        "nombre_archivo": "presupuesto_mantenimiento.pdf",
+        "ruta": "media/autorizaciones/2/presupuesto_mantenimiento.pdf",
+        "fecha_subida": "2026-03-08",
+    },
+    {
+        "id_sol_adj": 3,
+        "id_solicitud": 2,
+        "tipo": "FACTURA_PROFORMA",
+        "nombre_archivo": "contrato_marco.pdf",
+        "ruta": "media/autorizaciones/2/contrato_marco.pdf",
+        "fecha_subida": "2026-03-08",
+    },
+    {
+        "id_sol_adj": 4,
+        "id_solicitud": 3,
+        "tipo": "PRESUPUESTO",
+        "nombre_archivo": "oferta_analizador.pdf",
+        "ruta": "media/autorizaciones/3/oferta_analizador.pdf",
+        "fecha_subida": "2026-02-18",
+    },
+]
+
+_next_sol_adj_id = 5
+
+
+def next_sol_adj_id() -> int:
+    global _next_sol_adj_id
+    current = _next_sol_adj_id
+    _next_sol_adj_id += 1
+    return current
 
 # ---------------------------------------------------------------------------
 # Adjuntos de PEGs almacenados en Drive.
