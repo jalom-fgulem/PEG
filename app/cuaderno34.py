@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.core.auth import require_rol
-from app.services import remesas_service
+from app.services import mock_bancos, remesas_service
 
 router = APIRouter(tags=["remesas"])
 
@@ -50,7 +50,7 @@ def construir_xml(remesa: dict, pegs: list[dict], banco: dict) -> bytes:
     """
     remesa : dict con id, referencia, fecha_pago
     pegs   : lista de dicts con id, referencia, iban, importe_total, proveedor_nombre
-    banco  : dict con nombre, bic, iban_ordenante (de la tabla _bancos del proyecto)
+    banco  : dict con alias, bic, iban (de mock_bancos)
     """
     num_remesa    = str(remesa.get("referencia", remesa["id"]))
     fecha_pago    = remesa["fecha_pago"]
@@ -58,7 +58,7 @@ def construir_xml(remesa: dict, pegs: list[dict], banco: dict) -> bytes:
     total_importe = sum(p["importe_total"] for p in pegs)
     num_ops       = len(pegs)
 
-    iban_ordenante = limpiar_iban(banco.get("iban_ordenante", ""))
+    iban_ordenante = limpiar_iban(banco.get("iban", ""))
     bic_ordenante  = banco.get("bic", "NOTPROVIDED")
     sufijo         = banco.get("sufijo", "")
     nif_sufijo     = f"{ORDENANTE_NIF}{sufijo}".strip()
@@ -157,7 +157,7 @@ def endpoint_cuaderno34(
     if remesa_obj.get("estado") not in ("GENERADA", "CERRADA"):
         raise HTTPException(400, "Solo se puede generar el archivo bancario de remesas en estado Generada o Cerrada")
 
-    banco = remesas_service.obtener_banco(remesa_obj.get("id_banco", 1))
+    banco = mock_bancos.obtener_banco(remesa_obj.get("id_banco", 1))
     if not banco:
         raise HTTPException(400, "La remesa no tiene banco asignado")
 

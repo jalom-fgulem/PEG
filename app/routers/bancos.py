@@ -23,7 +23,7 @@ def listar_bancos(request: Request):
 @router.get("/nuevo", response_class=HTMLResponse)
 def formulario_nuevo_banco(request: Request):
     usuario = get_usuario_actual(request)
-    require_rol(usuario, ["ADMIN", "GESTOR_ECONOMICO"])
+    require_rol(usuario, ["ADMIN"])
     return templates.TemplateResponse(request=request, name="bancos/formulario.html", context={
         "usuario": usuario,
         "banco": None,
@@ -38,14 +38,16 @@ def crear_banco(
     iban: str = Form(...),
     bic: str = Form(""),
     sufijo_ordenante: str = Form(...),
+    cuenta_contable: str = Form(""),
 ):
     usuario = get_usuario_actual(request)
-    require_rol(usuario, ["ADMIN", "GESTOR_ECONOMICO"])
+    require_rol(usuario, ["ADMIN"])
     mock_bancos.crear_banco({
         "alias": alias.strip(),
         "iban": iban.strip().upper(),
         "bic": bic.strip().upper(),
         "sufijo_ordenante": sufijo_ordenante.strip(),
+        "cuenta_contable": cuenta_contable.strip(),
     })
     return RedirectResponse(url="/bancos/?msg=Cuenta+bancaria+creada+correctamente&msg_type=success", status_code=303)
 
@@ -53,7 +55,7 @@ def crear_banco(
 @router.get("/{id_banco}/editar", response_class=HTMLResponse)
 def formulario_editar_banco(request: Request, id_banco: int):
     usuario = get_usuario_actual(request)
-    require_rol(usuario, ["ADMIN", "GESTOR_ECONOMICO"])
+    require_rol(usuario, ["ADMIN"])
     banco = mock_bancos.obtener_banco(id_banco)
     if not banco:
         return RedirectResponse(url="/bancos/", status_code=302)
@@ -72,14 +74,16 @@ def editar_banco(
     iban: str = Form(...),
     bic: str = Form(""),
     sufijo_ordenante: str = Form(...),
+    cuenta_contable: str = Form(""),
 ):
     usuario = get_usuario_actual(request)
-    require_rol(usuario, ["ADMIN", "GESTOR_ECONOMICO"])
+    require_rol(usuario, ["ADMIN"])
     mock_bancos.actualizar_banco(id_banco, {
         "alias": alias.strip(),
         "iban": iban.strip().upper(),
         "bic": bic.strip().upper(),
         "sufijo_ordenante": sufijo_ordenante.strip(),
+        "cuenta_contable": cuenta_contable.strip(),
     })
     return RedirectResponse(url="/bancos/?msg=Cuenta+actualizada+correctamente&msg_type=success", status_code=303)
 

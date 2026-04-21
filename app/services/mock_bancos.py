@@ -8,19 +8,21 @@ ORDENANTE_CIF = "G24356644"
 _bancos: List[Dict[str, Any]] = [
     {
         "id_banco": 1,
-        "alias": "Cuenta principal CaixaBank",
-        "iban": "ES9121000418450200051332",
-        "bic": "CAIXESBBXXX",
+        "alias": "Cuenta principal Unicaja",
+        "iban": "ES9121870000000000000001",
+        "bic": "UCJAES2MXXX",
         "sufijo_ordenante": "001",
+        "cuenta_contable": "5720000001",
         "activa": True,
         "fecha_alta": "2024-01-01",
     },
     {
         "id_banco": 2,
-        "alias": "Cuenta secundaria Santander",
+        "alias": "Cuenta principal Santander",
         "iban": "ES6000491500051234567892",
         "bic": "BSCHESMMXXX",
         "sufijo_ordenante": "002",
+        "cuenta_contable": "5720000002",
         "activa": True,
         "fecha_alta": "2024-01-01",
     },
@@ -41,7 +43,13 @@ def obtener_banco(id_banco: int) -> Dict[str, Any] | None:
 
 def crear_banco(datos: Dict[str, Any]) -> Dict[str, Any]:
     global _next_id_banco
-    nuevo = {**datos, "id_banco": _next_id_banco, "fecha_alta": datetime.now().strftime("%Y-%m-%d"), "activa": True}
+    nuevo = {
+        **datos,
+        "id_banco": _next_id_banco,
+        "fecha_alta": datetime.now().strftime("%Y-%m-%d"),
+        "activa": True,
+        "cuenta_contable": datos.get("cuenta_contable", ""),
+    }
     _bancos.append(nuevo)
     _next_id_banco += 1
     return nuevo

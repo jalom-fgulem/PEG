@@ -28,7 +28,7 @@
         <select id="id_banco" name="id_banco" required style="width:100%;">
           <option value="">— Selecciona un banco —</option>
           {% for b in bancos %}
-          <option value="{{ b.id_banco }}">{{ b.nombre }} · {{ b.iban_ordenante }}</option>
+          <option value="{{ b.id_banco }}">{{ b.alias }} · {{ b.iban }}</option>
           {% endfor %}
         </select>
         <small class="muted">Cuenta ordenante desde la que se realizará el pago.</small>

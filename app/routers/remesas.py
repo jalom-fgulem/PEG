@@ -9,7 +9,7 @@ from app.core.auth import require_rol
 from app.core.templating import templates
 from pathlib import Path
 
-from app.services import pegs_service, remesas_service
+from app.services import mock_bancos, pegs_service, remesas_service
 from app.services.factura_interna_service import generar_numero_factura
 from app.services.pdf_remesa_service import generar_pdf_remesa
 
@@ -20,48 +20,11 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 router = APIRouter(prefix="/remesas", tags=["Remesas"])
 
 
-# ── BANCOS (admin) ─────────────────────────────────────────────────────────────
-
-@router.get("/admin/bancos", response_class=HTMLResponse)
-def bancos_listado(request: Request, usuario: dict = Depends(require_rol("ADMIN"))):
-    bancos = remesas_service.listar_bancos()
-    return templates.TemplateResponse(request=request, name="remesas/bancos.html",
-        context={"bancos": bancos, "usuario": usuario})
-
-@router.post("/admin/bancos/nuevo")
-def bancos_crear(
-    request: Request,
-    nombre: str = Form(...),
-    bic: str = Form(...),
-    iban_ordenante: str = Form(...),
-    usuario: dict = Depends(require_rol("ADMIN")),
-):
-    remesas_service.crear_banco(nombre.strip(), bic.strip().upper(), iban_ordenante.strip())
-    return RedirectResponse(url="/remesas/admin/bancos?msg=Banco+creado+correctamente&msg_type=success", status_code=303)
-
-@router.post("/admin/bancos/{id_banco}/editar")
-def bancos_editar(
-    id_banco: int,
-    nombre: str = Form(...),
-    bic: str = Form(...),
-    iban_ordenante: str = Form(...),
-    activo: str = Form(default="off"),
-    usuario: dict = Depends(require_rol("ADMIN")),
-):
-    remesas_service.actualizar_banco(id_banco, nombre.strip(), bic.strip().upper(), iban_ordenante.strip(), activo == "on")
-    return RedirectResponse(url="/remesas/admin/bancos?msg=Banco+actualizado&msg_type=success", status_code=303)
-
-@router.post("/admin/bancos/{id_banco}/eliminar")
-def bancos_eliminar(id_banco: int, usuario: dict = Depends(require_rol("ADMIN"))):
-    remesas_service.eliminar_banco(id_banco)
-    return RedirectResponse(url="/remesas/admin/bancos?msg=Banco+desactivado&msg_type=success", status_code=303)
-
-
 # ── NUEVA REMESA ───────────────────────────────────────────────────────────────
 
 @router.get("/nueva", response_class=HTMLResponse)
 def remesas_nueva_form(request: Request, usuario: dict = Depends(require_rol("GESTOR_ECONOMICO", "ADMIN"))):
-    bancos = remesas_service.listar_bancos(solo_activos=True)
+    bancos = mock_bancos.listar_bancos(solo_activas=True)
     return templates.TemplateResponse(request=request, name="remesas/nueva.html",
         context={"bancos": bancos, "usuario": usuario})
 
@@ -73,7 +36,7 @@ def remesas_crear(
     usuario: dict = Depends(require_rol("GESTOR_ECONOMICO", "ADMIN")),
 ):
     if not descripcion.strip():
-        bancos = remesas_service.listar_bancos(solo_activos=True)
+        bancos = mock_bancos.listar_bancos(solo_activas=True)
         return templates.TemplateResponse(request=request, name="remesas/nueva.html",
             context={"bancos": bancos, "usuario": usuario, "error": "La descripción es obligatoria."})
     nueva = remesas_service.crear_remesa(
@@ -287,7 +250,7 @@ def remesas_detalle(
         return HTMLResponse("Remesa no encontrada", status_code=404)
     pagos = [pegs_service.obtener_peg(pid) for pid in remesa.get("pagos", [])]
     pagos = [p for p in pagos if p]
-    banco = remesas_service.obtener_banco(remesa.get("id_banco", 0))
+    banco = mock_bancos.obtener_banco(remesa.get("id_banco", 0))
     return templates.TemplateResponse(request=request, name="remesas/detalle.html",
         context={"remesa": remesa, "pagos": pagos, "banco": banco, "usuario": usuario, "msg": msg, "msg_type": msg_type})
 

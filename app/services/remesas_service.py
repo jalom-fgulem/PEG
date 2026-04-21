@@ -1,53 +1,5 @@
 from datetime import datetime
-
-# ──────────────────────────────────────────────────────────────────────────────
-# CATÁLOGO DE BANCOS EN MEMORIA
-# ──────────────────────────────────────────────────────────────────────────────
-
-_bancos = [
-    {"id_banco": 1, "nombre": "BBVA", "bic": "BBVAESMMXXX", "iban_ordenante": "ES91 2100 0418 4502 0005 1332", "activo": True},
-    {"id_banco": 2, "nombre": "Santander", "bic": "BSCHESMMXXX", "iban_ordenante": "ES80 0049 0001 5121 1001 1362", "activo": True},
-    {"id_banco": 3, "nombre": "CaixaBank", "bic": "CAIXESBBXXX", "iban_ordenante": "ES79 2100 0418 4502 0005 1234", "activo": True},
-]
-_siguiente_id_banco = 4
-
-
-def listar_bancos(solo_activos: bool = False) -> list[dict]:
-    if solo_activos:
-        return [b for b in _bancos if b["activo"]]
-    return list(_bancos)
-
-
-def obtener_banco(id_banco: int) -> dict | None:
-    return next((b for b in _bancos if b["id_banco"] == id_banco), None)
-
-
-def crear_banco(nombre: str, bic: str, iban_ordenante: str) -> dict:
-    global _siguiente_id_banco
-    nuevo = {"id_banco": _siguiente_id_banco, "nombre": nombre, "bic": bic, "iban_ordenante": iban_ordenante, "activo": True}
-    _bancos.append(nuevo)
-    _siguiente_id_banco += 1
-    return nuevo
-
-
-def actualizar_banco(id_banco: int, nombre: str, bic: str, iban_ordenante: str, activo: bool) -> dict | None:
-    banco = obtener_banco(id_banco)
-    if not banco:
-        return None
-    banco["nombre"] = nombre
-    banco["bic"] = bic
-    banco["iban_ordenante"] = iban_ordenante
-    banco["activo"] = activo
-    return banco
-
-
-def eliminar_banco(id_banco: int) -> bool:
-    banco = obtener_banco(id_banco)
-    if not banco:
-        return False
-    banco["activo"] = False
-    return True
-
+from app.services import mock_bancos
 
 # ──────────────────────────────────────────────────────────────────────────────
 # DATOS SIMULADOS EN MEMORIA (sustituir por BD real cuando esté disponible)

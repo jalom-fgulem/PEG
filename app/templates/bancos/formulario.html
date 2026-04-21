@@ -39,6 +39,14 @@
       <small style="color:#888;">Código de 3 dígitos que identifica esta cuenta en el Cuaderno 34</small>
     </div>
 
+    <div class="form-group">
+      <label for="cuenta_contable">Cuenta contable (Grupo 5)</label>
+      <input type="text" id="cuenta_contable" name="cuenta_contable" placeholder="Ej: 5720000001"
+             maxlength="20" style="font-family:monospace; width:200px;"
+             value="{{ banco.cuenta_contable if banco else '' }}">
+      <small style="color:#888;">Subcuenta del grupo 572 asociada a esta cuenta bancaria en el plan contable</small>
+    </div>
+
     <div style="display:flex; gap:12px; margin-top:24px;">
       <button class="btn btn-primary" type="submit">
         {% if accion == 'crear' %}Crear cuenta{% else %}Guardar cambios{% endif %}

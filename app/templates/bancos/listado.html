@@ -22,7 +22,7 @@
 
 <div class="card">
   <div class="toolbar" style="display:flex; justify-content:flex-end; margin-bottom:16px;">
-    {% if usuario.rol in ['ADMIN', 'GESTOR_ECONOMICO'] %}
+    {% if usuario.rol == 'ADMIN' %}
     <a class="btn btn-primary" href="/bancos/nuevo">＋ Nueva cuenta bancaria</a>
     {% endif %}
   </div>
@@ -35,6 +35,7 @@
         <th>IBAN</th>
         <th>BIC / SWIFT</th>
         <th>Sufijo ordenante</th>
+        <th>Cta. contable</th>
         <th>Estado</th>
         <th></th>
       </tr>
@@ -46,6 +47,7 @@
         <td style="font-family:monospace; letter-spacing:0.05em;">{{ b.iban }}</td>
         <td style="font-family:monospace;">{{ b.bic or "—" }}</td>
         <td style="font-family:monospace;">{{ b.sufijo_ordenante }}</td>
+        <td style="font-family:monospace; color:#555;">{{ b.cuenta_contable or "—" }}</td>
         <td>
           {% if b.activa %}
             <span class="estado-badge" style="background:rgba(99,153,34,0.14);color:#3b6d11;">Activa</span>

@@ -73,10 +73,10 @@
         <div class="info-item"><label>Fecha creación</label><span>{{ remesa.fecha_creacion }}</span></div>
         <div class="info-item"><label>Fecha cierre</label><span>{{ remesa.fecha_cierre or "—" }}</span></div>
         <div class="info-item"><label>Banco</label>
-          <span>{% if banco %}{{ banco.nombre }}{% else %}—{% endif %}</span>
+          <span>{% if banco %}{{ banco.alias }}{% else %}—{% endif %}</span>
         </div>
         {% if banco %}
-        <div class="info-item" style="grid-column:span 2;"><label>IBAN ordenante</label><span style="font-family:monospace; font-size:0.92rem;">{{ banco.iban_ordenante }}</span></div>
+        <div class="info-item" style="grid-column:span 2;"><label>IBAN ordenante</label><span style="font-family:monospace; font-size:0.92rem;">{{ banco.iban }}</span></div>
         <div class="info-item"><label>BIC / SWIFT</label><span style="font-family:monospace;">{{ banco.bic }}</span></div>
         {% endif %}
         <div class="info-item"><label>PDF</label>
