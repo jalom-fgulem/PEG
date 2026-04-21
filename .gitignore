@@ -4,4 +4,8 @@ __pycache__/
 media/
 *.db
 .DS_Store
+**/.DS_Store
 .claude/worktrees/
+.claude/settings.local.json
+SpegCopia/
+*.zip
