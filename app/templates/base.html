@@ -416,64 +416,86 @@
                 </div>
             </div>
 
+            {# ── GESTOR_SERVICIO ── #}
+            {% if usuario and usuario.get("rol") == "GESTOR_SERVICIO" %}
+
             <div class="nav-section-title">Principal</div>
             <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">Inicio</a>
 
-            {# ── PEGs ── #}
-            <div class="nav-section-title">PEGs</div>
-            {% if usuario and usuario.rol == 'GESTOR_SERVICIO' %}
-            <a class="nav-sublink {% if request.url.path.startswith('/pegs') %}active{% endif %}"
-               href="/pegs/">Mis PEGs</a>
-            {% endif %}
-            {% if usuario and usuario.rol in ('GESTOR_ECONOMICO', 'ADMIN') %}
-            <a class="nav-sublink {% if request.url.path.startswith('/pegs') and 'estado' not in request.url.query %}active{% endif %}"
-               href="/pegs/">Todos los PEGs</a>
-            <a class="nav-sublink" href="/pegs/?estado=1">Pendientes de validar</a>
-            {% endif %}
-
-            {# ── Autorizaciones ── #}
-            {% if usuario and (usuario.rol in ('GESTOR_ECONOMICO', 'ADMIN') or (usuario.id_servicio and obtener_servicio(usuario.id_servicio) and obtener_servicio(usuario.id_servicio).requiere_autorizacion)) %}
             <div class="nav-section-title">Autorizaciones</div>
-            <a class="nav-sublink {% if request.url.path.startswith('/solicitudes') %}active{% endif %}"
-               href="/solicitudes/">Solicitudes</a>
+            <a class="nav-link {% if request.url.path.startswith('/solicitudes') %}active{% endif %}" href="/solicitudes/">Solicitudes</a>
+
+            <div class="nav-section-title">PEGs</div>
+            <a class="nav-link {% if request.url.path.startswith('/pegs') %}active{% endif %}" href="/pegs">Todos los PEGs</a>
+
+            <a class="nav-link {% if request.url.path == '/usuarios/mi-perfil' %}active{% endif %}" href="/usuarios/mi-perfil">Perfil</a>
+
+            {# ── GESTOR_ECONOMICO / ADMIN ── #}
+            {% elif usuario and usuario.get("rol") in ["GESTOR_ECONOMICO", "ADMIN"] %}
+            {% set counts = menu_counts(usuario) %}
+
+            <div class="nav-section-title">Principal</div>
+            <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">Inicio</a>
+
+            <div class="nav-section-title">Autorizaciones</div>
+            <a class="nav-link {% if request.url.path.startswith('/solicitudes') %}active{% endif %}" href="/solicitudes/">Solicitudes</a>
+            {% if counts.menu_solicitudes_pendientes > 0 %}
+            <a class="nav-sublink" href="/solicitudes/?estado=PENDIENTE"
+               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
+              · Pendientes
+              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_solicitudes_pendientes }}</span>
+            </a>
             {% endif %}
 
-            {# ── Remesas ── #}
-            {% if usuario and usuario.rol in ('GESTOR_ECONOMICO', 'ADMIN') %}
-            <div class="nav-section-title">Remesas</div>
-            <a class="nav-sublink {% if request.url.path.startswith('/remesas') and not request.url.path.startswith('/remesas-directas') %}active{% endif %}"
-               href="/remesas/">Transferencia</a>
-            <a class="nav-sublink {% if request.url.path.startswith('/remesas-directas') %}active{% endif %}"
-               href="/remesas-directas/">Directas</a>
+            <div class="nav-section-title">PEGs</div>
+            <a class="nav-link {% if request.url.path.startswith('/pegs') and 'estado' not in request.url.query %}active{% endif %}" href="/pegs">Todos los PEGs</a>
+            {% if counts.menu_pegs_pendientes > 0 %}
+            <a class="nav-sublink" href="/pegs?estado=PENDIENTE"
+               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
+              · Pendientes de validar
+              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_pegs_pendientes }}</span>
+            </a>
+            {% endif %}
+            {% if counts.menu_pegs_incidencias > 0 %}
+            <a class="nav-sublink" href="/pegs?estado=INCIDENCIA"
+               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
+              · Incidencias
+              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_pegs_incidencias }}</span>
+            </a>
+            {% endif %}
+            {% if counts.menu_pegs_en_remesa > 0 %}
+            <a class="nav-sublink" href="/pegs?estado=EN_REMESA"
+               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
+              · En remesa
+              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_pegs_en_remesa }}</span>
+            </a>
+            {% endif %}
+            {% if counts.menu_pegs_validados > 0 %}
+            <a class="nav-sublink" href="/pegs?estado=VALIDADO"
+               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
+              · Validados
+              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_pegs_validados }}</span>
+            </a>
+            {% endif %}
 
-            {# ── Gastos Directos ── #}
             <div class="nav-section-title">Gastos Directos</div>
-            <a class="nav-sublink {% if request.url.path.startswith('/gastos') and 'DOMICILIACION' in request.url.query %}active{% endif %}"
-               href="/gastos/?tipo=DOMICILIACION">Domiciliaciones</a>
-            <a class="nav-sublink {% if request.url.path.startswith('/gastos') and 'TARJETA' in request.url.query %}active{% endif %}"
-               href="/gastos/?tipo=TARJETA">Tarjetas</a>
+            <a class="nav-link {% if request.url.path.startswith('/gastos') and 'DOMICILIACION' in request.url.query %}active{% endif %}" href="/gastos?tipo=DOMICILIACION">Domiciliaciones</a>
+            <a class="nav-link {% if request.url.path.startswith('/gastos') and 'TARJETA' in request.url.query %}active{% endif %}" href="/gastos?tipo=TARJETA">Tarjetas</a>
+
+            <div class="nav-section-title">Remesas</div>
+            <a class="nav-link {% if request.url.path.startswith('/remesas') and not request.url.path.startswith('/remesas-directas') %}active{% endif %}" href="/remesas/">RT – Transferencias</a>
+            <a class="nav-link {% if request.url.path.startswith('/remesas-directas') %}active{% endif %}" href="/remesas-directas/">RD – Directas</a>
+
+            <a class="nav-link {% if request.url.path == '/usuarios/mi-perfil' %}active{% endif %}" href="/usuarios/mi-perfil">Perfil</a>
+
+            {% if usuario.get("rol") == "ADMIN" %}
+            <div class="nav-section-title">Administración</div>
+            <a class="nav-link {% if request.url.path.startswith('/usuarios') %}active{% endif %}" href="/usuarios/">Usuarios</a>
+            <a class="nav-link {% if request.url.path.startswith('/servicios') %}active{% endif %}" href="/servicios/">Servicios</a>
+            <a class="nav-link {% if request.url.path.startswith('/proveedores') %}active{% endif %}" href="/proveedores/">Proveedores</a>
+            <a class="nav-link {% if request.url.path.startswith('/bancos') %}active{% endif %}" href="/bancos/">Bancos</a>
             {% endif %}
 
-            {# ── Administración (solo ADMIN) ── #}
-            {% if usuario and usuario.rol == 'ADMIN' %}
-            <div class="nav-section-title">Administración</div>
-            <a class="nav-sublink {% if request.url.path.startswith('/proveedores') %}active{% endif %}"
-               href="/proveedores/">Proveedores</a>
-            <a class="nav-sublink {% if request.url.path.startswith('/servicios') %}active{% endif %}"
-               href="/servicios/">Servicios</a>
-            <a class="nav-sublink {% if request.url.path.startswith('/bancos') %}active{% endif %}"
-               href="/bancos/">Bancos</a>
-            <a class="nav-sublink {% if request.url.path.startswith('/usuarios') %}active{% endif %}"
-               href="/usuarios/">Usuarios</a>
-            <a class="nav-sublink {% if request.url.path.startswith('/admin/cuentas-gasto') %}active{% endif %}"
-               href="/admin/cuentas-gasto">Cuentas de gasto</a>
-            {% endif %}
-            {% if usuario %}
-            <div style="margin-top:auto; padding-top:16px; border-top:1px solid rgba(255,255,255,0.1);">
-              <a class="nav-link {% if request.url.path == '/usuarios/mi-perfil' %}active{% endif %}" href="/usuarios/mi-perfil" style="font-size:0.88rem;">
-                👤 {{ usuario.nombre_completo }}
-              </a>
-            </div>
             {% endif %}
         </aside>
 

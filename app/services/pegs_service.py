@@ -870,3 +870,11 @@ def tiene_documentos(id_peg: int) -> bool:
     if not peg:
         return False
     return len(peg.get("documentos", [])) > 0
+
+
+def get_pegs_count_por_estado(estado: str) -> int:
+    estado_obj = next((e for e in _estados if e["codigo"] == estado), None)
+    if not estado_obj:
+        return 0
+    id_estado = estado_obj["id_peg_estado"]
+    return sum(1 for p in _pegs if p.get("id_peg_estado") == id_estado)
