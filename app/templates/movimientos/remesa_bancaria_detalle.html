@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Remesa bancaria — detalle{% endblock %}
+{% block page_title %}Remesa bancaria directa{% endblock %}
+{% block page_subtitle %}Detalle de gasto registrado desde movimiento bancario{% endblock %}
+
+{% block content %}
+<div style="max-width:780px;">
+
+  <div style="margin-bottom:16px;">
+    <a class="btn btn-secondary" href="/movimientos/remesas-bancarias" style="font-size:0.85rem;">
+      ← Volver al listado
+    </a>
+  </div>
+
+  <!-- Cabecera de la remesa -->
+  <div class="card" style="margin-bottom:18px; padding:20px 24px;">
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:16px;">
+      <div>
+        <div style="font-size:0.72rem; color:#8a8691; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px;">Fecha de registro</div>
+        <div style="font-family:monospace; font-weight:600;">{{ rd.fecha_creacion }}</div>
+      </div>
+      <div>
+        <div style="font-size:0.72rem; color:#8a8691; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px;">Tipo de gasto</div>
+        <div style="font-weight:600;">{{ rd.tipo_gasto.replace("_"," ").title() }}</div>
+      </div>
+      <div>
+        <div style="font-size:0.72rem; color:#8a8691; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px;">Estado</div>
+        <span style="font-size:0.82rem; font-weight:700; padding:4px 10px; border-radius:6px;
+          background:rgba(99,153,34,0.14); color:#3b6d11;">✓ Cotejada</span>
+      </div>
+      <div style="grid-column:span 2;">
+        <div style="font-size:0.72rem; color:#8a8691; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px;">Descripción</div>
+        <div style="font-weight:600; font-size:1rem;">{{ rd.descripcion }}</div>
+      </div>
+      <div>
+        <div style="font-size:0.72rem; color:#8a8691; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px;">Importe total</div>
+        <div style="font-family:monospace; font-size:1.2rem; font-weight:800; color:#a32d2d;">
+          -{{ "%.2f"|format(rd.importe_total) }} €
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.72rem; color:#8a8691; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px;">Cuenta bancaria</div>
+        <div style="font-size:0.9rem; color:#555;">{{ banco.alias if banco else "—" }}</div>
+      </div>
+      <div>
+        <div style="font-size:0.72rem; color:#8a8691; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px;">Registrado por</div>
+        <div style="font-size:0.9rem; color:#555;">{{ rd.id_usuario_crea }}</div>
+      </div>
+    </div>
+
+    {% if mov %}
+    <div style="padding:10px 14px; background:rgba(95,159,211,0.06); border:1px solid rgba(95,159,211,0.20); border-radius:8px; font-size:0.85rem;">
+      <span style="color:#8a8691; font-weight:700; font-size:0.72rem; text-transform:uppercase;">Movimiento bancario origen</span><br>
+      <span style="font-family:monospace;">{{ mov.fecha_operacion }}</span>
+      · <strong>{{ "%+.2f"|format(mov.importe) }} €</strong>
+      · <span style="color:#555;">{{ mov.concepto or "Sin concepto" }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Líneas analíticas -->
+  <div class="card">
+    <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#8a8691; margin-bottom:14px;">
+      Desglose analítico ({{ rd.lineas|length }} línea(s))
+    </div>
+
+    {% if rd.lineas %}
+    <table>
+      <thead>
+        <tr>
+          <th>Departamento / Proyecto</th>
+          <th>Cuenta analítica</th>
+          <th>Descripción</th>
+          <th style="text-align:right;">Importe</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for linea in rd.lineas %}
+        <tr>
+          <td style="font-weight:600;">{{ linea.departamento or "—" }}</td>
+          <td style="font-family:monospace; font-size:0.88rem;">{{ linea.cuenta_analitica or "—" }}</td>
+          <td style="color:#555; font-size:0.9rem;">{{ linea.descripcion_linea or "—" }}</td>
+          <td style="text-align:right; font-family:monospace; font-weight:700; color:#a32d2d; white-space:nowrap;">
+            -{{ "%.2f"|format(linea.importe) }} €
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="border-top:2px solid var(--line);">
+          <td colspan="3" style="font-weight:700; text-align:right; padding-top:10px; color:#555;">Total</td>
+          <td style="text-align:right; font-family:monospace; font-weight:800; color:#a32d2d; padding-top:10px; white-space:nowrap;">
+            -{{ "%.2f"|format(rd.importe_total) }} €
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+    {% else %}
+    <p style="color:#888; font-size:0.9rem;">Esta remesa no tiene líneas analíticas registradas.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

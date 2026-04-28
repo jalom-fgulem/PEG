@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% block title %}Movimientos bancarios{% endblock %}
+{% block page_title %}Movimientos bancarios{% endblock %}
+{% block page_subtitle %}Extractos importados por cuenta{% endblock %}
+
+{% block extra_head %}
+<style>
+  .barra-seleccion {
+    display:none; position:sticky; bottom:16px; z-index:100;
+    background:var(--fgulem-blue); color:white; border-radius:12px;
+    padding:12px 18px; margin-top:16px;
+    box-shadow:0 4px 18px rgba(24,95,165,0.35);
+    align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .barra-seleccion.visible { display:flex; }
+  .barra-seleccion .btn-barra {
+    background:rgba(255,255,255,0.18); color:white; border:1px solid rgba(255,255,255,0.35);
+    padding:7px 14px; border-radius:8px; font-size:0.85rem; font-weight:700; cursor:pointer;
+  }
+  .barra-seleccion .btn-barra:hover { background:rgba(255,255,255,0.30); }
+  .barra-seleccion .btn-barra.danger { background:rgba(226,75,74,0.30); border-color:rgba(226,75,74,0.5); }
+  #modal-agrupar {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:200;
+    align-items:center; justify-content:center;
+  }
+  #modal-agrupar.visible { display:flex; }
+  .modal-box {
+    background:#ffffff; border-radius:14px; padding:28px 32px;
+    max-width:480px; width:90%; box-shadow:0 16px 48px rgba(0,0,0,0.28);
+    border:1px solid rgba(0,0,0,0.08);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if request.query_params.get('msg') %}
+<div style="margin-bottom:16px; padding:12px 16px; border-radius:10px; font-weight:600;
+  {% if request.query_params.get('msg_type') == 'success' %}background:rgba(99,153,34,0.12);border:1px solid rgba(99,153,34,0.28);color:#2f6b10;
+  {% else %}background:rgba(226,75,74,0.10);border:1px solid rgba(226,75,74,0.28);color:#a32d2d;{% endif %}">
+  {% if request.query_params.get('msg_type') == 'success' %}✓{% else %}⚠{% endif %} {{ request.query_params.get('msg') }}
+</div>
+{% endif %}
+
+<!-- Filtros -->
+<div class="card" style="margin-bottom:16px; padding:14px 20px;">
+  <form method="get" action="/movimientos/" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+    <div>
+      <label style="display:block; font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#8a8691; margin-bottom:4px;">Cuenta</label>
+      <select name="id_banco" style="min-width:200px;">
+        <option value="">Todas las cuentas</option>
+        {% for b in bancos %}
+        <option value="{{ b.id_banco }}" {% if filtro_banco == b.id_banco %}selected{% endif %}>{{ b.alias }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="display:block; font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#8a8691; margin-bottom:4px;">Estado</label>
+      <select name="estado" style="min-width:140px;">
+        <option value="">Todos</option>
+        {% for e in estados %}
+        <option value="{{ e }}" {% if filtro_estado == e %}selected{% endif %}>{{ e.title() }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="display:block; font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#8a8691; margin-bottom:4px;">Tipo</label>
+      <select name="tipo" style="min-width:160px;">
+        <option value="">Todos los tipos</option>
+        {% for t in tipos %}
+        <option value="{{ t }}" {% if filtro_tipo == t %}selected{% endif %}>{{ t.replace("_"," ").title() }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-primary" type="submit">Filtrar</button>
+      <a class="btn btn-secondary" href="/movimientos/">Limpiar</a>
+    </div>
+  </form>
+</div>
+
+<!-- Barra de acciones -->
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+  <div style="display:flex; gap:8px;">
+    <form method="post" action="/movimientos/autocotejar" style="display:inline;">
+      <button class="btn btn-secondary" type="submit"
+              onclick="return confirm('¿Ejecutar cotejo automático sobre los movimientos pendientes?')"
+              style="font-size:0.85rem;">⚡ Auto-cotejar pendientes</button>
+    </form>
+    <a class="btn btn-secondary"
+       href="/movimientos/remesas-bancarias"
+       style="font-size:0.85rem; background:rgba(147,100,214,0.10); color:#5b2d8e; border-color:rgba(147,100,214,0.30);">
+      ☰ Remesas desde movimientos
+    </a>
+  </div>
+  <a class="btn btn-primary" href="/movimientos/importar">↑ Importar extracto</a>
+</div>
+
+<!-- Tabla con formulario para selección masiva -->
+<form id="form-masivo" method="post" action="/movimientos/accion-masiva">
+<div class="card">
+  {% if items %}
+  <table>
+    <thead>
+      <tr>
+        <th style="width:36px;">
+          <input type="checkbox" id="check-all" title="Seleccionar todos"
+                 onchange="toggleTodos(this.checked)" style="cursor:pointer;">
+        </th>
+        <th>Fecha</th>
+        <th>Concepto</th>
+        <th>Tipo</th>
+        <th>Cuenta</th>
+        <th style="text-align:right;">Importe</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in items %}
+      {% set banco = banco_map.get(m.id_banco) %}
+      {% set cotejo = cotejo_map.get(m.id_movimiento) %}
+      <tr style="{% if m.estado == 'IGNORADO' %}opacity:0.40;{% endif %}">
+        <td>
+          {% if m.estado == 'PENDIENTE' %}
+          <input type="checkbox" name="ids" value="{{ m.id_movimiento }}"
+                 class="check-item" onchange="actualizarBarra()" style="cursor:pointer;">
+          {% endif %}
+        </td>
+        <td style="font-family:monospace; white-space:nowrap; font-size:0.9rem;">{{ m.fecha_operacion }}</td>
+        <td style="max-width:280px;">
+          <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ m.concepto }}">{{ m.concepto }}</div>
+          {% if cotejo and cotejo.descripcion %}
+          <div style="font-size:0.78rem; color:#8a8691; margin-top:2px;">↳ {{ cotejo.tipo_referencia }}: {{ cotejo.descripcion }}</div>
+          {% endif %}
+        </td>
+        <td>
+          <span style="font-size:0.78rem; font-weight:700; padding:3px 8px; border-radius:6px;
+            {% if m.tipo == 'COMISION' %}background:rgba(226,75,74,0.10);color:#a32d2d;
+            {% elif m.tipo == 'DOMICILIACION' %}background:rgba(239,159,39,0.12);color:#854f0b;
+            {% elif m.tipo == 'TARJETA' %}background:rgba(147,100,214,0.12);color:#5b2d8e;
+            {% elif m.tipo == 'TRANSFERENCIA' %}background:rgba(95,159,211,0.12);color:#185fa5;
+            {% else %}background:rgba(150,150,150,0.10);color:#555;{% endif %}">
+            {{ m.tipo.replace("_"," ") }}
+          </span>
+        </td>
+        <td style="font-size:0.85rem; color:#666;">{{ banco.alias if banco else "—" }}</td>
+        <td style="text-align:right; font-family:monospace; font-weight:700; white-space:nowrap;
+          {% if m.importe >= 0 %}color:#2f6b10;{% else %}color:#a32d2d;{% endif %}">
+          {% if m.importe >= 0 %}+{% endif %}{{ "%.2f"|format(m.importe) }} €
+        </td>
+        <td>
+          {% if m.estado == 'COTEJADO' %}
+            <span class="estado-badge" style="background:rgba(99,153,34,0.14);color:#3b6d11;">✓ Cotejado</span>
+          {% elif m.estado == 'IGNORADO' %}
+            <span class="estado-badge" style="background:rgba(150,150,150,0.14);color:#666;">Ignorado</span>
+          {% else %}
+            <span class="estado-badge" style="background:rgba(239,159,39,0.14);color:#854f0b;">Pendiente</span>
+          {% endif %}
+        </td>
+        <td style="white-space:nowrap;">
+          {% if m.estado == 'PENDIENTE' %}
+          <a class="btn btn-secondary" style="padding:5px 10px; font-size:0.80rem;"
+             href="/movimientos/{{ m.id_movimiento }}/cotejar">Cotejar</a>
+          <a class="btn" style="padding:5px 10px; font-size:0.80rem; background:rgba(147,100,214,0.10); color:#5b2d8e; border:1px solid rgba(147,100,214,0.30);"
+             href="/movimientos/{{ m.id_movimiento }}/remesa-directa"
+             title="Registrar como remesa directa con desglose analítico">Remesa directa</a>
+          <form method="post" action="/movimientos/{{ m.id_movimiento }}/ignorar"
+                onsubmit="return confirm('¿Ignorar este movimiento?')" style="display:inline;">
+            <button class="btn" style="padding:5px 10px; font-size:0.80rem; background:rgba(150,150,150,0.10); color:#666; border:1px solid #ddd;" type="submit">Ignorar</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Resumen -->
+  <div style="margin-top:16px; padding-top:12px; border-top:1px solid var(--line); display:flex; gap:24px; font-size:0.88rem; color:#666; flex-wrap:wrap;">
+    <span><strong>{{ items|length }}</strong> movimiento(s)</span>
+    {% set pendientes = items|selectattr("estado","equalto","PENDIENTE")|list|length %}
+    {% if pendientes > 0 %}
+    <span style="color:#854f0b;"><strong>{{ pendientes }}</strong> pendiente(s)</span>
+    {% endif %}
+    {% set cotejados = items|selectattr("estado","equalto","COTEJADO")|list|length %}
+    {% if cotejados > 0 %}
+    <span style="color:#3b6d11;"><strong>{{ cotejados }}</strong> cotejado(s)</span>
+    {% endif %}
+    {% set total = items|sum(attribute="importe") %}
+    <span style="margin-left:auto;">Total: <strong style="{% if total >= 0 %}color:#2f6b10;{% else %}color:#a32d2d;{% endif %}">{{ "%.2f"|format(total) }} €</strong></span>
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    No hay movimientos{% if filtro_banco or filtro_estado or filtro_tipo %} con los filtros aplicados{% endif %}.
+    <a href="/movimientos/importar">Importar extracto</a>.
+  </div>
+  {% endif %}
+</div>
+
+<!-- Barra de selección masiva (sticky) -->
+<div class="barra-seleccion" id="barra-seleccion">
+  <span id="label-seleccion" style="font-weight:700; flex:1;">0 seleccionados</span>
+
+  <button type="button" class="btn-barra" onclick="irRemesaDirectaGrupal()"
+          style="background:rgba(147,100,214,0.30); border-color:rgba(147,100,214,0.5);"
+          title="Crear remesa directa con desglose analítico para los movimientos seleccionados">
+    ⊕ Remesa directa
+  </button>
+
+  <button type="button" class="btn-barra" onclick="abrirModalAgrupar()">Agrupar (cotejar)</button>
+
+  <button type="submit" name="accion" value="ignorar" class="btn-barra danger"
+          onclick="return confirm('¿Ignorar todos los movimientos seleccionados?')">Ignorar selección</button>
+
+  <button type="button" class="btn-barra" style="background:rgba(255,255,255,0.10);"
+          onclick="deseleccionarTodos()">✕ Cancelar</button>
+</div>
+
+</form>
+
+<!-- Modal agrupación -->
+<div id="modal-agrupar">
+  <div class="modal-box">
+    <h3 style="margin:0 0 16px;">Agrupar movimientos seleccionados</h3>
+    <p style="font-size:0.88rem; color:#666; margin-bottom:18px;">
+      Los movimientos seleccionados quedarán marcados como <strong>Cotejados</strong> bajo una descripción común. Útil para comisiones bancarias y gastos recurrentes en bloque.
+    </p>
+    <div class="form-group">
+      <label for="descripcion_grupo">Descripción del grupo <span style="color:#a32d2d;">*</span></label>
+      <input type="text" id="descripcion_grupo" name="descripcion_grupo" form="form-masivo"
+             placeholder="Ej: Comisiones bancarias abril 2026"
+             style="width:100%;">
+    </div>
+    <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
+      <button type="button" class="btn btn-secondary" onclick="cerrarModalAgrupar()">Cancelar</button>
+      <button type="submit" name="accion" value="agrupar" form="form-masivo" class="btn btn-primary">Confirmar agrupación</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function actualizarBarra() {
+  const checks = document.querySelectorAll('.check-item:checked');
+  const barra  = document.getElementById('barra-seleccion');
+  const label  = document.getElementById('label-seleccion');
+  const n = checks.length;
+  label.textContent = n + ' movimiento' + (n !== 1 ? 's' : '') + ' seleccionado' + (n !== 1 ? 's' : '');
+  barra.classList.toggle('visible', n > 0);
+  document.getElementById('check-all').indeterminate =
+    n > 0 && n < document.querySelectorAll('.check-item').length;
+}
+
+function toggleTodos(checked) {
+  document.querySelectorAll('.check-item').forEach(c => c.checked = checked);
+  actualizarBarra();
+}
+
+function deseleccionarTodos() {
+  document.querySelectorAll('.check-item').forEach(c => c.checked = false);
+  document.getElementById('check-all').checked = false;
+  actualizarBarra();
+}
+
+function abrirModalAgrupar() {
+  document.getElementById('modal-agrupar').classList.add('visible');
+  document.getElementById('descripcion_grupo').focus();
+}
+
+function cerrarModalAgrupar() {
+  document.getElementById('modal-agrupar').classList.remove('visible');
+}
+
+document.getElementById('modal-agrupar').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModalAgrupar();
+});
+
+function irRemesaDirectaGrupal() {
+  const checks = document.querySelectorAll('.check-item:checked');
+  if (checks.length === 0) return;
+  // Construir URL con los IDs seleccionados como query params
+  const ids = Array.from(checks).map(c => c.value).join(',');
+  window.location.href = '/movimientos/remesa-directa-grupal?ids=' + ids;
+}
+</script>
+{% endblock %}

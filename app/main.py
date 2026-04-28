@@ -15,6 +15,7 @@ from app.routers import remesas_directas as remesas_directas_router
 from app.services import pegs_service
 from app.routers import auth as auth_router
 from app.routers import bancos as bancos_router
+from app.routers import movimientos as movimientos_router
 from app.routers import usuarios as usuarios_router
 from app.routers import adjuntos as adjuntos_router
 from app.routers import admin as admin_router
@@ -35,6 +36,7 @@ app.include_router(remesas.router)
 from app import cuaderno34
 app.include_router(cuaderno34.router)
 app.include_router(bancos_router.router)
+app.include_router(movimientos_router.router)
 app.include_router(usuarios_router.router)
 app.include_router(adjuntos_router.router)
 app.include_router(admin_router.router)

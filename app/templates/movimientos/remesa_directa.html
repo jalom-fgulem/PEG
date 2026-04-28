@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Nueva remesa directa{% endblock %}
+{% block page_title %}Nueva remesa directa{% endblock %}
+{% block page_subtitle %}Asigna cuenta de gasto y analítica al movimiento bancario{% endblock %}
+
+{% block extra_head %}
+<style>
+  .rd-mov-info { display:grid; grid-template-columns:130px 1fr 150px 140px; gap:12px;
+    padding:13px 18px; background:rgba(95,159,211,0.05); border:1px solid rgba(95,159,211,0.18);
+    border-radius:10px; margin-bottom:14px; }
+  .rd-lbl { font-size:0.69rem; color:#8a8691; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.06em; margin-bottom:3px; }
+  .at { width:100%; border-collapse:collapse; }
+  .at th { font-size:0.69rem; text-transform:uppercase; letter-spacing:0.05em; color:#8a8691;
+    font-weight:700; padding:6px 7px; border-bottom:2px solid var(--line); text-align:left; }
+  .at td { padding:5px 5px; border-bottom:1px solid rgba(0,0,0,0.05); vertical-align:middle; }
+  .at tr:last-child td { border-bottom:none; }
+  .at select, .at input {
+    width:100%; padding:6px 7px; border:1px solid var(--line); border-radius:6px;
+    font-size:0.83rem; background:#fff; box-sizing:border-box; }
+  .at select:focus, .at input:focus { outline:none; border-color:var(--fgulem-blue); }
+  .at input[type=number] { text-align:right; }
+  .btn-add-line { background:transparent; border:1px dashed rgba(22,163,74,0.4); color:#16a34a;
+    border-radius:6px; padding:4px 12px; cursor:pointer; font-size:0.82rem; font-weight:600; }
+  .btn-del { background:transparent; border:1px solid rgba(226,75,74,0.3); color:#a32d2d;
+    border-radius:5px; padding:4px 8px; cursor:pointer; font-size:0.82rem; }
+  .pct-bar { display:flex; gap:16px; align-items:center; padding:9px 13px; margin-top:10px;
+    background:rgba(95,159,211,0.05); border:1px solid rgba(95,159,211,0.18); border-radius:8px;
+    font-size:0.87rem; flex-wrap:wrap; }
+  .pct-ok  { color:#16a34a; font-weight:700; }
+  .pct-warn{ color:#854f0b; font-weight:700; }
+  .pct-err { color:#a32d2d; font-weight:700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:800px;">
+
+  {% if error %}
+  <div style="margin-bottom:14px; padding:10px 14px; border-radius:8px;
+    background:rgba(226,75,74,0.10); border:1px solid rgba(226,75,74,0.28);
+    color:#a32d2d; font-weight:600; font-size:0.88rem;">⚠ {{ error }}</div>
+  {% endif %}
+
+  <!-- Movimiento origen -->
+  <div class="rd-mov-info">
+    <div><div class="rd-lbl">Fecha</div>
+      <div style="font-family:monospace; font-weight:600; font-size:0.9rem;">{{ mov.fecha_operacion }}</div></div>
+    <div><div class="rd-lbl">Concepto</div>
+      <div style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+           title="{{ mov.concepto }}">{{ mov.concepto or "—" }}</div></div>
+    <div><div class="rd-lbl">Importe</div>
+      <div style="font-family:monospace; font-size:1.05rem; font-weight:800; color:#a32d2d;">{{ "%+.2f"|format(mov.importe) }} €</div></div>
+    <div><div class="rd-lbl">Cuenta bancaria</div>
+      <div style="font-size:0.88rem; color:#555;">{{ banco.alias if banco else "—" }}</div></div>
+  </div>
+
+  <form method="post" action="/movimientos/{{ mov.id_movimiento }}/remesa-directa" id="form-rd">
+    <div class="card">
+
+      <!-- Cabecera -->
+      <div style="display:grid; grid-template-columns:1fr 190px 210px; gap:12px; margin-bottom:18px;">
+        <div class="form-group" style="margin:0;">
+          <label>Descripción <span style="color:#a32d2d;">*</span></label>
+          <input type="text" name="descripcion" required style="width:100%;"
+                 value="{{ mov.concepto[:80] if mov.concepto else '' }}"
+                 placeholder="Descripción del gasto">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Tipo de gasto <span style="color:#a32d2d;">*</span></label>
+          <select name="tipo_gasto" style="width:100%;" required>
+            {% for t in tipos_gasto %}
+            <option value="{{ t }}">{{ t.replace("_"," ").title() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Cuenta de gasto <span style="color:#a32d2d;">*</span></label>
+          <select name="cuenta_gasto_mov" id="cta-gasto" style="width:100%;" required>
+            <option value="">— Selecciona —</option>
+            {% for cg in cuentas_gasto %}
+            <option value="{{ cg.codigo }}">{{ cg.codigo }} – {{ cg.descripcion }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Líneas analíticas -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#8a8691;">
+          Desglose analítico
+          <span style="font-size:0.72rem; font-weight:400; text-transform:none; color:#bbb; margin-left:6px;">los porcentajes deben sumar 100%</span>
+        </div>
+        <button type="button" class="btn-add-line" onclick="añadirLinea()">+ Añadir línea</button>
+      </div>
+
+      <table class="at">
+        <thead><tr>
+          <th style="width:58%;">Servicio / Proyecto</th>
+          <th style="width:32%;">Descripción</th>
+          <th style="width:8%; text-align:right;">%</th>
+          <th style="width:2%;"></th>
+        </tr></thead>
+        <tbody id="lineas-body"></tbody>
+      </table>
+
+      <div class="pct-bar">
+        <span>Importe: <strong style="font-family:monospace; color:#a32d2d;">{{ "%.2f"|format(mov.importe|abs) }} €</strong></span>
+        <span>Total analítica: <strong id="lbl-pct" class="pct-warn">0.00%</strong></span>
+        <span id="lbl-importe-calculado" style="font-size:0.82rem; color:#aaa;"></span>
+      </div>
+
+      <div id="msg-error" style="display:none; margin-top:10px; padding:9px 13px; border-radius:7px;
+        background:rgba(226,75,74,0.09); border:1px solid rgba(226,75,74,0.25);
+        color:#a32d2d; font-weight:600; font-size:0.86rem;"></div>
+
+      <div style="display:flex; gap:10px; margin-top:18px;">
+        <button class="btn btn-primary" type="submit">Crear remesa directa</button>
+        <a class="btn btn-secondary" href="/movimientos/">Cancelar</a>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Opciones pre-renderizadas -->
+<select id="tpl-serv-proy" style="display:none;">
+  <option value="">— Servicio / Proyecto —</option>
+  {% for s in servicios_proyectos %}{% for p in s.proyectos %}
+  <option value="{{ s.id }}-{{ p.id }}">{{ s.nombre }} / {{ p.nombre }}</option>
+  {% endfor %}{% endfor %}
+</select>
+
+<script>
+const IMPORTE_MOV = {{ mov.importe|abs }};
+
+function _cloneSP() {
+  const t = document.getElementById('tpl-serv-proy');
+  const s = document.createElement('select');
+  s.innerHTML = t.innerHTML;
+  return s;
+}
+
+function añadirLinea() {
+  const tbody = document.getElementById('lineas-body');
+  if (tbody.querySelectorAll('tr').length >= 5) return;
+  const esPrimera = tbody.querySelectorAll('tr').length === 0;
+
+  const tr = document.createElement('tr');
+
+  const selSP = _cloneSP(); selSP.name = 'servicio_proyecto';
+  const tdSP = document.createElement('td'); tdSP.appendChild(selSP);
+
+  const tdDesc = document.createElement('td');
+  tdDesc.innerHTML = '<input type="text" name="descripcion_linea" placeholder="Descripción opcional">';
+
+  const tdPct = document.createElement('td');
+  tdPct.innerHTML = `<input type="number" name="porcentaje_linea" step="0.01" min="0.01" max="100"
+    value="${esPrimera ? '100' : ''}" placeholder="0.00" oninput="recalcPct()">`;
+
+  const tdDel = document.createElement('td');
+  tdDel.style.textAlign = 'center';
+  tdDel.innerHTML = '<button type="button" class="btn-del" onclick="eliminarLinea(this)">×</button>';
+
+  tr.append(tdSP, tdDesc, tdPct, tdDel);
+  tbody.appendChild(tr);
+  recalcPct();
+}
+
+function eliminarLinea(btn) {
+  if (document.querySelectorAll('#lineas-body tr').length <= 1) return;
+  btn.closest('tr').remove();
+  recalcPct();
+}
+
+function recalcPct() {
+  const total = Array.from(document.querySelectorAll('#lineas-body input[name="porcentaje_linea"]'))
+    .reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+  const lbl = document.getElementById('lbl-pct');
+  lbl.textContent = total.toFixed(2) + '%';
+  lbl.className = Math.abs(total - 100) <= 0.01 ? 'pct-ok' : (total > 100.01 ? 'pct-err' : 'pct-warn');
+  const importeCalc = IMPORTE_MOV * total / 100;
+  document.getElementById('lbl-importe-calculado').textContent =
+    total > 0 ? `→ ${importeCalc.toFixed(2)} € asignados` : '';
+}
+
+document.getElementById('form-rd').addEventListener('submit', function(e) {
+  const errEl = document.getElementById('msg-error');
+  const cta = document.getElementById('cta-gasto').value;
+  if (!cta) {
+    e.preventDefault();
+    errEl.textContent = '⚠ Selecciona una cuenta de gasto.';
+    errEl.style.display = 'block'; return;
+  }
+  const rows = document.querySelectorAll('#lineas-body tr');
+  if (rows.length === 0) {
+    e.preventDefault();
+    errEl.textContent = '⚠ Añade al menos una línea analítica.';
+    errEl.style.display = 'block'; return;
+  }
+  const total = Array.from(document.querySelectorAll('#lineas-body input[name="porcentaje_linea"]'))
+    .reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+  if (Math.abs(total - 100) > 0.01) {
+    e.preventDefault();
+    errEl.textContent = `⚠ La analítica suma ${total.toFixed(2)}% (debe ser exactamente 100%).`;
+    errEl.style.display = 'block';
+    errEl.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+});
+
+añadirLinea();
+</script>
+{% endblock %}

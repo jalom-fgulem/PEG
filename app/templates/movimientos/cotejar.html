@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Cotejar movimiento{% endblock %}
+{% block page_title %}Cotejar movimiento{% endblock %}
+{% block page_subtitle %}Vincula este movimiento a una remesa o regístralo manualmente{% endblock %}
+
+{% block content %}
+<div style="max-width:680px;">
+
+  <!-- Tarjeta del movimiento -->
+  <div class="card" style="margin-bottom:18px; padding:16px 20px; background:rgba(95,159,211,0.06); border:1px solid rgba(95,159,211,0.20);">
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+      <div>
+        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.07em; color:#8a8691; font-weight:700; margin-bottom:3px;">Fecha</div>
+        <div style="font-family:monospace; font-weight:600;">{{ mov.fecha_operacion }}</div>
+      </div>
+      <div style="grid-column:span 2;">
+        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.07em; color:#8a8691; font-weight:700; margin-bottom:3px;">Concepto</div>
+        <div style="font-weight:600;">{{ mov.concepto }}</div>
+      </div>
+      <div>
+        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.07em; color:#8a8691; font-weight:700; margin-bottom:3px;">Importe</div>
+        <div style="font-family:monospace; font-size:1.1rem; font-weight:800;
+          {% if mov.importe >= 0 %}color:#2f6b10;{% else %}color:#a32d2d;{% endif %}">
+          {% if mov.importe >= 0 %}+{% endif %}{{ "%.2f"|format(mov.importe) }} €
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.07em; color:#8a8691; font-weight:700; margin-bottom:3px;">Tipo</div>
+        <div>{{ mov.tipo.replace("_"," ").title() }}</div>
+      </div>
+      <div>
+        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.07em; color:#8a8691; font-weight:700; margin-bottom:3px;">Cuenta</div>
+        <div style="font-size:0.88rem; color:#555;">{{ banco.alias if banco else "—" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulario de cotejo -->
+  <div class="card">
+    <form method="post" action="/movimientos/{{ mov.id_movimiento }}/cotejar" id="form-cotejo">
+
+      <!-- Tipo de cotejo -->
+      <div class="form-group" style="margin-bottom:20px;">
+        <label style="display:block; font-weight:700; margin-bottom:10px;">Tipo de cotejo</label>
+        <div style="display:flex; gap:12px;">
+          <label style="display:flex; align-items:center; gap:8px; padding:10px 16px; border:2px solid var(--line); border-radius:10px; cursor:pointer; transition:border-color 0.15s;" id="lbl-remesa">
+            <input type="radio" name="tipo_referencia" value="REMESA" checked onchange="toggleTipo(this.value)" style="accent-color:var(--fgulem-blue);">
+            <span style="font-weight:600;">Vincular a remesa</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; padding:10px 16px; border:2px solid var(--line); border-radius:10px; cursor:pointer; transition:border-color 0.15s;" id="lbl-manual">
+            <input type="radio" name="tipo_referencia" value="MANUAL" onchange="toggleTipo(this.value)" style="accent-color:var(--fgulem-blue);">
+            <span style="font-weight:600;">Registro manual</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Selector de remesa -->
+      <div id="bloque-remesa" class="form-group">
+        <label for="id_referencia">Remesa <span style="color:#a32d2d;">*</span></label>
+        <select id="id_referencia" name="id_referencia" style="width:100%;">
+          <option value="">— Selecciona una remesa —</option>
+          {% for r in remesas %}
+          <option value="{{ r.id_remesa }}"
+            {% if r._match_pct < 0.05 %}style="font-weight:700; color:#185fa5;"{% endif %}>
+            {{ r.codigo_remesa }} — {{ r.descripcion }}
+            ({{ r.estado }})
+            {% if r._total > 0 %} · {{ "%.2f"|format(r._total) }} €{% endif %}
+            {% if r._match_pct < 0.05 %} ✓{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+        <small style="color:#888;">Las remesas marcadas con ✓ tienen un importe próximo al del movimiento.</small>
+      </div>
+
+      <!-- Descripción manual -->
+      <div id="bloque-manual" class="form-group" style="display:none;">
+        <label for="descripcion">Descripción <span style="color:#a32d2d;">*</span></label>
+        <input type="text" id="descripcion" name="descripcion"
+               placeholder="Ej: Comisión mantenimiento abril 2026"
+               style="width:100%;">
+        <small style="color:#888;">Texto libre que identifica este apunte en el cotejo bancario.</small>
+      </div>
+
+      <div style="display:flex; gap:12px; margin-top:24px;">
+        <button class="btn btn-primary" type="submit">Guardar cotejo</button>
+        <a class="btn btn-secondary" href="/movimientos/">Cancelar</a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<script>
+function toggleTipo(val) {
+  const bloqueRemesa = document.getElementById('bloque-remesa');
+  const bloqueManual = document.getElementById('bloque-manual');
+  const selectRemesa = document.getElementById('id_referencia');
+  const inputDesc    = document.getElementById('descripcion');
+  const lblRemesa    = document.getElementById('lbl-remesa');
+  const lblManual    = document.getElementById('lbl-manual');
+
+  if (val === 'REMESA') {
+    bloqueRemesa.style.display = '';
+    bloqueManual.style.display = 'none';
+    selectRemesa.required = true;
+    inputDesc.required = false;
+    lblRemesa.style.borderColor = 'var(--fgulem-blue)';
+    lblManual.style.borderColor = 'var(--line)';
+  } else {
+    bloqueRemesa.style.display = 'none';
+    bloqueManual.style.display = '';
+    selectRemesa.required = false;
+    inputDesc.required = true;
+    lblRemesa.style.borderColor = 'var(--line)';
+    lblManual.style.borderColor = 'var(--fgulem-blue)';
+  }
+}
+// Inicializar estado visual
+toggleTipo('REMESA');
+</script>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Importar extracto bancario{% endblock %}
+{% block page_title %}Importar extracto bancario{% endblock %}
+{% block page_subtitle %}Sube un fichero MT940 o CSV para cargar movimientos{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:580px;">
+  {% if error %}
+  <div style="margin-bottom:18px; padding:12px 16px; border-radius:10px; background:rgba(226,75,74,0.10); border:1px solid rgba(226,75,74,0.28); color:#a32d2d; font-weight:600;">
+    ⚠ {{ error }}
+  </div>
+  {% endif %}
+
+  <form method="post" action="/movimientos/importar" enctype="multipart/form-data">
+
+    <div class="form-group">
+      <label for="id_banco">Cuenta bancaria <span style="color:#a32d2d;">*</span></label>
+      <select id="id_banco" name="id_banco" required style="width:100%;">
+        <option value="">— Selecciona la cuenta —</option>
+        {% for b in bancos %}
+        <option value="{{ b.id_banco }}">{{ b.alias }} — {{ b.iban }}</option>
+        {% endfor %}
+      </select>
+      <small style="color:#888;">Cuenta a la que pertenece el extracto</small>
+    </div>
+
+    <div class="form-group" style="margin-top:18px;">
+      <label for="fichero">Fichero de extracto <span style="color:#a32d2d;">*</span></label>
+      <input type="file" id="fichero" name="fichero" required
+             accept=".n43,.43,.sta,.csb,.q43,.csv,.txt"
+             style="width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--surface);">
+      <small style="color:#888;">Formatos aceptados: AEB Norma 43 (.n43, .43, .sta, .csb) o CSV (.csv). Los duplicados se omiten automáticamente.</small>
+    </div>
+
+    <div class="card" style="margin-top:20px; padding:14px 16px; background:rgba(95,159,211,0.06); border:1px solid rgba(95,159,211,0.20); border-radius:10px;">
+      <div style="font-size:0.84rem; color:#185fa5; font-weight:700; margin-bottom:8px;">Cómo exportar desde tu banco</div>
+      <div style="font-size:0.82rem; color:#444; line-height:1.9;">
+        <strong>Unicaja</strong> — Banca online → Mis cuentas → Movimientos → Exportar → seleccionar <em>AEB, Norma 43</em><br>
+        <strong>Santander</strong> — Banca online → Cuentas → Ver movimientos → Descargar → formato <em>AEB Norma 43</em><br>
+        <strong>CSV</strong> — Alternativa con columnas: <code>fecha</code>, <code>concepto</code>, <code>importe</code> (separador <code>;</code> o <code>,</code>).
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; margin-top:24px;">
+      <button class="btn btn-primary" type="submit">Importar movimientos</button>
+      <a class="btn btn-secondary" href="/movimientos/">Cancelar</a>
+    </div>
+
+  </form>
+</div>
+{% endblock %}

@@ -27,7 +27,7 @@ class _AsignarRemesaBody(BaseModel):
 def pegs_listado(
     request: Request,
     servicio: Optional[int] = None,
-    estado: Optional[int] = None,
+    estado: Optional[str] = None,
     q: Optional[str] = None,
     proveedor_id: Optional[int] = None,
     usuario: dict = Depends(require_login),
@@ -36,9 +36,17 @@ def pegs_listado(
     if usuario["rol"] == "GESTOR_SERVICIO":
         servicio = usuario.get("id_servicio")
 
+    # Resolver código de estado (string) a id_estado (int)
+    id_estado: Optional[int] = None
+    if estado:
+        _estados = pegs_service.obtener_estados()
+        _e = next((e for e in _estados if e.get("codigo") == estado), None)
+        if _e:
+            id_estado = _e["id_peg_estado"]
+
     items = pegs_service.listar_pegs(
         id_servicio=servicio,
-        id_estado=estado,
+        id_estado=id_estado,
         texto=q,
     )
     if proveedor_id:
@@ -57,7 +65,7 @@ def pegs_listado(
             "estados": estados,
             "servicios": servicios,
             "filtro_servicio": servicio,
-            "filtro_estado": estado,
+            "filtro_estado": id_estado,
             "filtro_q": q or "",
             "usuario": usuario,
             "pegs_sin_factura": pegs_service.contar_pagados_sin_factura(),
@@ -433,6 +441,7 @@ def peg_detalle(
             "cuenta_proveedor": cuenta_proveedor,
             "lineas_analitica_completas": pegs_service.obtener_lineas_analitica_peg(id_peg),
             "servicios_proyectos_todos": pegs_service.get_servicios_proyectos_todos(),
+            "cuentas_gasto": pegs_service.listar_cuentas_gasto(),
         },
     )
 
