@@ -89,26 +89,30 @@
 
       <!-- Proveedor -->
       <div style="margin-bottom:18px;">
+        <label style="display:block; font-size:0.8rem; font-weight:700; margin-bottom:6px;">
+          Proveedor <span style="color:#a32d2d;">*</span>
+        </label>
         {% if mov.tipo == 'COMISION' %}
-        <div class="form-group" style="margin:0; max-width:420px;">
-          <label>Proveedor <span style="color:#a32d2d;">*</span></label>
-          <input type="hidden" name="id_proveedor" value="__banco_{{ banco.id_banco if banco else 0 }}__">
-          <div style="padding:8px 12px; background:rgba(95,159,211,0.07); border:1px solid rgba(95,159,211,0.22);
-               border-radius:8px; font-size:0.88rem; color:#185fa5; font-weight:600;">
-            🏦 {{ banco.alias if banco else "Banco" }}
-            <span style="font-size:0.78rem; color:#8a8691; font-weight:400; margin-left:6px;">(comisión bancaria — proveedor automático)</span>
+          {# Comisión: el banco es el proveedor automático — se muestra la info y se envía el id #}
+          {% set _banco_prov_id  = banco.id_proveedor_banco  if banco else "" %}
+          {% set _banco_prov_txt = banco.nombre_proveedor_banco if banco else (banco.alias if banco else "Banco") %}
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <div style="padding:8px 14px; background:rgba(95,159,211,0.07);
+                 border:1px solid rgba(95,159,211,0.22); border-radius:10px;
+                 font-size:0.88rem; color:#185fa5; font-weight:600;">
+              🏦 {{ _banco_prov_txt }}
+            </div>
+            <span style="font-size:0.78rem; color:#8a8691;">comisión bancaria — proveedor asignado automáticamente</span>
           </div>
-        </div>
+          <input type="hidden" name="id_proveedor" value="{{ _banco_prov_id }}">
         {% else %}
-        <div class="form-group" style="margin:0; max-width:420px;">
-          <label>Proveedor <span style="color:#a32d2d;">*</span></label>
-          <select name="id_proveedor" id="sel-proveedor" style="width:100%;" required>
-            <option value="">— Selecciona proveedor —</option>
-            {% for p in proveedores %}
-            <option value="{{ p.id_proveedor }}">{{ p.razon_social }}{% if p.nombre_comercial and p.nombre_comercial != p.razon_social %} ({{ p.nombre_comercial }}){% endif %}</option>
-            {% endfor %}
-          </select>
-        </div>
+          {# Domiciliación / otros: selector con búsqueda integrada #}
+          <div style="max-width:480px;">
+            {% set pd_uid = "rd" %}
+            {% set pd_field_name = "id_proveedor" %}
+            {% set pd_required = true %}
+            {% include "components/prov_search_inline.html" %}
+          </div>
         {% endif %}
       </div>
 
@@ -216,6 +220,13 @@ document.getElementById('form-rd').addEventListener('submit', function(e) {
   if (!cta) {
     e.preventDefault();
     errEl.textContent = '⚠ Selecciona una cuenta de gasto.';
+    errEl.style.display = 'block'; return;
+  }
+  // Verificar proveedor (solo si hay selector visible — comisiones lo tienen oculto y pre-rellenado)
+  const provInp = document.getElementById('pd-val-rd');
+  if (provInp && !provInp.value) {
+    e.preventDefault();
+    errEl.textContent = '⚠ Selecciona un proveedor.';
     errEl.style.display = 'block'; return;
   }
   const rows = document.querySelectorAll('#lineas-body tr');

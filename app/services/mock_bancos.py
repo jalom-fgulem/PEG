@@ -15,6 +15,8 @@ _bancos: List[Dict[str, Any]] = [
         "cuenta_contable": "5720000001",
         "activa": True,
         "fecha_alta": "2024-01-01",
+        "id_proveedor_banco": 7,
+        "nombre_proveedor_banco": "Unicaja Banco SA",
     },
     {
         "id_banco": 2,
@@ -25,6 +27,8 @@ _bancos: List[Dict[str, Any]] = [
         "cuenta_contable": "5720000002",
         "activa": True,
         "fecha_alta": "2024-01-01",
+        "id_proveedor_banco": 8,
+        "nombre_proveedor_banco": "Banco Santander SA",
     },
 ]
 

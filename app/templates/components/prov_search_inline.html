@@ -1,0 +1,160 @@
+{#
+  Dropdown de proveedor con búsqueda integrada (sin modal crear/editar).
+  Variables:
+    proveedores         lista de dicts de proveedores
+    pd_uid              sufijo único de IDs cuando hay varias instancias en la misma página
+    pd_field_name       name del input hidden (default "id_proveedor")
+    pd_presel_id        id pre-seleccionado (default "")
+    pd_presel_texto     texto a mostrar si pre-seleccionado (default "")
+    pd_required         añadir required (default true)
+#}
+{% set _uid   = pd_uid        | default("0") %}
+{% set _fname = pd_field_name | default("id_proveedor") %}
+{% set _pid   = pd_presel_id  | default("") | string %}
+{% set _ptxt  = pd_presel_texto | default("") %}
+{% set _req   = pd_required   | default(true) %}
+
+<input type="hidden"
+       name="{{ _fname }}"
+       id="pd-val-{{ _uid }}"
+       value="{{ _pid }}"
+       {% if _req %}data-pd-required="1"{% endif %}>
+
+<div class="pd-wrapper" id="pd-wr-{{ _uid }}" style="position:relative;">
+
+  <div class="pd-trigger" id="pd-tr-{{ _uid }}"
+       onclick="_pdToggle('{{ _uid }}')" role="combobox" tabindex="0"
+       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_pdToggle('{{ _uid }}');}">
+    <span id="pd-txt-{{ _uid }}"
+          style="{% if _pid %}color:var(--ink,#1a1523);{% else %}color:#9ca3af;{% endif %}">
+      {{ _ptxt if _pid else "— Seleccionar proveedor —" }}
+    </span>
+    <span style="color:#9ca3af;font-size:0.8rem;">▾</span>
+  </div>
+
+  <div class="pd-panel" id="pd-pn-{{ _uid }}">
+    <div style="padding:8px 10px;border-bottom:1px solid #eef0f3;">
+      <input type="text" autocomplete="off" placeholder="Buscar por nombre o NIF…"
+             id="pd-srch-{{ _uid }}"
+             oninput="_pdFiltrar('{{ _uid }}',this.value)"
+             style="width:100%;padding:7px 9px;border:1px solid #d8dce2;
+                    border-radius:7px;font-size:0.87rem;box-sizing:border-box;">
+    </div>
+    <div id="pd-lista-{{ _uid }}" style="max-height:220px;overflow-y:auto;">
+      <div id="pd-empty-{{ _uid }}"
+           style="display:none;padding:10px 12px;color:#9ca3af;font-size:0.85rem;font-style:italic;">
+        Sin resultados para esa búsqueda.
+      </div>
+      {% for p in proveedores %}
+      <div class="pd-opt"
+           data-uid="{{ _uid }}"
+           data-id="{{ p.id_proveedor }}"
+           data-texto="{{ p.razon_social }} — {{ p.cif_nif }}"
+           onclick="_pdSel('{{ _uid }}',this)"
+           {% if _pid == p.id_proveedor|string %}style="background:rgba(95,159,211,0.08);"{% endif %}>
+        <span style="font-weight:600;">{{ p.razon_social }}</span>
+        <span style="color:#6b7280;font-size:0.82rem;"> — {{ p.cif_nif }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+{% if not _pdScriptLoaded is defined %}
+{% set _pdScriptLoaded = true %}
+<style>
+.pd-trigger {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;border:1px solid #d8dce2;border-radius:10px;
+  background:white;cursor:pointer;user-select:none;min-height:40px;
+  transition:border-color 0.15s,box-shadow 0.15s;font-size:0.88rem;
+}
+.pd-trigger:hover { border-color:var(--fgulem-blue,#185fa5); }
+.pd-trigger.open  { border-color:var(--fgulem-blue,#185fa5);
+                     box-shadow:0 0 0 3px rgba(95,159,211,0.16); }
+.pd-panel {
+  display:none;position:absolute;top:calc(100% + 3px);left:0;right:0;
+  z-index:1200;background:white;border:1px solid #d8dce2;border-radius:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.12);overflow:hidden;
+}
+.pd-panel.open { display:block; }
+.pd-opt {
+  padding:9px 12px;cursor:pointer;font-size:0.88rem;
+  border-bottom:1px solid #f5f5f5;transition:background 0.1s;
+}
+.pd-opt:hover    { background:rgba(95,159,211,0.07); }
+.pd-opt.pd-sel   { background:rgba(95,159,211,0.10); }
+.pd-opt.pd-hide  { display:none; }
+</style>
+<script>
+if (!window._pdInit) {
+  window._pdInit = true;
+
+  window._pdToggle = function(uid) {
+    const tr = document.getElementById('pd-tr-' + uid);
+    const pn = document.getElementById('pd-pn-' + uid);
+    const open = pn.classList.contains('open');
+    // Cerrar todos los paneles abiertos
+    document.querySelectorAll('.pd-panel.open').forEach(function(el){ el.classList.remove('open'); });
+    document.querySelectorAll('.pd-trigger.open').forEach(function(el){ el.classList.remove('open'); });
+    if (!open) {
+      pn.classList.add('open');
+      tr.classList.add('open');
+      setTimeout(function(){ var s=document.getElementById('pd-srch-'+uid); if(s) s.focus(); }, 40);
+    }
+  };
+
+  window._pdFiltrar = function(uid, q) {
+    var texto = q.toLowerCase().trim();
+    var vis = 0;
+    document.querySelectorAll('.pd-opt[data-uid="' + uid + '"]').forEach(function(el) {
+      var match = !texto || el.dataset.texto.toLowerCase().includes(texto);
+      el.classList.toggle('pd-hide', !match);
+      if (match) vis++;
+    });
+    var empty = document.getElementById('pd-empty-' + uid);
+    if (empty) empty.style.display = vis === 0 ? '' : 'none';
+  };
+
+  window._pdSel = function(uid, el) {
+    var id   = el.dataset.id;
+    var txt  = el.dataset.texto;
+    // Actualizar hidden input
+    var inp = document.getElementById('pd-val-' + uid);
+    if (inp) inp.value = id;
+    // Actualizar display
+    var lbl = document.getElementById('pd-txt-' + uid);
+    if (lbl) { lbl.textContent = txt; lbl.style.color = 'var(--ink,#1a1523)'; }
+    // Marcar seleccionado
+    document.querySelectorAll('.pd-opt[data-uid="' + uid + '"]').forEach(function(o){
+      o.classList.toggle('pd-sel', o.dataset.id === id);
+    });
+    // Cerrar panel
+    var pn = document.getElementById('pd-pn-' + uid);
+    var tr = document.getElementById('pd-tr-' + uid);
+    if (pn) pn.classList.remove('open');
+    if (tr) tr.classList.remove('open');
+    // Limpiar búsqueda
+    var srch = document.getElementById('pd-srch-' + uid);
+    if (srch) { srch.value = ''; _pdFiltrar(uid, ''); }
+    // Disparar evento personalizado (útil para formularios que quieran reaccionar)
+    var wr = document.getElementById('pd-wr-' + uid);
+    if (wr) wr.dispatchEvent(new CustomEvent('pd:select', { detail: { id: id, texto: txt }, bubbles: true }));
+  };
+
+  // Cerrar al clic fuera
+  document.addEventListener('click', function(e) {
+    document.querySelectorAll('.pd-wrapper').forEach(function(wr) {
+      if (!wr.contains(e.target)) {
+        var uid = wr.id.replace('pd-wr-', '');
+        var pn = document.getElementById('pd-pn-' + uid);
+        var tr = document.getElementById('pd-tr-' + uid);
+        if (pn) pn.classList.remove('open');
+        if (tr) tr.classList.remove('open');
+      }
+    });
+  });
+}
+</script>
+{% endif %}
