@@ -120,9 +120,10 @@
       {% for m in items %}
       {% set banco = banco_map.get(m.id_banco) %}
       {% set cotejo = cotejo_map.get(m.id_movimiento) %}
-      <tr style="{% if m.estado == 'IGNORADO' %}opacity:0.40;{% endif %}">
+      {% set es_ingreso = m.importe >= 0 %}
+      <tr style="{% if m.estado == 'IGNORADO' %}opacity:0.40;{% elif es_ingreso %}background:rgba(99,153,34,0.04);{% endif %}">
         <td>
-          {% if m.estado == 'PENDIENTE' %}
+          {% if m.estado == 'PENDIENTE' and not es_ingreso %}
           <input type="checkbox" name="ids" value="{{ m.id_movimiento }}"
                  class="check-item" onchange="actualizarBarra()" style="cursor:pointer;">
           {% endif %}
@@ -159,7 +160,9 @@
           {% endif %}
         </td>
         <td style="white-space:nowrap;">
-          {% if m.estado == 'PENDIENTE' %}
+          {% if es_ingreso and m.estado == 'PENDIENTE' %}
+            <span style="font-size:0.78rem; color:#8a8691; font-style:italic;">Solo lectura — ingreso</span>
+          {% elif m.estado == 'PENDIENTE' %}
           <a class="btn btn-secondary" style="padding:5px 10px; font-size:0.80rem;"
              href="/movimientos/{{ m.id_movimiento }}/cotejar">Cotejar</a>
           <a class="btn" style="padding:5px 10px; font-size:0.80rem; background:rgba(147,100,214,0.10); color:#5b2d8e; border:1px solid rgba(147,100,214,0.30);"

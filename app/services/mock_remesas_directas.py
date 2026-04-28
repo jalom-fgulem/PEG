@@ -53,6 +53,7 @@ def crear_remesa_directa(datos: dict) -> dict:
         "descripcion":       datos["descripcion"],
         "tipo_gasto":        datos["tipo_gasto"],
         "cuenta_gasto":      datos.get("cuenta_gasto", ""),
+        "id_proveedor":      datos.get("id_proveedor", ""),
         "importe_total":     round(datos["importe_total"], 2),
         "estado":            "COTEJADA",
         "lineas":            [],

@@ -39,6 +39,8 @@
   .hdr-sel { width:100%; padding:5px 7px; border:1px solid var(--line); border-radius:6px;
     font-size:0.82rem; background:#fff; }
   .hdr-sel:focus { outline:none; border-color:var(--fgulem-blue); }
+  .prov-banco { padding:6px 10px; background:rgba(95,159,211,0.07); border:1px solid rgba(95,159,211,0.22);
+    border-radius:7px; font-size:0.80rem; color:#185fa5; font-weight:600; white-space:nowrap; }
 </style>
 {% endblock %}
 
@@ -121,6 +123,30 @@
       </div>
 
       <div class="mov-card-body">
+
+        <!-- Proveedor -->
+        <div style="margin-bottom:12px;">
+          {% if m.tipo == 'COMISION' %}
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:0.69rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#8a8691; white-space:nowrap;">Proveedor</span>
+            <input type="hidden" name="id_proveedor" value="__banco_{{ banco.id_banco if banco else 0 }}__">
+            <div class="prov-banco">🏦 {{ banco.alias if banco else "Banco" }} <span style="font-size:0.75rem; color:#8a8691; font-weight:400;">(comisión bancaria)</span></div>
+          </div>
+          {% else %}
+          <div style="display:flex; align-items:center; gap:10px;">
+            <label style="font-size:0.69rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#8a8691; white-space:nowrap; margin:0;">
+              Proveedor <span style="color:#a32d2d;">*</span>
+            </label>
+            <select name="id_proveedor" class="hdr-sel prov-sel" data-idx="{{ loop.index0 }}" style="max-width:380px;" required>
+              <option value="">— Selecciona proveedor —</option>
+              {% for p in proveedores %}
+              <option value="{{ p.id_proveedor }}">{{ p.razon_social }}{% if p.nombre_comercial and p.nombre_comercial != p.razon_social %} ({{ p.nombre_comercial }}){% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+        </div>
+
         <table class="at">
           <thead><tr>
             <th style="width:55%;">Servicio / Proyecto</th>

@@ -10,6 +10,7 @@ from app.services import remesas_service
 from app.services import mock_remesas_directas
 from app.services.parser_extracto import detectar_y_parsear
 from app.services import pegs_service
+from app.services import proveedores_service
 
 router = APIRouter(prefix="/movimientos", tags=["Movimientos bancarios"])
 
@@ -358,6 +359,7 @@ def formulario_remesa_directa_grupal(request: Request, ids: str = ""):
         "ids_str": ids,
         "cuentas_gasto": pegs_service.listar_cuentas_gasto(),
         "servicios_proyectos": pegs_service.get_servicios_proyectos_todos(),
+        "proveedores": proveedores_service.listar_proveedores(),
     })
 
 
@@ -372,8 +374,9 @@ async def guardar_remesa_directa_grupal(request: Request):
     id_list           = [int(i) for i in ids_raw.split(",") if i.strip().isdigit()]
 
     # Un valor por movimiento
-    tipos_gasto_list  = form.getlist("tipo_gasto")
-    cuentas_gasto_mov = form.getlist("cuenta_gasto_mov")
+    tipos_gasto_list   = form.getlist("tipo_gasto")
+    cuentas_gasto_mov  = form.getlist("cuenta_gasto_mov")
+    proveedores_mov    = form.getlist("id_proveedor")
 
     # Múltiples por línea analítica (concatenados en orden)
     serv_proy_list    = form.getlist("servicio_proyecto")
@@ -394,6 +397,7 @@ async def guardar_remesa_directa_grupal(request: Request):
 
         tipo_gasto   = tipos_gasto_list[idx]   if idx < len(tipos_gasto_list)   else "OTROS"
         cuenta_gasto = cuentas_gasto_mov[idx]  if idx < len(cuentas_gasto_mov)  else ""
+        id_prov_mov  = proveedores_mov[idx]    if idx < len(proveedores_mov)    else ""
         importe_mov  = abs(mov["importe"])
 
         inicio = idx * lineas_por_mov if (n_movs > 0 and n_lineas % n_movs == 0) else 0
@@ -429,6 +433,7 @@ async def guardar_remesa_directa_grupal(request: Request):
         "id_banco":        movimientos_validos[0]["id_banco"],
         "descripcion":     descripcion,
         "tipo_gasto":      tipos_gasto_list[0] if tipos_gasto_list else "OTROS",
+        "id_proveedor":    proveedores_mov[0] if proveedores_mov else "",
         "importe_total":   importe_total,
         "lineas":          lineas_globales,
         "id_usuario":      usuario["username"],
@@ -472,6 +477,7 @@ def formulario_remesa_directa(request: Request, id_movimiento: int):
         "tipos_gasto": mock_remesas_directas.TIPOS_GASTO,
         "cuentas_gasto": pegs_service.listar_cuentas_gasto(),
         "servicios_proyectos": pegs_service.get_servicios_proyectos_todos(),
+        "proveedores": proveedores_service.listar_proveedores(),
     })
 
 
@@ -489,6 +495,7 @@ async def guardar_remesa_directa(request: Request, id_movimiento: int):
     descripcion      = str(form.get("descripcion", "")).strip()
     tipo_gasto       = str(form.get("tipo_gasto", "OTROS")).strip()
     cuenta_gasto_mov = str(form.get("cuenta_gasto_mov", "")).strip()
+    id_proveedor_raw = str(form.get("id_proveedor", "")).strip()
     serv_proy_list   = form.getlist("servicio_proyecto")
     descripciones_l  = form.getlist("descripcion_linea")
     porcentajes_raw  = form.getlist("porcentaje_linea")
@@ -519,6 +526,7 @@ async def guardar_remesa_directa(request: Request, id_movimiento: int):
             "tipos_gasto": mock_remesas_directas.TIPOS_GASTO,
             "cuentas_gasto": pegs_service.listar_cuentas_gasto(),
             "servicios_proyectos": pegs_service.get_servicios_proyectos_todos(),
+            "proveedores": proveedores_service.listar_proveedores(),
             "error": "Selecciona la cuenta de gasto y añade al menos una línea analítica.",
         })
 
@@ -528,6 +536,7 @@ async def guardar_remesa_directa(request: Request, id_movimiento: int):
         "descripcion":    descripcion or mov["concepto"],
         "tipo_gasto":     tipo_gasto,
         "cuenta_gasto":   cuenta_gasto_mov,
+        "id_proveedor":   id_proveedor_raw,
         "importe_total":  importe_total,
         "lineas":         lineas,
         "id_usuario":     usuario["username"],
