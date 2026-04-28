@@ -344,3 +344,200 @@ def generar_pdf_remesa(remesa: dict, pagos: list[dict]) -> str:
     # ── BUILD ──────────────────────────────────────────────────────────────────
     doc.build(story, canvasmaker=_make_canvas_class(fecha_hora_gen))
     return ruta_relativa
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PDF REMESA BANCARIA DIRECTA
+# ──────────────────────────────────────────────────────────────────────────────
+
+def generar_pdf_remesa_bancaria(rd: dict, banco: dict, mov: dict | None = None) -> str:
+    """
+    Genera el PDF de resumen de una remesa directa bancaria.
+
+    Args:
+        rd:    dict de la remesa directa (mock_remesas_directas).
+        banco: dict del banco (mock_bancos).
+        mov:   dict del movimiento bancario origen (puede ser None).
+
+    Returns:
+        Ruta relativa del PDF generado.
+    """
+    os.makedirs(MEDIA_DIR, exist_ok=True)
+
+    fecha_hoy      = datetime.now().strftime("%Y%m%d")
+    fecha_hora_gen = datetime.now().strftime("%d/%m/%Y %H:%M")
+    nombre_fichero = f"remesa_bancaria_{rd['id_remesa_directa']}_{fecha_hoy}.pdf"
+    ruta_absoluta  = os.path.join(MEDIA_DIR, nombre_fichero)
+    ruta_relativa  = f"media/remesas/{nombre_fichero}"
+
+    doc = BaseDocTemplate(
+        ruta_absoluta,
+        pagesize=A4,
+        leftMargin=MARGIN_LEFT, rightMargin=MARGIN_RIGHT,
+        topMargin=MARGIN_TOP,   bottomMargin=MARGIN_BOTTOM,
+    )
+    w          = A4[0]
+    body_width = w - MARGIN_LEFT - MARGIN_RIGHT
+
+    frame = Frame(
+        MARGIN_LEFT, MARGIN_BOTTOM,
+        body_width, A4[1] - MARGIN_TOP - MARGIN_BOTTOM,
+        id="main", leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
+    )
+    doc.addPageTemplates([PageTemplate(id="main", frames=[frame])])
+
+    story = []
+
+    # ── TÍTULO ────────────────────────────────────────────────────────────────
+    story.append(Spacer(1, 0.2 * cm))
+    story.append(Paragraph("Remesa Bancaria Directa", _estilo_titulo))
+    story.append(Spacer(1, 0.4 * cm))
+
+    # ── DATOS EN DOS COLUMNAS ─────────────────────────────────────────────────
+    col_w = body_width / 2
+    datos = [
+        [
+            Paragraph(f"<b>Nº remesa:</b> {rd.get('id_remesa_directa', '-')}", _estilo_normal),
+            Paragraph(f"<b>Estado:</b> {rd.get('estado', '-')}", _estilo_normal),
+        ],
+        [
+            Paragraph(f"<b>Descripción:</b> {rd.get('descripcion', '-')}", _estilo_normal),
+            Paragraph(f"<b>Fecha registro:</b> {rd.get('fecha_creacion', '-')}", _estilo_normal),
+        ],
+        [
+            Paragraph(f"<b>Tipo de gasto:</b> {rd.get('tipo_gasto', '-').replace('_', ' ').title()}", _estilo_normal),
+            Paragraph(f"<b>Cuenta gasto:</b> {rd.get('cuenta_gasto', '-')}", _estilo_normal),
+        ],
+        [
+            Paragraph(f"<b>Banco:</b> {banco.get('alias', '-') if banco else '-'}", _estilo_normal),
+            Paragraph(f"<b>Cta. tesorería:</b> {banco.get('cuenta_contable', '-') if banco else '-'}", _estilo_normal),
+        ],
+    ]
+    tabla_datos = Table(datos, colWidths=[col_w, col_w])
+    tabla_datos.setStyle(TableStyle([
+        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING",    (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 8),
+    ]))
+    story.append(tabla_datos)
+    story.append(Spacer(1, 0.4 * cm))
+
+    # ── MOVIMIENTO BANCARIO ORIGEN ────────────────────────────────────────────
+    if mov:
+        concepto = mov.get("concepto") or "Sin concepto"
+        mov_data = [[
+            Paragraph(
+                f"<b>Movimiento origen:</b> {mov.get('fecha_operacion', '-')}  ·  "
+                f"{mov.get('importe', 0):+.2f} €  ·  {concepto}",
+                _estilo_normal,
+            ),
+        ]]
+        tabla_mov = Table(mov_data, colWidths=[body_width])
+        tabla_mov.setStyle(TableStyle([
+            ("BACKGROUND",    (0, 0), (-1, -1), COLOR_CAJA_BG),
+            ("BOX",           (0, 0), (-1, -1), 0.5, COLOR_CABECERA),
+            ("TOPPADDING",    (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
+        ]))
+        story.append(tabla_mov)
+        story.append(Spacer(1, 0.4 * cm))
+
+    # ── CAJA DE TOTALES ────────────────────────────────────────────────────────
+    estilo_total_normal = ParagraphStyle(
+        "tot_n_rb", parent=_styles["Normal"], fontSize=9, leading=13,
+    )
+    estilo_total_bold = ParagraphStyle(
+        "tot_b_rb", parent=_styles["Normal"],
+        fontSize=13, fontName="Helvetica-Bold", leading=16,
+    )
+    num_lineas    = len(rd.get("lineas", []))
+    cta_tesoreria = banco.get("cuenta_contable", "-") if banco else "-"
+    cta_gasto     = rd.get("cuenta_gasto", "-")
+
+    totales_data = [[
+        Paragraph(f"Nº de líneas: <b>{num_lineas}</b>",          estilo_total_normal),
+        Paragraph(f"Cta. gasto: <b>{cta_gasto}</b>",            estilo_total_normal),
+        Paragraph(f"Cta. tesorería: <b>{cta_tesoreria}</b>",    estilo_total_normal),
+        Paragraph(f"IMPORTE TOTAL: {rd.get('importe_total', 0):,.2f} €", estilo_total_bold),
+    ]]
+    col_tot = [body_width * p for p in (0.15, 0.22, 0.23, 0.40)]
+    tabla_totales = Table(totales_data, colWidths=col_tot)
+    tabla_totales.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), COLOR_CAJA_BG),
+        ("BOX",           (0, 0), (-1, -1), 1, COLOR_CABECERA),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING",    (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
+    ]))
+    story.append(tabla_totales)
+    story.append(Spacer(1, 0.7 * cm))
+
+    # ── TABLA DE LÍNEAS ANALÍTICAS ────────────────────────────────────────────
+    lineas = rd.get("lineas", [])
+    if lineas:
+        estilo_cab = ParagraphStyle(
+            "cab_rb", parent=_styles["Normal"],
+            fontSize=8, fontName="Helvetica-Bold",
+            textColor=colors.white, alignment=TA_CENTER,
+        )
+        estilo_celda = ParagraphStyle(
+            "cel_rb", parent=_styles["Normal"], fontSize=7.5, leading=10,
+        )
+        estilo_celda_der = ParagraphStyle(
+            "cel_der_rb", parent=_styles["Normal"], fontSize=7.5, leading=10,
+            alignment=TA_RIGHT,
+        )
+
+        cabeceras = [
+            Paragraph("Nº",                  estilo_cab),
+            Paragraph("Cuenta gasto",         estilo_cab),
+            Paragraph("Proyecto / Servicio",  estilo_cab),
+            Paragraph("Descripción",          estilo_cab),
+            Paragraph("%",                    estilo_cab),
+            Paragraph("Importe",              estilo_cab),
+        ]
+        filas = [cabeceras]
+        for idx, linea in enumerate(lineas, start=1):
+            filas.append([
+                Paragraph(str(idx),                                          estilo_celda),
+                Paragraph(linea.get("cuenta_gasto", "-"),                    estilo_celda),
+                Paragraph(linea.get("servicio_proyecto", "-"),               estilo_celda),
+                Paragraph(linea.get("descripcion_linea", "-"),               estilo_celda),
+                Paragraph(f"{linea.get('porcentaje', 0):.1f} %",             estilo_celda_der),
+                Paragraph(f"{linea.get('importe', 0):,.2f} €",              estilo_celda_der),
+            ])
+
+        col_lineas = [body_width * p for p in (0.05, 0.17, 0.22, 0.36, 0.08, 0.12)]
+        tabla_lineas = Table(filas, colWidths=col_lineas, repeatRows=1)
+
+        estilo_tabla = [
+            ("BACKGROUND",    (0, 0), (-1, 0),  COLOR_CABECERA),
+            ("TEXTCOLOR",     (0, 0), (-1, 0),  colors.white),
+            ("FONTNAME",      (0, 0), (-1, 0),  "Helvetica-Bold"),
+            ("FONTSIZE",      (0, 0), (-1, 0),  8),
+            ("ALIGN",         (0, 0), (-1, 0),  "CENTER"),
+            ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING",    (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 4),
+            ("GRID",          (0, 0), (-1, -1), 0.4, colors.HexColor("#CCCCCC")),
+            ("LINEBELOW",     (0, 0), (-1, 0),  1,   COLOR_CABECERA),
+            ("ALIGN",         (4, 1), (5, -1),  "RIGHT"),
+        ]
+        for i in range(1, len(filas)):
+            bg = COLOR_FILA_PAR if i % 2 == 0 else COLOR_FILA_IMPAR
+            estilo_tabla.append(("BACKGROUND", (0, i), (-1, i), bg))
+
+        tabla_lineas.setStyle(TableStyle(estilo_tabla))
+        story.append(tabla_lineas)
+
+    # ── BUILD ──────────────────────────────────────────────────────────────────
+    doc.build(story, canvasmaker=_make_canvas_class(fecha_hora_gen))
+    return ruta_relativa

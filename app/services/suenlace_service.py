@@ -447,3 +447,108 @@ def generar_suenlace_remesa_directa(
         ))
 
     return "".join(lineas), nombre_fichero
+
+
+def generar_suenlace_remesa_bancaria(
+    id_rd: int,
+    empresa: str = "real",
+) -> tuple[str, str]:
+    """
+    Genera el fichero SUENLACE para una remesa directa bancaria.
+
+    Asiento por cada línea analítica:
+      DEBE  → cuenta de gasto (grupo 6) de la línea
+      HABER → cuenta de tesorería del banco (grupo 57)
+      Analítica: servicio_proyecto con porcentaje 100 % por línea
+
+    Nombre del fichero: RDB{id_rd}{aaaammdd}.DAT
+    """
+    from app.services.mock_remesas_directas import obtener_remesa_directa
+    from app.services.mock_bancos import obtener_banco
+
+    codigo_empresa = CODIGO_EMPRESA_REAL if empresa == "real" else CODIGO_EMPRESA_PRUEBA
+
+    rd = obtener_remesa_directa(id_rd)
+    if not rd:
+        raise ValueError(f"Remesa directa bancaria {id_rd} no encontrada")
+
+    banco = obtener_banco(rd["id_banco"]) or {}
+    cuenta_tesoreria = banco.get("cuenta_contable", "5720000")
+
+    fecha_rd       = rd.get("fecha_creacion") or datetime.today().strftime("%Y-%m-%d")
+    fecha_fichero  = _fecha_a3(fecha_rd)
+    nombre_fichero = f"RDB{id_rd}{fecha_fichero}.DAT"
+
+    # Si no hay líneas usamos una sola con el total
+    lineas = rd.get("lineas") or [{
+        "cuenta_gasto":      rd.get("cuenta_gasto", "6200000"),
+        "servicio_proyecto": "",
+        "porcentaje":        100.0,
+        "importe":           rd["importe_total"],
+        "descripcion_linea": rd.get("descripcion", ""),
+    }]
+
+    registros: list[str] = []
+
+    for idx, linea in enumerate(lineas):
+        cuenta_gasto = linea.get("cuenta_gasto") or rd.get("cuenta_gasto", "6200000")
+        desc         = linea.get("descripcion_linea") or rd.get("descripcion", "")
+        importe      = float(linea.get("importe", 0))
+        srv_proy     = str(linea.get("servicio_proyecto", "") or "").strip()
+
+        # Dict compatible con las funciones de registro existentes
+        peg_like = {
+            "id_peg":             id_rd,
+            "codigo_peg":         f"RDB-{id_rd}-{idx + 1}",
+            "referencia_factura": f"RDB{id_rd}L{idx + 1}",
+            "fecha_factura":      fecha_rd,
+            "importe_total":      importe,
+            "importe_irpf":       0.0,
+        }
+        # cuenta_proveedor = HABER (tesorería banco, grupo 57)
+        # cuenta_gasto     = DEBE  (gasto, grupo 6)
+        servicio_like = {
+            "cuenta_proveedor":    cuenta_tesoreria,
+            "cuenta_gasto":        cuenta_gasto,
+            "nombre":              desc,
+            "cuenta_iva_soportado": "4720000",
+            "cuenta_tesoreria":    cuenta_tesoreria,
+        }
+        proveedor_like = {
+            "razon_social": banco.get("alias", "BANCO"),
+            "cif_nif":      "",
+            "codigo_postal": "",
+        }
+        liva = {
+            "base_imponible": importe,
+            "porcentaje_iva": 0.0,
+            "cuota_iva":      0.0,
+        }
+
+        registros.append(_registro_cabecera_factura(
+            peg_like, servicio_like, proveedor_like, codigo_empresa,
+        ))
+        registros.append(_registro_detalle_iva(
+            peg_like, liva, servicio_like, codigo_empresa,
+            es_ultima=True, es_primera=True, tiene_irpf=False,
+        ))
+        registros.append(_registro_vencimiento(
+            peg_like, servicio_like, proveedor_like, codigo_empresa, fecha_rd,
+        ))
+
+        if srv_proy:
+            analitica_like = {
+                "nivel_1":     srv_proy[:4],
+                "nivel_2":     "",
+                "descripcion": srv_proy[:30],
+            }
+            registros.append(_registro_analitica(
+                peg_like, liva, servicio_like, codigo_empresa,
+                num_linea=2,
+                es_unica=True,
+                analitica=analitica_like,
+                importe_linea=importe,
+                porcentaje=100.0,
+            ))
+
+    return "".join(registros), nombre_fichero

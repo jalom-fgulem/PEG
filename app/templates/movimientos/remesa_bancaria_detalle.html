@@ -6,9 +6,21 @@
 {% block content %}
 <div style="max-width:780px;">
 
-  <div style="margin-bottom:16px;">
+  <div style="margin-bottom:16px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
     <a class="btn btn-secondary" href="/movimientos/remesas-bancarias" style="font-size:0.85rem;">
       ← Volver al listado
+    </a>
+    <a class="btn btn-primary"
+       href="/movimientos/remesas-bancarias/{{ rd.id_remesa_directa }}/pdf"
+       style="font-size:0.85rem;"
+       title="Descargar PDF de resumen">
+      ↓ PDF resumen
+    </a>
+    <a class="btn btn-secondary"
+       href="/movimientos/remesas-bancarias/{{ rd.id_remesa_directa }}/exportar-suenlace"
+       style="font-size:0.85rem; background:#2d6a4f; color:#fff; border-color:#2d6a4f;"
+       title="Exportar fichero de enlace contable A3Con">
+      ↓ A3Con (SUENLACE)
     </a>
   </div>
 

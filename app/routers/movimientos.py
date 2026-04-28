@@ -282,6 +282,56 @@ def detalle_remesa_bancaria(request: Request, id_rd: int):
     })
 
 
+@router.get("/remesas-bancarias/{id_rd}/pdf")
+def remesa_bancaria_pdf(request: Request, id_rd: int):
+    from fastapi.responses import FileResponse
+    from app.services.pdf_remesa_service import generar_pdf_remesa_bancaria
+    import os
+
+    usuario = get_usuario_actual(request)
+    require_rol(usuario, ["ADMIN", "GESTOR_ECONOMICO"])
+
+    rd = mock_remesas_directas.obtener_remesa_directa(id_rd)
+    if not rd:
+        return HTMLResponse("Remesa no encontrada", status_code=404)
+
+    banco = mock_bancos.obtener_banco(rd["id_banco"])
+    mov   = mock_movimientos.obtener_movimiento(rd["id_movimiento"])
+
+    ruta_relativa = generar_pdf_remesa_bancaria(rd, banco, mov)
+    ruta_absoluta = os.path.join(
+        os.path.dirname(__file__), "..", "..", ruta_relativa
+    )
+    ruta_absoluta = os.path.normpath(ruta_absoluta)
+
+    nombre = os.path.basename(ruta_absoluta)
+    return FileResponse(
+        path=ruta_absoluta,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{nombre}"'},
+    )
+
+
+@router.get("/remesas-bancarias/{id_rd}/exportar-suenlace")
+def remesa_bancaria_suenlace(request: Request, id_rd: int, empresa: str = "real"):
+    from fastapi.responses import Response
+    from app.services.suenlace_service import generar_suenlace_remesa_bancaria
+
+    usuario = get_usuario_actual(request)
+    require_rol(usuario, ["ADMIN", "GESTOR_ECONOMICO"])
+
+    try:
+        contenido, nombre_fichero = generar_suenlace_remesa_bancaria(id_rd, empresa=empresa)
+    except ValueError as e:
+        return HTMLResponse(f"<p>Error: {e}</p>", status_code=400)
+
+    return Response(
+        content=contenido.encode("latin-1", errors="replace"),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{nombre_fichero}"'},
+    )
+
+
 # ── REMESA DIRECTA GRUPAL (varios movimientos → una remesa) ──────────────────
 
 @router.get("/remesa-directa-grupal", response_class=HTMLResponse)
