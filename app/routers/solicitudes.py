@@ -28,14 +28,19 @@ _TIPOS_ADJ_SOL = ["PRESUPUESTO", "FACTURA_PROFORMA", "OTRO"]
 def solicitudes_lista(
     request: Request,
     filtro_servicio: Optional[int] = None,
+    estado: Optional[str] = None,
     usuario: dict = Depends(require_login),
 ):
     if usuario["rol"] == "GESTOR_SERVICIO":
-        items = solicitudes_service.listar_solicitudes(id_servicio=usuario["id_servicio"])
+        items = solicitudes_service.listar_solicitudes(
+            id_servicio=usuario["id_servicio"], estado=estado
+        )
     elif filtro_servicio:
-        items = solicitudes_service.listar_solicitudes(id_servicio=filtro_servicio)
+        items = solicitudes_service.listar_solicitudes(
+            id_servicio=filtro_servicio, estado=estado
+        )
     else:
-        items = solicitudes_service.listar_solicitudes()
+        items = solicitudes_service.listar_solicitudes(estado=estado)
 
     servicios = listar_servicios(solo_activos=True)
     return templates.TemplateResponse(
@@ -46,6 +51,7 @@ def solicitudes_lista(
             "usuario":         usuario,
             "servicios":       servicios,
             "filtro_servicio": filtro_servicio,
+            "filtro_estado":   estado,
         },
     )
 

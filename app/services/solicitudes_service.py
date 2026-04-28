@@ -49,10 +49,19 @@ def _enriquecer(s: dict) -> dict:
 
 # ── Consultas ──────────────────────────────────────────────────────────────────
 
-def listar_solicitudes(id_servicio: Optional[int] = None) -> list[dict]:
+def listar_solicitudes(
+    id_servicio: Optional[int] = None,
+    estado: Optional[str] = None,
+) -> list[dict]:
+    # Normalizar alias cortos: PENDIENTE → PENDIENTE_AUTORIZACION
+    _alias = {"PENDIENTE": "PENDIENTE_AUTORIZACION"}
+    estado_norm = _alias.get(estado, estado) if estado else None
+
     items = SOLICITUDES_AUTORIZACION
     if id_servicio is not None:
         items = [s for s in items if s["id_servicio"] == id_servicio]
+    if estado_norm:
+        items = [s for s in items if s.get("estado_solicitud") == estado_norm]
     return [_enriquecer(s) for s in items]
 
 

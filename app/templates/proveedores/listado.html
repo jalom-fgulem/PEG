@@ -593,7 +593,7 @@
                         <div><p><strong>Email</strong><br><span id="v-email-${id}">${data.email||"—"}</span></p></div>
                         <div><p><strong>Teléfono</strong><br><span id="v-tel-${id}">${data.telefono||"—"}</span></p></div>
                         <div><p><strong>IBAN</strong><br><span id="v-iban-${id}" style="font-family:monospace;font-size:0.9rem">${data.iban||"—"}</span></p></div>
-                        <div><p><strong>Tipo de proveedor</strong><br><span id="v-tipo-prov-${id}">${{TRANSFERENCIA:"Transferencia",DOMICILIACION:"Domiciliación",TARJETA:"Tarjeta",MIXTO:"Mixto"}[data.tipo_proveedor||"TRANSFERENCIA"]||data.tipo_proveedor||"—"}</span></p></div>
+                        <div><p><strong>Tipo de proveedor</strong><br><span id="v-tipo-prov-${id}">${(_tipoMap=>{return _tipoMap[data.tipo_proveedor||"TRANSFERENCIA"]||data.tipo_proveedor||"—";})({TRANSFERENCIA:"Transferencia",DOMICILIACION:"Domiciliación",TARJETA:"Tarjeta",MIXTO:"Mixto"})}</span></p></div>
                         ${esGestorEco ? `<div><p><strong>Cuenta cliente</strong><br><span id="v-cuenta-${id}" style="font-family:monospace">${data.cuenta_cliente||"—"}</span></p></div>` : `<div></div>`}
                         <div style="grid-column:span 2;border-top:1px solid #e8ecf0;padding-top:12px;margin-top:4px;">
                             <strong style="font-size:0.84rem;color:#888;text-transform:uppercase;letter-spacing:0.04em;">Dirección postal</strong>
