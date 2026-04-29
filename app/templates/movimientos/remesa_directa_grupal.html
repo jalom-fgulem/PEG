@@ -41,6 +41,11 @@
   .hdr-sel:focus { outline:none; border-color:var(--fgulem-blue); }
   .prov-banco { padding:6px 10px; background:rgba(95,159,211,0.07); border:1px solid rgba(95,159,211,0.22);
     border-radius:7px; font-size:0.80rem; color:#185fa5; font-weight:600; white-space:nowrap; }
+
+  /* Ocultar elementos del componente proveedor_selector (modal compartido, fuera del form) */
+  #ps-buscador { display: none !important; }
+  #ps-select   { display: none !important; }
+  .ps-wrapper > div:first-child { display: none !important; } /* barra botones del componente */
 </style>
 {% endblock %}
 
@@ -136,12 +141,24 @@
             <div class="prov-banco">🏦 {{ _banco_prov_txt }} <span style="font-size:0.75rem; color:#8a8691; font-weight:400;">(comisión bancaria)</span></div>
             <input type="hidden" name="id_proveedor" value="{{ _banco_prov_id }}">
           {% else %}
-            <div style="flex:1; min-width:240px; max-width:400px; position:relative;">
-              {% set pd_uid = "g" ~ loop.index0 %}
+            {% set _idx = loop.index0 %}
+            <div style="flex:1; min-width:240px; max-width:360px; position:relative;">
+              {% set pd_uid = "g" ~ _idx %}
               {% set pd_field_name = "id_proveedor" %}
               {% set pd_required = true %}
               {% include "components/prov_search_inline.html" %}
             </div>
+            <button type="button" class="btn btn-secondary"
+                    onclick="_provGNuevo({{ _idx }})"
+                    style="font-size:0.78rem; padding:4px 9px; white-space:nowrap;">
+              ＋ Nuevo
+            </button>
+            <button type="button" class="btn btn-secondary"
+                    id="btn-editar-prov-{{ _idx }}"
+                    onclick="_provGEditar({{ _idx }})"
+                    style="font-size:0.78rem; padding:4px 9px; white-space:nowrap;" disabled>
+              ✏ Editar
+            </button>
           {% endif %}
         </div>
 
@@ -182,6 +199,9 @@
   </form>
 </div>
 
+<!-- Componente proveedor_selector: solo el modal (está fuera del <form>, no interfiere con envío) -->
+{% include "components/proveedor_selector.html" %}
+
 <!-- Opciones pre-renderizadas (clonadas por JS) -->
 <select id="tpl-serv-proy" style="display:none;">
   <option value="">— Servicio / Proyecto —</option>
@@ -192,6 +212,79 @@
 
 <script>
 const N_MOVS = {{ movimientos|length }};
+
+// ── Modal de proveedor compartido ─────────────────────────────────────────────
+// ps-select está fuera del form → quitar name para que no se envíe
+(function() {
+  var sel = document.getElementById('ps-select');
+  if (sel) sel.removeAttribute('name');
+})();
+
+// Función auxiliar: actualiza display + hidden input del dropdown inline
+function _pdActualizarDesde(uid, id, texto) {
+  var inp = document.getElementById('pd-val-' + uid);
+  if (inp) inp.value = String(id);
+  var lbl = document.getElementById('pd-txt-' + uid);
+  if (lbl) { lbl.textContent = texto; lbl.style.color = 'var(--ink,#1a1523)'; }
+  document.querySelectorAll('.pd-opt[data-uid="' + uid + '"]').forEach(function(o) {
+    o.classList.toggle('pd-sel', o.dataset.id === String(id));
+  });
+  // Habilitar botón Editar del movimiento activo
+  var idx = window._pdActiveGIdx;
+  if (typeof idx !== 'undefined') {
+    var btnEd = document.getElementById('btn-editar-prov-' + idx);
+    if (btnEd) btnEd.disabled = false;
+  }
+}
+
+// Cuando el usuario selecciona desde el dropdown inline → habilitar Editar
+var _pdSelBase = window._pdSel;
+window._pdSel = function(uid, el) {
+  if (_pdSelBase) _pdSelBase(uid, el);
+  if (uid && uid.charAt(0) === 'g') {
+    var idx2 = parseInt(uid.slice(1));
+    var btnEd2 = document.getElementById('btn-editar-prov-' + idx2);
+    if (btnEd2) btnEd2.disabled = false;
+  }
+};
+
+// Al abrir el modal para un movimiento concreto
+window._provGNuevo = function(idx) {
+  window._pdActiveGIdx = idx;
+  _psAbrirNuevo();
+};
+
+window._provGEditar = function(idx) {
+  window._pdActiveGIdx = idx;
+  // Sincronizar ps-select con el valor actual del movimiento
+  var uid = 'g' + idx;
+  var inp = document.getElementById('pd-val-' + uid);
+  var sel = document.getElementById('ps-select');
+  if (inp && sel) sel.value = inp.value;
+  _psAbrirEditar();
+};
+
+// Callback del componente: se dispara al guardar desde el modal
+window._psOnProveedorSeleccionado = function(prov) {
+  var idx = window._pdActiveGIdx;
+  if (typeof idx === 'undefined') return;
+  var uid  = 'g' + idx;
+  var txt  = prov.razon_social + ' — ' + prov.cif_nif;
+  _pdActualizarDesde(uid, prov.id, txt);
+  // Si es proveedor nuevo, añadir opción al dropdown inline de este movimiento
+  var lista = document.getElementById('pd-lista-' + uid);
+  if (lista && !document.querySelector('.pd-opt[data-uid="' + uid + '"][data-id="' + prov.id + '"]')) {
+    var div = document.createElement('div');
+    div.className = 'pd-opt';
+    div.dataset.uid   = uid;
+    div.dataset.id    = String(prov.id);
+    div.dataset.texto = txt;
+    div.setAttribute('onclick', '_pdSel("' + uid + '",this)');
+    div.innerHTML = '<span style="font-weight:600;">' + prov.razon_social + '</span>'
+      + '<span style="color:#6b7280;font-size:0.82rem;"> — ' + prov.cif_nif + '</span>';
+    lista.appendChild(div);
+  }
+};
 
 function _cloneSP() {
   const t = document.getElementById('tpl-serv-proy');

@@ -30,6 +30,34 @@
   .pct-ok  { color:#16a34a; font-weight:700; }
   .pct-warn{ color:#854f0b; font-weight:700; }
   .pct-err { color:#a32d2d; font-weight:700; }
+
+  /* Ocultar select nativo y buscador del componente proveedor_selector */
+  #ps-buscador { display: none !important; }
+  #ps-select   { display: none !important; }
+
+  /* Dropdown personalizado de proveedor */
+  .prov-trigger {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 12px; border:1px solid #d8dce2; border-radius:10px;
+    background:white; cursor:pointer; user-select:none; min-height:40px;
+    transition:border-color .15s,box-shadow .15s; font-size:0.9rem;
+  }
+  .prov-trigger:hover { border-color:var(--fgulem-blue); }
+  .prov-trigger.open  { border-color:var(--fgulem-blue);
+                        box-shadow:0 0 0 4px rgba(95,159,211,.14); }
+  .prov-panel {
+    display:none; position:absolute; top:calc(100% + 4px); left:0; right:0;
+    z-index:999; background:white; border:1px solid #d8dce2; border-radius:12px;
+    box-shadow:0 8px 24px rgba(0,0,0,.12); overflow:hidden;
+  }
+  .prov-panel.open { display:block; }
+  .prov-opt {
+    padding:10px 14px; cursor:pointer; font-size:0.9rem;
+    border-bottom:1px solid #f5f5f5; transition:background .1s;
+  }
+  .prov-opt:hover    { background:rgba(95,159,211,.07); }
+  .prov-opt.selected { background:rgba(194,27,132,.06); }
+  .prov-opt.hidden-opt { display:none; }
 </style>
 {% endblock %}
 
@@ -93,7 +121,6 @@
           Proveedor <span style="color:#a32d2d;">*</span>
         </label>
         {% if mov.tipo == 'COMISION' %}
-          {# Comisión: el banco es el proveedor automático — se muestra la info y se envía el id #}
           {% set _banco_prov_id  = banco.id_proveedor_banco  if banco else "" %}
           {% set _banco_prov_txt = banco.nombre_proveedor_banco if banco else (banco.alias if banco else "Banco") %}
           <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
@@ -106,12 +133,40 @@
           </div>
           <input type="hidden" name="id_proveedor" value="{{ _banco_prov_id }}">
         {% else %}
-          {# Domiciliación / otros: selector con búsqueda integrada #}
-          <div style="max-width:480px;">
-            {% set pd_uid = "rd" %}
-            {% set pd_field_name = "id_proveedor" %}
-            {% set pd_required = true %}
-            {% include "components/prov_search_inline.html" %}
+          {# Domiciliación / otros: selector completo con modal Nuevo/Editar #}
+          <div style="max-width:520px;">
+            {% include "components/proveedor_selector.html" %}
+
+            <div id="prov-custom-wrapper" style="position:relative; margin-top:8px;">
+              <div class="prov-trigger" id="prov-trigger" onclick="_provToggle()" role="combobox">
+                <span id="prov-trigger-text" style="color:#9ca3af;">— Seleccionar proveedor —</span>
+                <span style="color:#9ca3af; font-size:0.8rem;">▾</span>
+              </div>
+              <div class="prov-panel" id="prov-panel">
+                <div style="padding:10px 12px; border-bottom:1px solid #eef0f3;">
+                  <input type="text" id="prov-search" autocomplete="off"
+                         placeholder="Buscar por nombre o NIF…"
+                         oninput="_provFiltrar(this.value)"
+                         style="width:100%; padding:8px 10px; border:1px solid #d8dce2;
+                                border-radius:8px; font-size:0.9rem; box-sizing:border-box;">
+                </div>
+                <div id="prov-lista" style="max-height:240px; overflow-y:auto;">
+                  <div id="prov-sin-resultados"
+                       style="display:none; padding:12px 14px; color:#9ca3af; font-size:0.88rem;">
+                    Sin resultados.
+                  </div>
+                  {% for p in proveedores %}
+                  <div class="prov-opt"
+                       data-id="{{ p.id_proveedor }}"
+                       data-texto="{{ p.razon_social }} — {{ p.cif_nif }}"
+                       onclick="_provSeleccionar(this)">
+                    <span style="font-weight:600;">{{ p.razon_social }}</span>
+                    <span style="color:#6b7280; font-size:0.82rem;"> — {{ p.cif_nif }}</span>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
           </div>
         {% endif %}
       </div>
@@ -162,6 +217,69 @@
 </select>
 
 <script>
+// ── Dropdown de proveedor (solo para movimientos no-COMISION) ─────────────────
+{% if mov.tipo != 'COMISION' %}
+function _provActualizarDisplay(id, texto) {
+  const lbl = document.getElementById('prov-trigger-text');
+  if (lbl) { lbl.textContent = texto; lbl.style.color = 'var(--ink)'; }
+  const sel = document.getElementById('ps-select');
+  if (sel) sel.value = String(id);
+  const btnEd = document.getElementById('ps-btn-editar');
+  if (btnEd) btnEd.disabled = false;
+  document.querySelectorAll('.prov-opt').forEach(function(el) {
+    el.classList.toggle('selected', el.dataset.id === String(id));
+  });
+}
+
+function _provToggle() {
+  const trigger = document.getElementById('prov-trigger');
+  const panel   = document.getElementById('prov-panel');
+  const isOpen  = panel.classList.contains('open');
+  if (isOpen) {
+    panel.classList.remove('open'); trigger.classList.remove('open');
+  } else {
+    panel.classList.add('open'); trigger.classList.add('open');
+    setTimeout(function(){ document.getElementById('prov-search').focus(); }, 40);
+  }
+}
+
+function _provFiltrar(q) {
+  const texto = q.toLowerCase().trim();
+  let vis = 0;
+  document.querySelectorAll('.prov-opt').forEach(function(el) {
+    const match = !texto || el.dataset.texto.toLowerCase().includes(texto);
+    el.classList.toggle('hidden-opt', !match);
+    if (match) vis++;
+  });
+  document.getElementById('prov-sin-resultados').style.display = vis === 0 ? '' : 'none';
+}
+
+function _provSeleccionar(el) {
+  _provActualizarDisplay(el.dataset.id, el.dataset.texto);
+  document.getElementById('prov-panel').classList.remove('open');
+  document.getElementById('prov-trigger').classList.remove('open');
+  document.getElementById('prov-search').value = '';
+  _provFiltrar('');
+}
+
+// Cerrar al hacer clic fuera
+document.addEventListener('click', function(e) {
+  const wrapper = document.getElementById('prov-custom-wrapper');
+  if (wrapper && !wrapper.contains(e.target)) {
+    const pn = document.getElementById('prov-panel');
+    const tr = document.getElementById('prov-trigger');
+    if (pn) pn.classList.remove('open');
+    if (tr) tr.classList.remove('open');
+  }
+});
+
+// Callback del componente proveedor_selector (al crear/editar vía modal)
+window._psOnProveedorSeleccionado = function(prov) {
+  _provActualizarDisplay(prov.id, prov.razon_social + ' — ' + prov.cif_nif);
+};
+{% endif %}
+
+// ── Analítica ─────────────────────────────────────────────────────────────────
 const IMPORTE_MOV = {{ mov.importe|abs }};
 
 function _cloneSP() {
@@ -222,9 +340,9 @@ document.getElementById('form-rd').addEventListener('submit', function(e) {
     errEl.textContent = '⚠ Selecciona una cuenta de gasto.';
     errEl.style.display = 'block'; return;
   }
-  // Verificar proveedor (solo si hay selector visible — comisiones lo tienen oculto y pre-rellenado)
-  const provInp = document.getElementById('pd-val-rd');
-  if (provInp && !provInp.value) {
+  // Verificar proveedor (solo si hay selector — comisiones lo tienen pre-rellenado como hidden)
+  const psSel = document.getElementById('ps-select');
+  if (psSel && !psSel.value) {
     e.preventDefault();
     errEl.textContent = '⚠ Selecciona un proveedor.';
     errEl.style.display = 'block'; return;

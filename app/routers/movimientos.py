@@ -351,6 +351,7 @@ def formulario_remesa_directa_grupal(request: Request, ids: str = ""):
         return RedirectResponse(url="/movimientos/?msg=No+hay+movimientos+pendientes+seleccionados&msg_type=error", status_code=302)
 
     banco_map = {b["id_banco"]: b for b in mock_bancos.listar_bancos()}
+    _datos_form = pegs_service.obtener_datos_formulario()
     return templates.TemplateResponse(request=request, name="movimientos/remesa_directa_grupal.html", context={
         "usuario": usuario,
         "movimientos": movimientos_sel,
@@ -360,6 +361,8 @@ def formulario_remesa_directa_grupal(request: Request, ids: str = ""):
         "cuentas_gasto": pegs_service.listar_cuentas_gasto(),
         "servicios_proyectos": pegs_service.get_servicios_proyectos_todos(),
         "proveedores": proveedores_service.listar_proveedores(),
+        "formas_pago": _datos_form["formas_pago"],
+        "cuenta_saco": pegs_service.get_parametro("cuenta_saco"),
     })
 
 
@@ -478,6 +481,8 @@ def formulario_remesa_directa(request: Request, id_movimiento: int):
         "cuentas_gasto": pegs_service.listar_cuentas_gasto(),
         "servicios_proyectos": pegs_service.get_servicios_proyectos_todos(),
         "proveedores": proveedores_service.listar_proveedores(),
+        "formas_pago": pegs_service.obtener_datos_formulario()["formas_pago"],
+        "cuenta_saco": pegs_service.get_parametro("cuenta_saco"),
     })
 
 
