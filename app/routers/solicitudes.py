@@ -65,10 +65,9 @@ def solicitudes_nueva_get(
 ):
     todos = listar_servicios(solo_activos=True)
     if usuario["rol"] == "GESTOR_SERVICIO":
-        # GS: solo su servicio, y solo si requiere autorización
+        # GS: solo su propio servicio (con o sin autorización obligatoria)
         servicios = [s for s in todos
-                     if s["id_servicio"] == usuario["id_servicio"]
-                     and s.get("requiere_autorizacion")]
+                     if s["id_servicio"] == usuario["id_servicio"]]
     else:
         # GE / Admin: todos los servicios activos
         servicios = todos
@@ -111,13 +110,10 @@ async def solicitudes_nueva_post(
     tipos_documento: List[str] = Form(default=[]),
     usuario: dict = Depends(require_login),
 ):
-    # GS: solo puede crear en su propio servicio y solo si requiere autorización
+    # GS: solo puede crear en su propio servicio
     if usuario["rol"] == "GESTOR_SERVICIO":
         if id_servicio != usuario["id_servicio"]:
             return HTMLResponse("Sin permisos para crear solicitudes en este servicio", status_code=403)
-        servicio = obtener_servicio(id_servicio)
-        if not servicio or not servicio.get("requiere_autorizacion"):
-            return HTMLResponse("El servicio seleccionado no requiere autorización previa", status_code=400)
 
     # Actualizar IBAN del proveedor si se ha introducido uno nuevo
     iban_limpio = (iban_proveedor or "").strip().upper().replace(" ", "")

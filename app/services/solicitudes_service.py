@@ -92,8 +92,8 @@ def crear_solicitud(
     id_forma_pago: int = 1,
 ) -> dict:
     servicio = obtener_servicio(id_servicio)
-    if not servicio or not servicio.get("requiere_autorizacion"):
-        raise ValueError("El servicio no requiere autorización previa")
+    if not servicio:
+        raise ValueError("Servicio no encontrado")
 
     nueva = {
         "id_solicitud":           _md._next_solicitud_id,
