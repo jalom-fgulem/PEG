@@ -385,15 +385,82 @@ def es_excel_binario(contenido_bytes: bytes) -> bool:
     return contenido_bytes[:4] == _OLE2_MAGIC
 
 
+def _fecha_excel_serial(serial) -> str:
+    """Convierte número serial de Excel (float) a cadena YYYY-MM-DD."""
+    from datetime import timedelta
+    try:
+        d = datetime(1899, 12, 30) + timedelta(days=int(float(serial)))
+        return d.strftime("%Y-%m-%d")
+    except (ValueError, TypeError):
+        return datetime.now().strftime("%Y-%m-%d")
+
+
+def _es_xls_unicaja_web(ws) -> bool:
+    """Detecta el formato tabular de exportación web de Unicaja (cabeceras en fila 10)."""
+    if ws.nrows < 11:
+        return False
+    primera = str(ws.cell_value(10, 0)).strip().lower()
+    return "fecha" in primera and "operaci" in primera
+
+
+def parsear_xls_unicaja_web(ws, id_banco: int, id_usuario: str) -> list[dict]:
+    """
+    Parsea el Excel tabular que genera Unicaja desde su banca online:
+      Fila 10 → cabeceras (Fecha de operación, Fecha valor, Concepto, Importe, Divisa, Saldo…)
+      Fila 11+ → datos
+    Fechas como seriales de Excel (float), importe positivo=abono/negativo=cargo.
+    """
+    movimientos: list[dict] = []
+    for row_idx in range(11, ws.nrows):
+        try:
+            fecha_op_raw  = ws.cell_value(row_idx, 0)
+            fecha_val_raw = ws.cell_value(row_idx, 1)
+            concepto      = str(ws.cell_value(row_idx, 2)).strip()
+            importe_raw   = ws.cell_value(row_idx, 3)
+            saldo_raw     = ws.cell_value(row_idx, 5)
+
+            if not fecha_op_raw or not concepto:
+                continue
+
+            fecha_op  = _fecha_excel_serial(fecha_op_raw)
+            fecha_val = _fecha_excel_serial(fecha_val_raw) if fecha_val_raw else fecha_op
+            importe   = round(float(importe_raw), 2)
+            saldo     = round(float(saldo_raw), 2) if saldo_raw != "" else None
+
+            movimientos.append({
+                "id_banco":            id_banco,
+                "fecha_operacion":     fecha_op,
+                "fecha_valor":         fecha_val,
+                "concepto":            concepto,
+                "importe":             importe,
+                "saldo_posterior":     saldo,
+                "referencia_banco":    f"UNICAJA-{id_banco}-{fecha_op}-{uuid.uuid4().hex[:8].upper()}",
+                "tipo":                _detectar_tipo_texto(concepto),
+                "estado":              "PENDIENTE",
+                "origen":              "FICHERO_XLS",
+                "id_usuario_importa":  id_usuario,
+            })
+        except (ValueError, TypeError, IndexError):
+            continue
+
+    return movimientos
+
+
 def parsear_xls_n43(contenido_bytes: bytes, id_banco: int, id_usuario: str) -> list[dict]:
     """
-    Lee un .xls de Unicaja/Santander cuyo contenido sea un extracto N43.
-    Si no se detectan líneas N43 válidas, lanza ValueError con instrucciones.
+    Lee un .xls de Unicaja:
+      - Si es el formato tabular web (cabeceras en fila 10) → parsear_xls_unicaja_web
+      - Si contiene líneas N43 embebidas en celdas → parsear_norma43
     """
     import xlrd
     wb = xlrd.open_workbook(file_contents=contenido_bytes)
     ws = wb.sheet_by_index(0)
 
+    # Formato tabular web de Unicaja
+    if _es_xls_unicaja_web(ws):
+        return parsear_xls_unicaja_web(ws, id_banco, id_usuario)
+
+    # Intento de N43 embebido en celdas
     n43_lines = []
     for row_idx in range(ws.nrows):
         for col_idx in range(ws.ncols):
@@ -404,9 +471,9 @@ def parsear_xls_n43(contenido_bytes: bytes, id_banco: int, id_usuario: str) -> l
 
     if not n43_lines or not any(l.startswith("11") for l in n43_lines):
         raise ValueError(
-            "El fichero Excel no contiene un extracto N43 de movimientos. "
-            "Descarga el extracto desde tu banco: Mis cuentas → Movimientos → "
-            "Exportar → AEB, Norma 43."
+            "El fichero Excel no contiene un extracto N43 ni un formato tabular reconocido. "
+            "Descarga el extracto desde Unicaja: Mis cuentas → Movimientos → Exportar → "
+            "selecciona AEB, Norma 43 o el formato Excel de movimientos."
         )
 
     return parsear_norma43("\n".join(n43_lines), id_banco, id_usuario)
