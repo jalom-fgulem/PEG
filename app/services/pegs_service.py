@@ -665,7 +665,24 @@ def obtener_analiticas_servicio(id_servicio: int) -> list:
 
 
 def get_servicios_proyectos_todos() -> list:
-    return SERVICIOS_PROYECTOS_TODOS
+    result = []
+    for s in SERVICIOS_PROYECTOS_TODOS:
+        analitica_servicio = next(
+            (a for a in _analiticas if a["id_servicio"] == s["id"]), {}
+        )
+        proyectos = []
+        for p in s["proyectos"]:
+            analitica = next(
+                (a for a in _analiticas if a["id_servicio"] == s["id"] and a["id_proyecto"] == p["id"]),
+                {}
+            )
+            proyectos.append({
+                **p,
+                "nivel_1": analitica_servicio.get("nivel_1", ""),
+                "nivel_2": analitica.get("nivel_2", ""),
+            })
+        result.append({**s, "proyectos": proyectos})
+    return result
 
 
 # ──────────────────────────────────────────────────────────────────────────────

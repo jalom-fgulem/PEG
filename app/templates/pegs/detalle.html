@@ -185,40 +185,43 @@
     <form id="form-eliminar" method="POST" action="/pegs/{{ peg.id_peg }}/eliminar" style="display:none"></form>
     {% endif %}
 
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
+    <button type="button" id="btn-validar-peg" onclick="validarPeg()" disabled
+            style="background:#16a34a;color:white;border:none;border-radius:8px;padding:8px 16px;font-weight:700;font-size:0.88rem;cursor:pointer;opacity:0.5;transition:opacity 0.15s;white-space:nowrap;">
+      ✅ Validar PEG
+    </button>
+    {% endif %}
+
     <a class="btn btn-secondary" href="/pegs/" style="margin-left:auto;">← Volver a PEGs</a>
   </div>
 
   {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] and peg.codigo_estado == 'PENDIENTE' %}
-  <div class="panel-validacion-inline">
-    <div class="val-fila1">
-      <label style="font-size:0.85rem;font-weight:700;white-space:nowrap;color:#166534;">Cuenta de gasto</label>
+  <div class="panel-validacion-inline" style="margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0;">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+      <label style="font-size:0.82rem;font-weight:700;white-space:nowrap;color:#166534;">Cuenta de gasto</label>
       <select id="val-cuenta-gasto" onchange="valRecalc()"
-              style="padding:7px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:0.88rem;min-width:260px;">
-        <option value="">— Selecciona cuenta —</option>
+              style="padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:0.85rem;max-width:220px;">
+        <option value="">— Selecciona —</option>
         {% for cg in cuentas_gasto %}
         <option value="{{ cg.codigo }}">{{ cg.codigo }} – {{ cg.descripcion }}</option>
         {% endfor %}
       </select>
       <button type="button" onclick="valAñadirLinea()"
-              style="background:transparent;border:1px dashed rgba(22,163,74,0.4);color:#16a34a;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:0.85rem;font-weight:700;">
-        + Añadir línea analítica
+              style="background:transparent;border:1px dashed rgba(22,163,74,0.4);color:#16a34a;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:0.82rem;font-weight:700;white-space:nowrap;">
+        + Línea analítica
       </button>
-      <span style="font-size:0.85rem;color:#6b7280;white-space:nowrap;">Total: <strong id="val-total-pct" style="color:#16a34a">0.00%</strong></span>
-      <button type="button" id="btn-validar-peg" onclick="validarPeg()" disabled
-              style="background:#16a34a;color:white;border:none;border-radius:8px;padding:8px 18px;font-weight:700;font-size:0.88rem;cursor:pointer;opacity:0.5;transition:opacity 0.15s;">
-        ✅ Validar PEG
-      </button>
+      <span style="font-size:0.82rem;color:#6b7280;white-space:nowrap;">Total: <strong id="val-total-pct" style="color:#16a34a">0.00%</strong></span>
     </div>
-    <div id="val-lineas-container"></div>
-    <div id="val-error" style="display:none;margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(226,75,74,0.09);border:1px solid rgba(226,75,74,0.25);color:#a32d2d;font-size:0.87rem;font-weight:600;"></div>
+    <div id="val-lineas-container" style="margin-top:6px;"></div>
+    <div id="val-error" style="display:none;margin-top:6px;padding:6px 10px;border-radius:8px;background:rgba(226,75,74,0.09);border:1px solid rgba(226,75,74,0.25);color:#a32d2d;font-size:0.85rem;font-weight:600;"></div>
   </div>
 
-  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">
+  <div style="margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0;">
     <form method="post" action="/pegs/{{ peg.id_peg }}/incidencia"
           style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <textarea name="comentario" rows="1" placeholder="Motivo de la incidencia..."
-                style="flex:1;min-width:200px;max-width:480px;padding:7px 9px;border:1px solid #d8dce2;border-radius:8px;font-size:0.88rem;resize:none;"></textarea>
-      <button class="btn-incidencia" type="submit" style="width:auto;white-space:nowrap;padding:8px 16px;">Marcar incidencia</button>
+                style="flex:1;min-width:200px;max-width:480px;padding:6px 9px;border:1px solid #d8dce2;border-radius:8px;font-size:0.85rem;resize:none;"></textarea>
+      <button class="btn-incidencia" type="submit" style="width:auto;white-space:nowrap;padding:7px 14px;">Marcar incidencia</button>
     </form>
   </div>
   {% endif %}
@@ -852,7 +855,7 @@ const SERVICIOS_PROYECTOS = {{ servicios_proyectos_todos | tojson }};
 function _renderOpcionesLinea() {
   return SERVICIOS_PROYECTOS.flatMap(s =>
     s.proyectos.map(p =>
-      `<option value="${s.id}-${p.id}">${s.nombre} / ${p.nombre}</option>`
+      `<option value="${s.id}-${p.id}">${p.nivel_1}, ${s.nombre}, ${p.nivel_2}, ${p.nombre}</option>`
     )
   ).join('');
 }
