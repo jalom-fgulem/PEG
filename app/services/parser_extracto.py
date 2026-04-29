@@ -479,6 +479,63 @@ def parsear_xls_n43(contenido_bytes: bytes, id_banco: int, id_usuario: str) -> l
     return parsear_norma43("\n".join(n43_lines), id_banco, id_usuario)
 
 
+def parsear_xlsx_santander(contenido_bytes: bytes, id_banco: int, id_usuario: str) -> list[dict]:
+    """
+    Parsea el xlsx que genera Santander desde su banca online:
+      Fila 8 → cabeceras (Fecha Operación, Fecha Valor, Concepto, Importe, Divisa, Saldo…)
+      Fila 9+ → datos; fechas en dd/mm/yyyy, importes float (+abono/-cargo).
+    """
+    import openpyxl, io as _io
+    wb = openpyxl.load_workbook(_io.BytesIO(contenido_bytes), data_only=True)
+    ws = wb.active
+
+    movimientos: list[dict] = []
+    for row in ws.iter_rows(min_row=9, values_only=True):
+        try:
+            fecha_op_raw, fecha_val_raw, concepto, importe_raw, _, saldo_raw = row[:6]
+            if not fecha_op_raw or not concepto or importe_raw is None:
+                continue
+
+            fecha_op  = _parsear_fecha_csv(str(fecha_op_raw))
+            fecha_val = _parsear_fecha_csv(str(fecha_val_raw)) if fecha_val_raw else fecha_op
+            if not fecha_op:
+                continue
+            importe = round(float(importe_raw), 2)
+            saldo   = round(float(saldo_raw), 2) if saldo_raw is not None else None
+
+            movimientos.append({
+                "id_banco":           id_banco,
+                "fecha_operacion":    fecha_op,
+                "fecha_valor":        fecha_val or fecha_op,
+                "concepto":           str(concepto).strip(),
+                "importe":            importe,
+                "saldo_posterior":    saldo,
+                "referencia_banco":   f"SANTANDER-{id_banco}-{fecha_op}-{uuid.uuid4().hex[:8].upper()}",
+                "tipo":               _detectar_tipo_texto(str(concepto)),
+                "estado":             "PENDIENTE",
+                "origen":             "FICHERO_XLSX",
+                "id_usuario_importa": id_usuario,
+            })
+        except (ValueError, TypeError):
+            continue
+
+    return movimientos
+
+
+def _es_xlsx_santander(contenido_bytes: bytes) -> bool:
+    """Detecta el xlsx tabular de Santander comprobando la cabecera de la fila 8."""
+    try:
+        import openpyxl, io as _io
+        wb = openpyxl.load_workbook(_io.BytesIO(contenido_bytes), data_only=True, read_only=True)
+        ws = next(iter(wb))
+        for i, row in enumerate(ws.iter_rows(min_row=8, max_row=8, values_only=True), 1):
+            primera = str(row[0] or "").lower()
+            return "fecha" in primera and "operaci" in primera
+    except Exception:
+        pass
+    return False
+
+
 def detectar_y_parsear(
     contenido: str,
     nombre_fichero: str,
@@ -488,11 +545,16 @@ def detectar_y_parsear(
 ) -> list[dict]:
     """
     Detecta el formato y aplica el parser correspondiente:
-      - Excel binario .xls → intenta extraer N43 embebido
+      - .xlsx Santander (cabecera en fila 8) → parsear_xlsx_santander
+      - Excel binario .xls → parsear_xls_n43 (Unicaja web o N43 embebido)
       - Extensión n43/43/sta/csb o cabecera "11" → Norma 43 texto
       - Resto → CSV genérico
     """
     ext = nombre_fichero.lower().rsplit(".", 1)[-1] if "." in nombre_fichero else ""
+
+    if ext == "xlsx" and contenido_bytes:
+        if _es_xlsx_santander(contenido_bytes):
+            return parsear_xlsx_santander(contenido_bytes, id_banco, id_usuario)
 
     if contenido_bytes and es_excel_binario(contenido_bytes):
         return parsear_xls_n43(contenido_bytes, id_banco, id_usuario)
