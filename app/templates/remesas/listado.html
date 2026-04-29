@@ -63,7 +63,7 @@
         <td>{{ r.fecha_creacion }}</td>
         <td>{{ r.fecha_cierre or "—" }}</td>
         <td style="text-align:center;">{{ r.pagos|length }}</td>
-        <td style="text-align:right;font-weight:600;">{{ "{:,.2f}".format(r.importe_total).replace(",","X").replace(".",",").replace("X",".") }} €</td>
+        <td class="num" style="font-weight:600;">{{ "{:,.2f}".format(r.importe_total).replace(",","X").replace(".",",").replace("X",".") }} €</td>
         <td><a class="btn btn-secondary" style="padding:7px 12px; font-size:0.86rem;" href="/remesas/{{ r.id_remesa }}">Ver</a></td>
       </tr>
       {% endfor %}
@@ -71,7 +71,7 @@
     <tfoot>
       <tr style="border-top:2px solid #e8ecf0;background:#f9fafb;">
         <td colspan="6" style="padding:10px 12px;font-weight:700;">Total acumulado ({{ items|length }} remesa{{ 's' if items|length != 1 else '' }})</td>
-        <td style="padding:10px 12px;text-align:right;font-weight:700;color:var(--fgulem-magenta);">
+        <td class="num" style="padding:10px 12px;font-weight:700;color:var(--fgulem-magenta);">
           {% set gran_total = items | sum(attribute='importe_total') %}
           {{ "{:,.2f}".format(gran_total).replace(",","X").replace(".",",").replace("X",".") }} €
         </td>

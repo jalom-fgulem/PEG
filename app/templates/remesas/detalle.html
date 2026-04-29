@@ -114,9 +114,9 @@
             <td>{{ p.nombre_proveedor }}</td>
             <td style="font-size:0.88rem; color:var(--ink-soft);">{{ p.cif_nif }}</td>
             <td style="font-size:0.9rem;">{{ p.descripcion_gasto }}</td>
-            <td style="text-align:right;">{{ "%.2f"|format(p.base_imponible) }} €</td>
-            <td style="text-align:right;">{{ "%.2f"|format(p.importe_iva) }} €</td>
-            <td style="text-align:right; font-weight:700;">{{ "%.2f"|format(p.importe_total) }} €</td>
+            <td class="num">{{ "%.2f"|format(p.base_imponible) }} €</td>
+            <td class="num">{{ "%.2f"|format(p.importe_iva) }} €</td>
+            <td class="num" style="font-weight:700;">{{ "%.2f"|format(p.importe_total) }} €</td>
             <td><span class="estado-badge estado-{{ p.codigo_estado|lower }}" style="font-size:0.78rem; padding:4px 10px;">{{ p.nombre_estado }}</span></td>
             {% if remesa.estado == 'ABIERTA' and usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
             <td><button class="btn-quitar" onclick="quitarPeg({{ p.id_peg }}, this)">Quitar</button></td>
@@ -127,9 +127,9 @@
         <tfoot>
           <tr style="border-top:2px solid var(--line);">
             <td colspan="4" style="font-weight:700; text-align:right; padding-right:12px;">TOTALES</td>
-            <td style="text-align:right; font-weight:700;">{{ "%.2f"|format(pagos|sum(attribute='base_imponible')) }} €</td>
-            <td style="text-align:right; font-weight:700;">{{ "%.2f"|format(pagos|sum(attribute='importe_iva')) }} €</td>
-            <td style="text-align:right; font-weight:800; color:var(--fgulem-magenta); font-size:1.05rem;">{{ "%.2f"|format(pagos|sum(attribute='importe_total')) }} €</td>
+            <td class="num" style="font-weight:700;">{{ "%.2f"|format(pagos|sum(attribute='base_imponible')) }} €</td>
+            <td class="num" style="font-weight:700;">{{ "%.2f"|format(pagos|sum(attribute='importe_iva')) }} €</td>
+            <td class="num" style="font-weight:800;color:var(--fgulem-magenta);">{{ "%.2f"|format(pagos|sum(attribute='importe_total')) }} €</td>
             <td></td>
             {% if remesa.estado == 'ABIERTA' and usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}<td></td>{% endif %}
           </tr>

@@ -166,7 +166,7 @@
         <th>Proveedor</th>
         <th>Descripción</th>
         <th>Servicio</th>
-        <th style="text-align:right">Importe</th>
+        <th style="text-align:right;white-space:nowrap">Importe</th>
         <th>Fecha recepción</th>
         <th>Estado</th>
         <th>Nº Factura</th>
@@ -183,7 +183,7 @@
         <td>{{ item.nombre_proveedor }}</td>
         <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ item.descripcion_gasto }}</td>
         <td>{{ item.nombre_servicio }}</td>
-        <td style="text-align:right; font-variant-numeric: tabular-nums;">{{ "%.2f"|format(item.importe_total) }} €</td>
+        <td class="num">{{ "%.2f"|format(item.importe_total) }} €</td>
         <td>{{ item.fecha_recepcion or "—" }}</td>
         <td><span class="estado-badge estado-{{ item.codigo_estado|lower }}">{{ item.nombre_estado }}</span></td>
         {% if item.numero_factura_interno %}
