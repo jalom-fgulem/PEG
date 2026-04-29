@@ -304,6 +304,28 @@ def solicitudes_convertir_en_peg(
     return RedirectResponse(url=f"/pegs/{id_peg}", status_code=303)
 
 
+# ── VER ADJUNTO ────────────────────────────────────────────────────────────────
+
+@router.get("/{id_solicitud}/adjuntos/{id_sol_adj}/ver")
+def solicitudes_ver_adjunto(
+    id_solicitud: int,
+    id_sol_adj: int,
+    usuario: dict = Depends(require_login),
+):
+    import mimetypes
+    from fastapi.responses import FileResponse
+    doc = solicitudes_service.obtener_doc(id_solicitud, id_sol_adj)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Adjunto no encontrado")
+    ruta = doc["ruta"]
+    if not os.path.exists(ruta):
+        raise HTTPException(status_code=404, detail="Archivo no encontrado en el servidor")
+    mime, _ = mimetypes.guess_type(ruta)
+    mime = mime or "application/octet-stream"
+    headers = {"Content-Disposition": f'inline; filename="{doc["nombre_archivo"]}"'}
+    return FileResponse(path=ruta, media_type=mime, headers=headers)
+
+
 # ── ELIMINAR ADJUNTO ───────────────────────────────────────────────────────────
 
 @router.post("/{id_solicitud}/adjuntos/{id_sol_adj}/eliminar")

@@ -648,6 +648,7 @@
         {% for doc in peg.documentos %}
         <li class="adj-item" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <a href="/pegs/{{ peg.id_peg }}/documentos/{{ doc.id_documento }}/descargar"
+             target="_blank"
              style="color:var(--ink);text-decoration:none;font-weight:600;font-size:0.93rem;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             📄 {{ doc.nombre_archivo }}
           </a>

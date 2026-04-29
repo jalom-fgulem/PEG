@@ -137,6 +137,14 @@ def adjuntar_doc(id_solicitud: int, nombre_archivo: str, ruta: str, tipo: str) -
     return doc
 
 
+def obtener_doc(id_solicitud: int, id_sol_adj: int) -> dict | None:
+    return next(
+        (a for a in solicitud_adjuntos
+         if a["id_sol_adj"] == id_sol_adj and a["id_solicitud"] == id_solicitud),
+        None,
+    )
+
+
 def eliminar_doc(id_solicitud: int, id_sol_adj: int) -> bool:
     doc = next(
         (a for a in solicitud_adjuntos

@@ -211,7 +211,7 @@
         {% for doc in solicitud.documentos %}
         <li class="adj-item">
           <span class="adj-icon">📄</span>
-          <span class="adj-nombre">{{ doc.nombre_archivo }}</span>
+          <a class="adj-nombre" href="/solicitudes/{{ solicitud.id_solicitud }}/adjuntos/{{ doc.id_sol_adj }}/ver" target="_blank">{{ doc.nombre_archivo }}</a>
           {% if doc.tipo == 'PRESUPUESTO' %}
             <span class="doc-badge doc-badge-presupuesto">Presupuesto</span>
           {% elif doc.tipo == 'FACTURA_PROFORMA' %}

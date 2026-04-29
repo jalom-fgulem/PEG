@@ -363,11 +363,11 @@ def peg_descargar_documento(
     if not os.path.exists(doc["ruta"]):
         raise HTTPException(status_code=404,
             detail="Archivo no encontrado en el servidor")
-    return FileResponse(
-        path=doc["ruta"],
-        filename=doc["nombre_archivo"],
-        media_type="application/octet-stream",
-    )
+    import mimetypes
+    mime, _ = mimetypes.guess_type(doc["ruta"])
+    mime = mime or "application/octet-stream"
+    headers = {"Content-Disposition": f'inline; filename="{doc["nombre_archivo"]}"'}
+    return FileResponse(path=doc["ruta"], media_type=mime, headers=headers)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
