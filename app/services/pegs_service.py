@@ -714,15 +714,11 @@ def validar_peg(
     if abs(suma - 100.0) > 0.01:
         return {"ok": False, "error": f"La suma de porcentajes debe ser 100 (actual: {suma:.2f})"}
 
-    from app.services.factura_interna_service import generar_numero_factura
-    numero = generar_numero_factura()
-
     estado_origen = estado.get("nombre")
-    peg["id_peg_estado"]          = 2  # VALIDADO
-    peg["lineas_analitica"]       = lineas_analitica
-    peg["cuenta_gasto"]           = cuenta_gasto.strip()
-    peg["numero_factura_interno"] = numero
-    peg["fecha_actualizacion"]    = datetime.now().strftime("%Y-%m-%d")
+    peg["id_peg_estado"]       = 2  # VALIDADO
+    peg["lineas_analitica"]    = lineas_analitica
+    peg["cuenta_gasto"]        = cuenta_gasto.strip()
+    peg["fecha_actualizacion"] = datetime.now().strftime("%Y-%m-%d")
 
     _historial.append({
         "id_peg":          id_peg,
@@ -732,7 +728,7 @@ def validar_peg(
         "comentario":      "Validado por gestor económico",
         "realizado_por":   usuario.get("nombre_completo", usuario.get("login", "")),
     })
-    return {"ok": True, "numero_factura_interno": numero}
+    return {"ok": True}
 
 
 def obtener_lineas_analitica_peg(id_peg: int) -> list:
