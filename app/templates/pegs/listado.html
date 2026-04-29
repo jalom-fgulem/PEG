@@ -57,18 +57,10 @@
     color: white;
     border-color: #1d4ed8;
   }
-  .banner-alerta-factura { background: #fef9c3; border: 1px solid #fde047; color: #854d0e; padding: 10px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 0.875rem; }
-  .banner-alerta-factura a { color: #92400e; font-weight: 600; margin-left: 8px; }
 </style>
 {% endblock %}
 
 {% block content %}
-{% if pegs_sin_factura > 0 and usuario.rol in ["GESTOR_ECONOMICO", "ADMIN"] %}
-<div class="banner-alerta-factura">
-  ⚠ Hay {{ pegs_sin_factura }} PEG{{ 's' if pegs_sin_factura > 1 }} pagado{{ 's' if pegs_sin_factura > 1 }} sin factura recibida.
-  <a href="?estado=4&factura_recibida=0">Ver PEGs afectados</a>
-</div>
-{% endif %}
 <div class="card">
   <div class="toolbar">
     <div>
@@ -185,7 +177,12 @@
         <td>{{ item.nombre_servicio }}</td>
         <td class="num">{{ "%.2f"|format(item.importe_total) }} €</td>
         <td>{{ item.fecha_recepcion or "—" }}</td>
-        <td><span class="estado-badge estado-{{ item.codigo_estado|lower }}">{{ item.nombre_estado }}</span></td>
+        <td>
+          <span class="estado-badge estado-{{ item.codigo_estado|lower }}">{{ item.nombre_estado }}</span>
+          {% if item.codigo_estado == 'PAGADO' and not item.factura_recibida %}
+          <br><span style="font-size:0.72rem;font-weight:700;color:#854d0e;background:#fef9c3;border:1px solid #fde047;border-radius:4px;padding:1px 6px;white-space:nowrap;display:inline-block;margin-top:3px;">⚠ Sin factura</span>
+          {% endif %}
+        </td>
         {% if item.numero_factura_interno %}
           <td>
             <span style="font-family:monospace;font-size:0.85rem;
