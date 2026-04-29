@@ -213,10 +213,18 @@ def generar_pdf_remesa(remesa: dict, pagos: list[dict]) -> str:
     story.append(Spacer(1, 0.4 * cm))
 
     # ── DATOS EN DOS COLUMNAS (tabla sin bordes) ───────────────────────────────
+    _estado_labels = {
+        "ABIERTA":   "Abierta",
+        "GENERADA":  "Generada",
+        "CERRADA":   "Cerrada",
+    }
+    estado_label   = _estado_labels.get(remesa.get("estado", ""), remesa.get("estado", "-"))
+    fecha_cierre   = remesa.get("fecha_cierre") or "-"
+
     datos_remesa = [
         [
             Paragraph(f"<b>Código:</b> {remesa.get('codigo_remesa', '-')}", _estilo_normal),
-            Paragraph(f"<b>Estado:</b> {remesa.get('estado', '-')}", _estilo_normal),
+            Paragraph(f"<b>Estado:</b> {estado_label}", _estilo_normal),
         ],
         [
             Paragraph(f"<b>Descripción:</b> {remesa.get('descripcion', '-')}", _estilo_normal),
@@ -224,7 +232,7 @@ def generar_pdf_remesa(remesa: dict, pagos: list[dict]) -> str:
         ],
         [
             Paragraph(f"<b>Creado por:</b> {remesa.get('creado_por', '-')}", _estilo_normal),
-            Paragraph(f"<b>Fecha cierre:</b> {remesa.get('fecha_cierre') or '-'}", _estilo_normal),
+            Paragraph(f"<b>Fecha de pago:</b> {fecha_cierre}", _estilo_normal),
         ],
     ]
     col_datos = body_width / 2

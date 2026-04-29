@@ -120,6 +120,16 @@ def remesas_cerrar(
                 fecha_dt = datetime.fromisoformat(peg_raw["fecha_pago"])
                 peg_raw["numero_factura_interno"] = generar_numero_factura(fecha_dt)
             n += 1
+
+    # Regenerar PDF con estado CERRADA y fecha de cierre real
+    try:
+        pagos = [pegs_service.obtener_peg(pid) for pid in remesa.get("pagos", [])]
+        pagos = [p for p in pagos if p]
+        pdf_path = generar_pdf_remesa(remesa_cerrada, pagos)
+        remesas_service.actualizar_pdf_path(id_remesa, pdf_path)
+    except Exception:
+        pass  # No bloquear el cierre si falla la regeneración del PDF
+
     msg = urllib.parse.quote(f"Remesa cerrada. {n} PEGs marcados como PAGADO.")
     return RedirectResponse(url=f"/remesas/{id_remesa}?msg={msg}&msg_type=success", status_code=303)
 
