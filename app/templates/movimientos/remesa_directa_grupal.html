@@ -5,11 +5,13 @@
 
 {% block extra_head %}
 <style>
-  .mov-card { border:1px solid var(--line); border-radius:10px; margin-bottom:12px; overflow:hidden; }
+  /* overflow:visible para que los dropdowns absolutos no queden recortados */
+  .mov-card { border:1px solid var(--line); border-radius:10px; margin-bottom:12px; overflow:visible; }
   .mov-card-hdr {
     display:grid; gap:10px; padding:11px 16px; background:#fafafa;
     border-bottom:1px solid var(--line); align-items:end;
     grid-template-columns: 110px 1fr 110px 100px 1fr 1fr;
+    border-radius:10px 10px 0 0; /* esquinas superiores sin overflow:hidden en el padre */
   }
   .mov-card-body { padding:12px 16px; }
   .rd-lbl { font-size:0.69rem; color:#8a8691; font-weight:700; text-transform:uppercase;
