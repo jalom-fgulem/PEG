@@ -81,17 +81,27 @@
 
 <!-- Barra de acciones -->
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-  <div style="display:flex; gap:8px;">
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
     <form method="post" action="/movimientos/autocotejar" style="display:inline;">
       <button class="btn btn-secondary" type="submit"
-              onclick="return confirm('¿Ejecutar cotejo automático sobre los movimientos pendientes?')"
-              style="font-size:0.85rem;">⚡ Auto-cotejar pendientes</button>
+              onclick="return confirm('El auto-cotejo intentará emparejar automáticamente cada movimiento pendiente con una remesa directa del mismo importe y fecha próxima. ¿Continuar?')"
+              style="font-size:0.85rem;"
+              title="Empareja automáticamente movimientos bancarios pendientes con remesas directas del mismo importe">
+        ⚡ Auto-cotejar pendientes
+      </button>
     </form>
     <a class="btn btn-secondary"
        href="/movimientos/remesas-bancarias"
-       style="font-size:0.85rem; background:rgba(147,100,214,0.10); color:#5b2d8e; border-color:rgba(147,100,214,0.30);">
+       style="font-size:0.85rem; background:rgba(147,100,214,0.10); color:#5b2d8e; border-color:rgba(147,100,214,0.30);"
+       title="Ver movimientos agrupados en remesas directas">
       ☰ Remesas desde movimientos
     </a>
+    <button id="btn-ocultar-ingresos" type="button"
+            onclick="toggleIngresos(this)"
+            style="font-size:0.85rem; background:#f3f4f6; color:#374151; border:1.5px solid #e5e7eb; border-radius:20px; padding:5px 14px; cursor:pointer;"
+            title="Ocultar/mostrar los abonos (ingresos) — son de solo lectura y no necesitan cotejo">
+      👁 Ocultar ingresos
+    </button>
   </div>
   <a class="btn btn-primary" href="/movimientos/importar">↑ Importar extracto</a>
 </div>
@@ -121,7 +131,7 @@
       {% set banco = banco_map.get(m.id_banco) %}
       {% set cotejo = cotejo_map.get(m.id_movimiento) %}
       {% set es_ingreso = m.importe >= 0 %}
-      <tr style="{% if m.estado == 'IGNORADO' %}opacity:0.40;{% elif es_ingreso %}background:rgba(99,153,34,0.04);{% endif %}">
+      <tr {% if es_ingreso %}data-ingreso="1"{% endif %} style="{% if m.estado == 'IGNORADO' %}opacity:0.40;{% elif es_ingreso %}background:rgba(99,153,34,0.04);{% endif %}">
         <td>
           {% if m.estado == 'PENDIENTE' and not es_ingreso %}
           <input type="checkbox" name="ids" value="{{ m.id_movimiento }}"
@@ -285,6 +295,18 @@ function irRemesaDirectaGrupal() {
   // Construir URL con los IDs seleccionados como query params
   const ids = Array.from(checks).map(c => c.value).join(',');
   window.location.href = '/movimientos/remesa-directa-grupal?ids=' + ids;
+}
+
+function toggleIngresos(btn) {
+  const ocultar = btn.dataset.ocultando !== '1';
+  document.querySelectorAll('tr[data-ingreso="1"]').forEach(function(tr) {
+    tr.style.display = ocultar ? 'none' : '';
+  });
+  btn.dataset.ocultando = ocultar ? '1' : '';
+  btn.textContent = ocultar ? '👁 Mostrar ingresos' : '👁 Ocultar ingresos';
+  btn.style.background  = ocultar ? '#166534' : '#f3f4f6';
+  btn.style.color       = ocultar ? 'white'   : '#374151';
+  btn.style.borderColor = ocultar ? '#166534' : '#e5e7eb';
 }
 </script>
 {% endblock %}

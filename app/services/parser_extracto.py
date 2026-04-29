@@ -13,10 +13,21 @@ en pos 22 con 14 dígitos en pos 28-41, se activa el parser Unicaja.
 """
 
 import csv
+import hashlib
 import io
 import re
-import uuid
 from datetime import datetime
+
+
+def _ref_determinista(banco: int, fecha: str, concepto: str, importe: float, origen: str) -> str:
+    """
+    Referencia estable y reproducible: mismo movimiento importado N veces
+    produce siempre la misma clave, permitiendo deduplicación fiable.
+    Formato: ORIGEN-BANCO-HASH8 (ej. UNICAJA-1-A3F7C2B1)
+    """
+    raw = f"{banco}|{fecha}|{concepto.strip().upper()}|{round(importe, 2)}"
+    h = hashlib.sha256(raw.encode()).hexdigest()[:8].upper()
+    return f"{origen}-{banco}-{h}"
 
 
 # ── TIPOS POR CÓDIGO AEB ──────────────────────────────────────────────────────
@@ -178,7 +189,7 @@ def parsear_norma43(contenido: str, id_banco: int, id_usuario: str) -> list[dict
             "concepto":           concepto,
             "importe":            importe,
             "saldo_posterior":    None,
-            "referencia_banco":   f"N43-{id_banco}-{fecha_op}-{uuid.uuid4().hex[:8].upper()}",
+            "referencia_banco":   _ref_determinista(id_banco, fecha_op, concepto, importe, "N43"),
             "tipo":               _tipo_desde_codigo(codigo_aeb, concepto),
             "estado":             "PENDIENTE",
             "origen":             "FICHERO_N43",
@@ -364,7 +375,7 @@ def parsear_csv(contenido: str, id_banco: int, id_usuario: str) -> list[dict]:
                 "concepto":         concepto,
                 "importe":          round(importe, 2),
                 "saldo_posterior":  saldo,
-                "referencia_banco": f"CSV-{id_banco}-{fecha}-{uuid.uuid4().hex[:8].upper()}",
+                "referencia_banco": _ref_determinista(id_banco, fecha, concepto, importe, "CSV"),
                 "tipo":             _detectar_tipo_texto(concepto),
                 "estado":           "PENDIENTE",
                 "origen":           "FICHERO_CSV",
@@ -434,7 +445,7 @@ def parsear_xls_unicaja_web(ws, id_banco: int, id_usuario: str) -> list[dict]:
                 "concepto":            concepto,
                 "importe":             importe,
                 "saldo_posterior":     saldo,
-                "referencia_banco":    f"UNICAJA-{id_banco}-{fecha_op}-{uuid.uuid4().hex[:8].upper()}",
+                "referencia_banco":    _ref_determinista(id_banco, fecha_op, concepto, importe, "UNICAJA"),
                 "tipo":                _detectar_tipo_texto(concepto),
                 "estado":              "PENDIENTE",
                 "origen":              "FICHERO_XLS",
@@ -510,7 +521,7 @@ def parsear_xlsx_santander(contenido_bytes: bytes, id_banco: int, id_usuario: st
                 "concepto":           str(concepto).strip(),
                 "importe":            importe,
                 "saldo_posterior":    saldo,
-                "referencia_banco":   f"SANTANDER-{id_banco}-{fecha_op}-{uuid.uuid4().hex[:8].upper()}",
+                "referencia_banco":   _ref_determinista(id_banco, fecha_op, str(concepto), importe, "SANTANDER"),
                 "tipo":               _detectar_tipo_texto(str(concepto)),
                 "estado":             "PENDIENTE",
                 "origen":             "FICHERO_XLSX",
