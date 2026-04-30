@@ -14,7 +14,8 @@ from app.services.remesas_directas_service import (
     cerrar_remesa,
     totales_remesa,
 )
-from app.services.pegs_service import _servicios
+from app.services import mock_bancos
+from app.services import historial_remesas_service as historial
 
 router = APIRouter(prefix="/remesas-directas", tags=["Remesas Directas"])
 
@@ -26,17 +27,19 @@ router = APIRouter(prefix="/remesas-directas", tags=["Remesas Directas"])
 @router.get("/", response_class=HTMLResponse)
 def remesas_directas_listado(
     request: Request,
-    tipo: str = "",
     usuario: dict = Depends(require_rol("GESTOR_ECONOMICO", "ADMIN")),
 ):
-    items = listar_remesas(tipo=tipo or None)
+    banco_map = {b["id_banco"]: b for b in mock_bancos.listar_bancos()}
+    items = listar_remesas()
     for r in items:
         t = totales_remesa(r["id_remesa_directa"])
         r.update(t)
+        b = banco_map.get(r.get("cuenta_bancaria_id"))
+        r["alias_banco"] = b["alias"] if b else "—"
     return templates.TemplateResponse(
         request=request,
         name="remesas_directas/listado.html",
-        context={"usuario": usuario, "items": items, "filtro_tipo": tipo},
+        context={"usuario": usuario, "items": items},
     )
 
 
@@ -52,25 +55,21 @@ def remesas_directas_nueva(
     return templates.TemplateResponse(
         request=request,
         name="remesas_directas/nueva.html",
-        context={"usuario": usuario, "servicios": _servicios},
+        context={"usuario": usuario, "bancos": mock_bancos.listar_bancos()},
     )
 
 
 @router.post("/nueva")
 def remesas_directas_nueva_post(
-    tipo: str = Form(...),
-    periodo: str = Form(...),
-    cuenta_bancaria_id: int = Form(1),
-    servicio_id: int = Form(...),
+    descripcion: str = Form(...),
+    cuenta_bancaria_id: int = Form(...),
     usuario: dict = Depends(require_rol("GESTOR_ECONOMICO", "ADMIN")),
 ):
-    datos = {
-        "tipo": tipo,
-        "periodo": periodo,
+    remesa = crear_remesa({
+        "descripcion": descripcion.strip(),
         "cuenta_bancaria_id": cuenta_bancaria_id,
-        "servicio_id": servicio_id,
-    }
-    remesa = crear_remesa(datos)
+    })
+    historial.registrar_evento("RD", remesa["id_remesa_directa"], "CREADA", usuario["nombre_completo"])
     return RedirectResponse(url=f"/remesas-directas/{remesa['id_remesa_directa']}", status_code=303)
 
 
@@ -90,8 +89,10 @@ def remesas_directas_detalle(
     if not remesa:
         return HTMLResponse("Remesa no encontrada", status_code=404)
 
+    banco_map = {b["id_banco"]: b for b in mock_bancos.listar_bancos()}
+    banco = banco_map.get(remesa.get("cuenta_bancaria_id"))
     gastos_asignados   = obtener_gastos_remesa(id_remesa)
-    gastos_disponibles = obtener_gastos_disponibles(remesa["tipo"]) if remesa["estado"] == "ABIERTA" else []
+    gastos_disponibles = obtener_gastos_disponibles() if remesa["estado"] == "ABIERTA" else []
     totales = totales_remesa(id_remesa)
 
     return templates.TemplateResponse(
@@ -100,11 +101,13 @@ def remesas_directas_detalle(
         context={
             "usuario": usuario,
             "remesa": remesa,
+            "banco": banco,
             "gastos_asignados": gastos_asignados,
             "gastos_disponibles": gastos_disponibles,
             "totales": totales,
             "msg": msg,
             "msg_type": msg_type,
+            "historial": historial.obtener_historial("RD", id_remesa),
         },
     )
 
@@ -121,6 +124,8 @@ def remesas_directas_añadir(
 ):
     resultado = añadir_gasto(id_remesa, id_gasto)
     if resultado["ok"]:
+        historial.registrar_evento("RD", id_remesa, "GASTO_AÑADIDO", usuario["nombre_completo"],
+                                   f"Gasto #{id_gasto}")
         return RedirectResponse(
             url=f"/remesas-directas/{id_remesa}?msg=Gasto+añadido&msg_type=success",
             status_code=303,
@@ -139,6 +144,8 @@ def remesas_directas_quitar(
 ):
     resultado = quitar_gasto(id_remesa, id_gasto)
     if resultado["ok"]:
+        historial.registrar_evento("RD", id_remesa, "GASTO_QUITADO", usuario["nombre_completo"],
+                                   f"Gasto #{id_gasto}")
         return RedirectResponse(
             url=f"/remesas-directas/{id_remesa}?msg=Gasto+eliminado+de+la+remesa&msg_type=success",
             status_code=303,
@@ -156,6 +163,7 @@ def remesas_directas_cerrar(
 ):
     resultado = cerrar_remesa(id_remesa)
     if resultado["ok"]:
+        historial.registrar_evento("RD", id_remesa, "CERRADA", usuario["nombre_completo"])
         return RedirectResponse(
             url=f"/remesas-directas/{id_remesa}?msg=Remesa+cerrada+correctamente&msg_type=success",
             status_code=303,
@@ -179,6 +187,7 @@ def remesas_directas_exportar(
     from app.services.suenlace_service import generar_suenlace_remesa_directa
     try:
         contenido, nombre_fichero = generar_suenlace_remesa_directa(id_remesa, empresa=empresa)
+        historial.registrar_evento("RD", id_remesa, "A3CON_EXPORTADO", usuario["nombre_completo"])
     except ValueError as e:
         return HTMLResponse(f"<p>Error: {e}</p>", status_code=400)
 

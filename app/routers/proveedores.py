@@ -12,6 +12,7 @@ from app.services.proveedores_service import (
     crear_proveedor,
     actualizar_iban,
     actualizar_proveedor,
+    eliminar_proveedor,
 )
 from fastapi import HTTPException
 from app.services.pegs_service import obtener_servicios, obtener_datos_formulario, listar_pegs_todos, get_parametro
@@ -326,6 +327,37 @@ def proveedor_detalle_json(
 # ──────────────────────────────────────────────────────────────────────────────
 # DETALLE HTML — todos los roles
 # ──────────────────────────────────────────────────────────────────────────────
+
+@router.post("/{id_proveedor}/eliminar")
+def proveedor_eliminar(
+    id_proveedor: int,
+    usuario: dict = Depends(require_rol("GESTOR_ECONOMICO", "ADMIN")),
+):
+    from app.services.pegs_service import listar_pegs_todos
+    from app.mock_data import GASTOS_DIRECTOS
+
+    prov = obtener_proveedor(id_proveedor)
+    if not prov:
+        return JSONResponse({"ok": False, "error": "Proveedor no encontrado"}, status_code=404)
+
+    pegs_asociados = [p for p in listar_pegs_todos() if p.get("id_proveedor") == id_proveedor]
+    if pegs_asociados:
+        return JSONResponse({
+            "ok": False,
+            "error": f"No se puede eliminar: el proveedor tiene {len(pegs_asociados)} PEG(s) asociado(s). "
+                     "Reasigna o elimina esos PEGs antes de borrar el proveedor."
+        })
+
+    gastos_asociados = [g for g in GASTOS_DIRECTOS if g.get("proveedor_id") == id_proveedor]
+    if gastos_asociados:
+        return JSONResponse({
+            "ok": False,
+            "error": f"No se puede eliminar: el proveedor tiene {len(gastos_asociados)} gasto(s) directo(s) asociado(s)."
+        })
+
+    eliminar_proveedor(id_proveedor)
+    return JSONResponse({"ok": True})
+
 
 @router.get("/{id_proveedor}", response_class=HTMLResponse)
 def proveedor_detalle(

@@ -519,9 +519,36 @@ def obtener_kpis_dashboard(usuario: dict, id_servicio_filtro: int | None = None)
         # Pagados sin factura
         kpis["pagados_sin_factura"] = contar_pagados_sin_factura()
 
-        # Remesas abiertas
+        # Remesas abiertas (RT)
         from app.services import remesas_service
         kpis["remesas_abiertas"] = len(remesas_service.listar_remesas(estado="ABIERTA"))
+
+        # Movimientos bancarios pendientes de cotejar
+        from app.services import mock_movimientos as _mov_svc
+        kpis["mov_pendientes"] = sum(
+            1 for m in _mov_svc.listar_movimientos(estado="PENDIENTE")
+            if m.get("importe", 0) < 0
+        )
+
+        # Remesas directas abiertas
+        from app.services.remesas_directas_service import listar_remesas as _listar_rd
+        kpis["rd_abiertas"] = sum(
+            1 for r in _listar_rd() if r.get("estado") == "ABIERTA"
+        )
+
+    # Solicitudes KPIs (todos los roles)
+    from app.services.solicitudes_service import listar_solicitudes
+    if es_servicio:
+        todas_sol = listar_solicitudes(id_servicio=usuario.get("id_servicio"))
+    else:
+        todas_sol = listar_solicitudes()
+    kpis["sol_pendientes"] = sum(
+        1 for s in todas_sol if s["estado_solicitud"] == "PENDIENTE_AUTORIZACION"
+    )
+    kpis["sol_autorizadas_sin_peg"] = sum(
+        1 for s in todas_sol
+        if s["estado_solicitud"] == "AUTORIZADA" and not s.get("id_peg_generado")
+    )
 
     return kpis
 

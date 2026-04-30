@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Movimientos bancarios{% endblock %}
-{% block page_title %}Movimientos bancarios{% endblock %}
-{% block page_subtitle %}Extractos importados por cuenta{% endblock %}
+{% block title %}Movimientos de tarjeta{% endblock %}
+{% block page_title %}Movimientos de tarjeta{% endblock %}
+{% block page_subtitle %}Extractos de tarjetas de crédito/débito{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -19,11 +19,11 @@
   }
   .barra-seleccion .btn-barra:hover { background:rgba(255,255,255,0.30); }
   .barra-seleccion .btn-barra.danger { background:rgba(226,75,74,0.30); border-color:rgba(226,75,74,0.5); }
-  #modal-agrupar, #modal-remesa-abierta {
+  #modal-remesa-abierta {
     display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:200;
     align-items:center; justify-content:center;
   }
-  #modal-agrupar.visible, #modal-remesa-abierta.visible { display:flex; }
+  #modal-remesa-abierta.visible { display:flex; }
   .modal-box {
     background:#ffffff; border-radius:14px; padding:28px 32px;
     max-width:480px; width:90%; box-shadow:0 16px 48px rgba(0,0,0,0.28);
@@ -44,13 +44,15 @@
 
 <!-- Filtros -->
 <div class="card" style="margin-bottom:16px; padding:14px 20px;">
-  <form method="get" action="/movimientos/" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+  <form method="get" action="/tarjetas/" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
     <div>
-      <label style="display:block; font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#8a8691; margin-bottom:4px;">Cuenta</label>
-      <select name="id_banco" style="min-width:200px;">
-        <option value="">Todas las cuentas</option>
-        {% for b in bancos %}
-        <option value="{{ b.id_banco }}" {% if filtro_banco == b.id_banco %}selected{% endif %}>{{ b.alias }}</option>
+      <label style="display:block; font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#8a8691; margin-bottom:4px;">Tarjeta</label>
+      <select name="id_tarjeta" style="min-width:220px;">
+        <option value="">Todas las tarjetas</option>
+        {% for t in tarjetas %}
+        <option value="{{ t.id_tarjeta }}" {% if filtro_tarjeta == t.id_tarjeta %}selected{% endif %}>
+          {{ t.alias }} ({{ t.numero }})
+        </option>
         {% endfor %}
       </select>
     </div>
@@ -63,43 +65,21 @@
         {% endfor %}
       </select>
     </div>
-    <div>
-      <label style="display:block; font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#8a8691; margin-bottom:4px;">Tipo</label>
-      <select name="tipo" style="min-width:160px;">
-        <option value="">Todos los tipos</option>
-        {% for t in tipos %}
-        <option value="{{ t }}" {% if filtro_tipo == t %}selected{% endif %}>{{ t.replace("_"," ").title() }}</option>
-        {% endfor %}
-      </select>
-    </div>
     <div style="display:flex; gap:8px;">
       <button class="btn btn-primary" type="submit">Filtrar</button>
-      <a class="btn btn-secondary" href="/movimientos/">Limpiar</a>
+      <a class="btn btn-secondary" href="/tarjetas/">Limpiar</a>
     </div>
   </form>
 </div>
 
 <!-- Barra de acciones -->
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-  <div style="display:flex; gap:8px; flex-wrap:wrap;">
-    <a class="btn btn-secondary" href="/movimientos/propuestas-cotejo"
-       style="font-size:0.85rem;"
-       title="Ver propuestas de cotejo automático para revisar y confirmar">
-      ⚡ Propuestas de cotejo
-    </a>
-    <button id="btn-ocultar-ingresos" type="button"
-            onclick="toggleIngresos(this)"
-            data-ocultando="1"
-            style="font-size:0.85rem; background:#166534; color:white; border:1.5px solid #166534; border-radius:20px; padding:5px 14px; cursor:pointer;"
-            title="Mostrar/ocultar los abonos (ingresos) — son de solo lectura y no necesitan cotejo">
-      👁 Mostrar ingresos
-    </button>
-  </div>
-  <a class="btn btn-primary" href="/movimientos/importar">↑ Importar extracto</a>
+  <div></div>
+  <a class="btn btn-primary" href="/tarjetas/importar">↑ Importar extracto tarjeta</a>
 </div>
 
-<!-- Tabla con formulario para selección masiva -->
-<form id="form-masivo" method="post" action="/movimientos/accion-masiva">
+<!-- Tabla -->
+<form id="form-masivo" method="post" action="/tarjetas/accion-masiva">
 <div class="card">
   {% if items %}
   <table>
@@ -111,8 +91,7 @@
         </th>
         <th>Fecha</th>
         <th>Concepto</th>
-        <th>Tipo</th>
-        <th>Cuenta</th>
+        <th>Tarjeta</th>
         <th style="text-align:right;">Importe</th>
         <th>Estado</th>
         <th></th>
@@ -120,48 +99,38 @@
     </thead>
     <tbody>
       {% for m in items %}
-      {% set banco = banco_map.get(m.id_banco) %}
-      {% set cotejo = cotejo_map.get(m.id_movimiento) %}
-      {% set es_ingreso = m.importe >= 0 %}
-      <tr {% if es_ingreso %}data-ingreso="1"{% endif %} style="{% if m.estado == 'IGNORADO' %}opacity:0.40;{% elif es_ingreso %}background:rgba(99,153,34,0.04);{% endif %}">
+      {% set tarjeta = tarjeta_map.get(m.id_tarjeta) %}
+      {% set cotejo = cotejo_map.get(m.id_mov_tarjeta) %}
+      <tr {% if m.estado == 'IGNORADO' %}style="opacity:0.40;"{% endif %}>
         <td>
-          {% if m.estado == 'PENDIENTE' and not es_ingreso %}
-          <input type="checkbox" name="ids" value="{{ m.id_movimiento }}"
+          {% if m.estado == 'PENDIENTE' %}
+          <input type="checkbox" name="ids" value="{{ m.id_mov_tarjeta }}"
                  class="check-item" onchange="actualizarBarra()" style="cursor:pointer;">
           {% endif %}
         </td>
         <td style="font-family:monospace; white-space:nowrap; font-size:0.9rem;">{{ m.fecha_operacion }}</td>
-        <td style="max-width:280px;">
+        <td style="max-width:300px;">
           <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ m.concepto }}">{{ m.concepto }}</div>
           {% if cotejo and cotejo.descripcion %}
-          <div style="font-size:0.78rem; color:#8a8691; margin-top:2px;">↳ {{ cotejo.tipo_referencia }}: {{ cotejo.descripcion }}</div>
+          <div style="font-size:0.78rem; color:#8a8691; margin-top:2px;">↳ {{ cotejo.descripcion }}</div>
           {% endif %}
         </td>
-        <td>
-          <span style="font-size:0.78rem; font-weight:700; padding:3px 8px; border-radius:6px;
-            {% if m.tipo == 'COMISION' %}background:rgba(226,75,74,0.10);color:#a32d2d;
-            {% elif m.tipo == 'DOMICILIACION' %}background:rgba(239,159,39,0.12);color:#854f0b;
-            {% elif m.tipo == 'TARJETA' %}background:rgba(147,100,214,0.12);color:#5b2d8e;
-            {% elif m.tipo == 'TRANSFERENCIA' %}background:rgba(95,159,211,0.12);color:#185fa5;
-            {% else %}background:rgba(150,150,150,0.10);color:#555;{% endif %}">
-            {{ m.tipo.replace("_"," ") }}
-          </span>
+        <td style="font-size:0.85rem;">
+          {% if tarjeta %}
+          <span style="font-weight:700; color:#374151;">{{ tarjeta.alias }}</span>
+          <div style="font-size:0.78rem; color:#8a8691; font-family:monospace;">{{ tarjeta.numero }}</div>
+          {% else %}—{% endif %}
         </td>
-        <td style="font-size:0.85rem; color:#666;">{{ banco.alias if banco else "—" }}</td>
-        <td style="text-align:right; font-family:monospace; font-weight:700; white-space:nowrap;
-          {% if m.importe >= 0 %}color:#2f6b10;{% else %}color:#a32d2d;{% endif %}">
-          {% if m.importe >= 0 %}+{% endif %}{{ "%.2f"|format(m.importe) }} €
+        <td style="text-align:right; font-family:monospace; font-weight:700; white-space:nowrap; color:#a32d2d;">
+          {{ "%.2f"|format(m.importe) }} €
         </td>
         <td>
           {% if m.estado == 'COTEJADO' %}
             <span class="estado-badge" style="background:rgba(99,153,34,0.14);color:#3b6d11;">✓ Cotejado</span>
             {% if cotejo and cotejo.tipo_referencia == 'REMESA_DIRECTA' and cotejo.id_referencia %}
-              {% set _rd = remesas_map.get(cotejo.id_referencia) %}
-              {% if _rd %}
               <br><span class="estado-badge" style="margin-top:3px; background:rgba(194,27,132,0.10);color:#8b1560; font-size:0.72rem;">
-                RD-{{ "%04d"|format(_rd.numero) }}{% if _rd.descripcion %} · {{ _rd.descripcion[:28] }}{% endif %}
+                RD #{{ cotejo.id_referencia }}
               </span>
-              {% endif %}
             {% endif %}
           {% elif m.estado == 'IGNORADO' %}
             <span class="estado-badge" style="background:rgba(150,150,150,0.14);color:#666;">Ignorado</span>
@@ -171,7 +140,7 @@
         </td>
         <td style="white-space:nowrap; text-align:right;">
           <button type="button"
-            onclick="abrirDetalle({{ m.id_movimiento }})"
+            onclick="abrirDetalle({{ m.id_mov_tarjeta }})"
             style="background:rgba(95,159,211,0.10); border:1px solid rgba(95,159,211,0.30);
                    color:#185fa5; border-radius:8px; padding:5px 10px; font-size:0.85rem;
                    cursor:pointer; font-weight:700;" title="Ver detalle y acciones">
@@ -195,39 +164,32 @@
     <span style="color:#3b6d11;"><strong>{{ cotejados }}</strong> cotejado(s)</span>
     {% endif %}
     {% set total = items|sum(attribute="importe") %}
-    <span style="margin-left:auto;">Total: <strong style="{% if total >= 0 %}color:#2f6b10;{% else %}color:#a32d2d;{% endif %}">{{ "%.2f"|format(total) }} €</strong></span>
+    <span style="margin-left:auto;">Total gastos: <strong style="color:#a32d2d;">{{ "%.2f"|format(total) }} €</strong></span>
   </div>
 
   {% else %}
   <div class="empty-state">
-    No hay movimientos{% if filtro_banco or filtro_estado or filtro_tipo %} con los filtros aplicados{% endif %}.
-    <a href="/movimientos/importar">Importar extracto</a>.
+    No hay movimientos de tarjeta{% if filtro_tarjeta or filtro_estado %} con los filtros aplicados{% endif %}.
+    <a href="/tarjetas/importar">Importar extracto</a>.
   </div>
   {% endif %}
 </div>
 
-<!-- Barra de selección masiva (sticky) -->
+<!-- Barra de selección masiva -->
 <div class="barra-seleccion" id="barra-seleccion">
   <span id="label-seleccion" style="font-weight:700; flex:1;">0 seleccionados</span>
-
   <button type="button" class="btn-barra" onclick="irAnadirARemesa()"
-          style="background:rgba(22,163,74,0.22); border-color:rgba(22,163,74,0.45);"
-          title="Añadir los movimientos seleccionados a una remesa directa ya abierta">
+          style="background:rgba(22,163,74,0.22); border-color:rgba(22,163,74,0.45);">
     ＋ Añadir a remesa abierta
   </button>
-
-  <button type="button" class="btn-barra" onclick="abrirModalAgrupar()">Agrupar (cotejar)</button>
-
   <button type="submit" name="accion" value="ignorar" class="btn-barra danger"
-          onclick="return confirm('¿Ignorar todos los movimientos seleccionados?')">Ignorar selección</button>
-
+          onclick="return confirm('¿Ignorar los movimientos seleccionados?')">Ignorar selección</button>
   <button type="button" class="btn-barra" style="background:rgba(255,255,255,0.10);"
           onclick="deseleccionarTodos()">✕ Cancelar</button>
 </div>
-
 </form>
 
-<!-- Modal selección de remesa abierta -->
+<!-- Modal remesa abierta (selección masiva) -->
 <div id="modal-remesa-abierta">
   <div class="modal-box">
     <h3 style="margin:0 0 10px;">Añadir a remesa directa abierta</h3>
@@ -256,45 +218,41 @@
   </div>
 </div>
 
-<!-- Modal detalle movimiento -->
+<!-- Modal detalle movimiento tarjeta -->
 <div id="modal-detalle-mov" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300; align-items:center; justify-content:center;">
-  <div style="background:#fff; border-radius:16px; width:min(640px,96%); max-height:90vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.30); border:1px solid rgba(0,0,0,0.08);">
+  <div style="background:#fff; border-radius:16px; width:min(580px,96%); max-height:90vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.30); border:1px solid rgba(0,0,0,0.08);">
 
     <!-- Cabecera -->
     <div style="padding:18px 24px 14px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
       <div>
-        <div style="font-weight:800; font-size:1.05rem; color:var(--ink);" id="mdm-titulo">Movimiento bancario</div>
+        <div style="font-weight:800; font-size:1.05rem; color:var(--ink);" id="mdm-titulo">Movimiento de tarjeta</div>
         <div style="font-size:0.82rem; color:#8a8691; margin-top:2px;" id="mdm-subtitulo"></div>
       </div>
       <button onclick="cerrarDetalle()" style="border:none; background:none; font-size:1.4rem; color:#aaa; cursor:pointer; line-height:1; padding:0 4px;">×</button>
     </div>
 
-    <!-- Cuerpo con scroll -->
+    <!-- Cuerpo -->
     <div style="overflow-y:auto; padding:20px 24px; flex:1;">
 
-      <!-- Info del movimiento -->
+      <!-- Info -->
       <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; padding:14px 16px;
-                  background:rgba(95,159,211,0.06); border:1px solid rgba(95,159,211,0.18);
+                  background:rgba(147,100,214,0.06); border:1px solid rgba(147,100,214,0.18);
                   border-radius:12px; margin-bottom:18px;">
         <div>
           <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.07em; color:#8a8691; font-weight:700; margin-bottom:3px;">Fecha</div>
           <div style="font-family:monospace; font-weight:600; font-size:0.9rem;" id="mdm-fecha"></div>
         </div>
         <div>
-          <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.07em; color:#8a8691; font-weight:700; margin-bottom:3px;">Tipo</div>
-          <div style="font-size:0.88rem;" id="mdm-tipo"></div>
-        </div>
-        <div>
-          <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.07em; color:#8a8691; font-weight:700; margin-bottom:3px;">Cuenta</div>
-          <div style="font-size:0.88rem; color:#555;" id="mdm-banco"></div>
-        </div>
-        <div style="grid-column:span 2;">
-          <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.07em; color:#8a8691; font-weight:700; margin-bottom:3px;">Concepto</div>
-          <div style="font-weight:600; font-size:0.9rem; line-height:1.4;" id="mdm-concepto"></div>
+          <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.07em; color:#8a8691; font-weight:700; margin-bottom:3px;">Tarjeta</div>
+          <div style="font-size:0.88rem;" id="mdm-tarjeta"></div>
         </div>
         <div>
           <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.07em; color:#8a8691; font-weight:700; margin-bottom:3px;">Importe</div>
-          <div style="font-family:monospace; font-size:1.15rem; font-weight:800;" id="mdm-importe"></div>
+          <div style="font-family:monospace; font-size:1.15rem; font-weight:800; color:#a32d2d;" id="mdm-importe"></div>
+        </div>
+        <div style="grid-column:span 3;">
+          <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.07em; color:#8a8691; font-weight:700; margin-bottom:3px;">Concepto</div>
+          <div style="font-weight:600; font-size:0.9rem; line-height:1.4;" id="mdm-concepto"></div>
         </div>
         <div style="grid-column:span 3;">
           <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.07em; color:#8a8691; font-weight:700; margin-bottom:3px;">Estado</div>
@@ -302,7 +260,7 @@
         </div>
       </div>
 
-      <!-- Acciones (solo PENDIENTE y gasto) -->
+      <!-- Acciones (solo PENDIENTE) -->
       <div id="mdm-acciones">
 
         <!-- Tabs -->
@@ -327,39 +285,16 @@
           </button>
         </div>
 
-        <!-- Panel: Cotejar -->
+        <!-- Panel: Cotejar manual -->
         <div id="mdm-panel-cotejar" class="mdm-panel">
+          <p style="font-size:0.88rem; color:#555; margin-bottom:12px;">
+            Marca este gasto como cotejado indicando una descripción que lo identifique (factura, justificante, etc.).
+          </p>
           <form id="form-cotejar-modal" method="post" action="">
             <div style="margin-bottom:14px;">
-              <label style="font-weight:700; font-size:0.88rem; display:block; margin-bottom:8px;">Tipo de cotejo</label>
-              <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <label style="display:flex; align-items:center; gap:6px; padding:8px 14px;
-                               border:2px solid var(--fgulem-blue); border-radius:9px; cursor:pointer;">
-                  <input type="radio" name="tipo_referencia" value="REMESA" checked
-                         onchange="toggleCotejarTipo('REMESA')" style="accent-color:var(--fgulem-blue);">
-                  <span style="font-weight:600; font-size:0.88rem;">Vincular a remesa</span>
-                </label>
-                <label style="display:flex; align-items:center; gap:6px; padding:8px 14px;
-                               border:2px solid var(--line); border-radius:9px; cursor:pointer;" id="lbl-manual-modal">
-                  <input type="radio" name="tipo_referencia" value="MANUAL"
-                         onchange="toggleCotejarTipo('MANUAL')" style="accent-color:var(--fgulem-blue);">
-                  <span style="font-weight:600; font-size:0.88rem;">Registro manual</span>
-                </label>
-              </div>
-            </div>
-            <div id="mdm-bloque-remesa" style="margin-bottom:14px;">
-              <label style="font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#8a8691; display:block; margin-bottom:5px;">Remesa de transferencia</label>
-              <select name="id_referencia" id="mdm-sel-rt" style="width:100%;">
-                <option value="">— Selecciona una remesa —</option>
-                {% for r in remesas_rt %}
-                <option value="{{ r.id_remesa }}">{{ r.codigo_remesa }} — {{ r.descripcion }} ({{ r.estado }})</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div id="mdm-bloque-manual" style="display:none; margin-bottom:14px;">
-              <label style="font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#8a8691; display:block; margin-bottom:5px;">Descripción <span style="color:#a32d2d;">*</span></label>
+              <label style="font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#8a8691; display:block; margin-bottom:5px;">Descripción / referencia</label>
               <input type="text" name="descripcion" id="mdm-desc"
-                     placeholder="Ej: Comisión mantenimiento abril 2026"
+                     placeholder="Ej: Factura El Corte Inglés abril 2026"
                      style="width:100%;">
             </div>
             <button type="submit" class="btn btn-primary" style="font-size:0.88rem;">Guardar cotejo</button>
@@ -372,6 +307,9 @@
             No hay remesas directas abiertas en este momento.
           </div>
           <div id="mdm-rd-con-remesas">
+            <p style="font-size:0.88rem; color:#555; margin-bottom:12px;">
+              Incorpora este gasto a una remesa directa abierta para imputarlo analíticamente.
+            </p>
             <label style="font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#8a8691; display:block; margin-bottom:5px;">Remesa directa abierta</label>
             <select id="mdm-sel-rd" style="width:100%; margin-bottom:14px;">
               <option value="">— Selecciona —</option>
@@ -388,48 +326,28 @@
         <!-- Panel: Ignorar -->
         <div id="mdm-panel-ignorar" class="mdm-panel" style="display:none;">
           <div style="padding:12px 14px; background:rgba(150,150,150,0.07); border:1px solid rgba(150,150,150,0.20); border-radius:10px; font-size:0.88rem; color:#555; margin-bottom:14px;">
-            El movimiento quedará marcado como <strong>Ignorado</strong> y no aparecerá en las propuestas de cotejo automático. Podrás filtrarlo desde el listado.
+            El movimiento quedará marcado como <strong>Ignorado</strong> y no aparecerá en las propuestas pendientes.
           </div>
           <form id="form-ignorar-modal" method="post" action=""
-                onsubmit="return confirm('¿Ignorar este movimiento?')">
+                onsubmit="return confirm('¿Ignorar este movimiento de tarjeta?')">
             <button type="submit" class="btn" style="background:rgba(150,150,150,0.12); color:#555; border:1px solid #ccc; font-size:0.88rem;">
               Confirmar — Ignorar movimiento
             </button>
           </form>
         </div>
 
-      </div>{# fin mdm-acciones #}
+      </div>
 
       <!-- Info si ya está cotejado/ignorado -->
       <div id="mdm-info-estado" style="display:none;"></div>
 
-    </div>{# fin body #}
+    </div>
 
     <!-- Pie -->
     <div style="padding:12px 24px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; flex-shrink:0;">
       <button onclick="cerrarDetalle()" class="btn btn-secondary">Cerrar</button>
     </div>
 
-  </div>
-</div>
-
-<!-- Modal agrupación -->
-<div id="modal-agrupar">
-  <div class="modal-box">
-    <h3 style="margin:0 0 16px;">Agrupar movimientos seleccionados</h3>
-    <p style="font-size:0.88rem; color:#666; margin-bottom:18px;">
-      Los movimientos seleccionados quedarán marcados como <strong>Cotejados</strong> bajo una descripción común. Útil para comisiones bancarias y gastos recurrentes en bloque.
-    </p>
-    <div class="form-group">
-      <label for="descripcion_grupo">Descripción del grupo <span style="color:#a32d2d;">*</span></label>
-      <input type="text" id="descripcion_grupo" name="descripcion_grupo" form="form-masivo"
-             placeholder="Ej: Comisiones bancarias abril 2026"
-             style="width:100%;">
-    </div>
-    <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
-      <button type="button" class="btn btn-secondary" onclick="cerrarModalAgrupar()">Cancelar</button>
-      <button type="submit" name="accion" value="agrupar" form="form-masivo" class="btn btn-primary">Confirmar agrupación</button>
-    </div>
   </div>
 </div>
 
@@ -456,19 +374,6 @@ function deseleccionarTodos() {
   actualizarBarra();
 }
 
-function abrirModalAgrupar() {
-  document.getElementById('modal-agrupar').classList.add('visible');
-  document.getElementById('descripcion_grupo').focus();
-}
-
-function cerrarModalAgrupar() {
-  document.getElementById('modal-agrupar').classList.remove('visible');
-}
-
-document.getElementById('modal-agrupar').addEventListener('click', function(e) {
-  if (e.target === this) cerrarModalAgrupar();
-});
-
 function irAnadirARemesa() {
   const checks = document.querySelectorAll('.check-item:checked');
   if (checks.length === 0) return;
@@ -484,50 +389,29 @@ function irAnadirConRemesa() {
   const sel = document.getElementById('sel-remesa-abierta');
   if (!sel || !sel.value) return;
   const ids = Array.from(checks).map(c => c.value).join(',');
-  window.location.href = '/movimientos/anadir-a-remesa?ids=' + ids + '&id_remesa=' + sel.value;
+  window.location.href = '/tarjetas/anadir-a-remesa?ids=' + ids + '&id_remesa=' + sel.value;
 }
 
 document.getElementById('modal-remesa-abierta').addEventListener('click', function(e) {
   if (e.target === this) cerrarModalRemesa();
 });
 
-function toggleIngresos(btn) {
-  const ocultar = btn.dataset.ocultando !== '1';
-  document.querySelectorAll('tr[data-ingreso="1"]').forEach(function(tr) {
-    tr.style.display = ocultar ? 'none' : '';
-  });
-  btn.dataset.ocultando = ocultar ? '1' : '';
-  btn.textContent       = ocultar ? '👁 Mostrar ingresos' : '👁 Ocultar ingresos';
-  btn.style.background  = ocultar ? '#166534' : '#f3f4f6';
-  btn.style.color       = ocultar ? 'white'   : '#374151';
-  btn.style.borderColor = ocultar ? '#166534' : '#e5e7eb';
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('tr[data-ingreso="1"]').forEach(function(tr) {
-    tr.style.display = 'none';
-  });
-});
-
-/* ── Datos de movimientos y remesas embebidos ── */
+/* ── Datos embebidos ── */
 const _MOVS = {
   {% for m in items %}
-  {% set banco = banco_map.get(m.id_banco) %}
-  {% set cotejo = cotejo_map.get(m.id_movimiento) %}
-  {% set _rd = remesas_map.get(cotejo.id_referencia) if cotejo and cotejo.tipo_referencia == 'REMESA_DIRECTA' and cotejo.id_referencia else none %}
-  {{ m.id_movimiento }}: {
-    id: {{ m.id_movimiento }},
+  {% set tarjeta = tarjeta_map.get(m.id_tarjeta) %}
+  {% set cotejo = cotejo_map.get(m.id_mov_tarjeta) %}
+  {{ m.id_mov_tarjeta }}: {
+    id: {{ m.id_mov_tarjeta }},
     fecha: {{ m.fecha_operacion | tojson }},
     concepto: {{ (m.concepto or "") | tojson }},
     importe: {{ m.importe }},
-    tipo: {{ m.tipo | tojson }},
-    banco: {{ (banco.alias if banco else "—") | tojson }},
+    tarjeta: {{ (tarjeta.alias if tarjeta else "—") | tojson }},
+    numero: {{ (tarjeta.numero if tarjeta else "") | tojson }},
     estado: {{ m.estado | tojson }},
-    es_ingreso: {{ 'true' if m.importe >= 0 else 'false' }},
     cotejo_desc: {{ (cotejo.descripcion if cotejo else "") | tojson }},
     cotejo_tipo: {{ (cotejo.tipo_referencia if cotejo else "") | tojson }},
-    rd_codigo: {{ ("RD-%04d" % _rd.numero if _rd else "") | tojson }},
-    rd_desc: {{ (_rd.descripcion[:30] if _rd and _rd.descripcion else "") | tojson }},
+    cotejo_rd_id: {{ cotejo.id_referencia if cotejo and cotejo.id_referencia else 0 }},
   },
   {% endfor %}
 };
@@ -539,27 +423,20 @@ function abrirDetalle(id) {
   const m = _MOVS[id];
   if (!m) return;
 
-  /* Cabecera */
-  document.getElementById('mdm-titulo').textContent = m.concepto || 'Movimiento bancario';
-  document.getElementById('mdm-subtitulo').textContent = m.fecha + ' · ' + m.banco;
-
-  /* Info */
+  document.getElementById('mdm-titulo').textContent = m.concepto || 'Movimiento de tarjeta';
+  document.getElementById('mdm-subtitulo').textContent = m.fecha + ' · ' + m.tarjeta;
   document.getElementById('mdm-fecha').textContent   = m.fecha;
-  document.getElementById('mdm-tipo').textContent    = m.tipo.replace(/_/g, ' ');
-  document.getElementById('mdm-banco').textContent   = m.banco;
+  document.getElementById('mdm-tarjeta').textContent = m.tarjeta + (m.numero ? ' ' + m.numero : '');
   document.getElementById('mdm-concepto').textContent = m.concepto || '—';
 
   const impEl = document.getElementById('mdm-importe');
-  impEl.textContent = (m.importe >= 0 ? '+' : '') + m.importe.toFixed(2) + ' €';
-  impEl.style.color = m.importe >= 0 ? '#2f6b10' : '#a32d2d';
+  impEl.textContent = m.importe.toFixed(2) + ' €';
 
-  /* Estado */
   let estadoHtml = '';
   if (m.estado === 'COTEJADO') {
     estadoHtml = '<span style="background:rgba(99,153,34,0.14);color:#3b6d11;padding:4px 10px;border-radius:6px;font-weight:700;font-size:0.82rem;">✓ Cotejado</span>';
-    if (m.cotejo_tipo === 'REMESA_DIRECTA' && m.rd_codigo) {
-      estadoHtml += ' <span style="background:rgba(194,27,132,0.10);color:#8b1560;padding:4px 10px;border-radius:6px;font-weight:700;font-size:0.78rem;margin-left:4px;">'
-        + m.rd_codigo + (m.rd_desc ? ' · ' + m.rd_desc : '') + '</span>';
+    if (m.cotejo_tipo === 'REMESA_DIRECTA' && m.cotejo_rd_id) {
+      estadoHtml += ' <span style="background:rgba(194,27,132,0.10);color:#8b1560;padding:4px 10px;border-radius:6px;font-weight:700;font-size:0.78rem;margin-left:4px;">RD #' + m.cotejo_rd_id + '</span>';
     } else if (m.cotejo_desc) {
       estadoHtml += ' <span style="font-size:0.82rem;color:#555;margin-left:6px;">↳ ' + m.cotejo_desc + '</span>';
     }
@@ -570,32 +447,22 @@ function abrirDetalle(id) {
   }
   document.getElementById('mdm-estado').innerHTML = estadoHtml;
 
-  /* Mostrar u ocultar acciones */
-  const acciones = document.getElementById('mdm-acciones');
+  const acciones   = document.getElementById('mdm-acciones');
   const infoEstado = document.getElementById('mdm-info-estado');
-  if (m.estado === 'PENDIENTE' && !m.es_ingreso) {
-    acciones.style.display = '';
+  if (m.estado === 'PENDIENTE') {
+    acciones.style.display   = '';
     infoEstado.style.display = 'none';
-    /* Resetear al primer tab */
     switchTabById('mdm-panel-cotejar');
-    /* Configurar acciones de formularios */
-    document.getElementById('form-cotejar-modal').action = '/movimientos/' + id + '/cotejar';
-    document.getElementById('form-ignorar-modal').action = '/movimientos/' + id + '/ignorar';
-    /* Remesas directas: mostrar aviso si no hay */
+    document.getElementById('form-cotejar-modal').action = '/tarjetas/' + id + '/cotejar';
+    document.getElementById('form-ignorar-modal').action = '/tarjetas/' + id + '/ignorar';
     document.getElementById('mdm-rd-sin-remesas').style.display = _RD_ABIERTAS === 0 ? '' : 'none';
     document.getElementById('mdm-rd-con-remesas').style.display = _RD_ABIERTAS > 0 ? '' : 'none';
-    /* Guardar id para usar en irAnadirConRemesaDesdeModal */
     document.getElementById('modal-detalle-mov').dataset.movId = id;
-  } else if (m.estado === 'PENDIENTE' && m.es_ingreso) {
-    acciones.style.display = 'none';
-    infoEstado.style.display = '';
-    infoEstado.innerHTML = '<div style="padding:12px 14px;background:rgba(99,153,34,0.07);border:1px solid rgba(99,153,34,0.20);border-radius:10px;font-size:0.88rem;color:#2f6b10;">Este movimiento es un ingreso (abono). Los ingresos son de solo lectura y no requieren cotejo.</div>';
   } else {
-    acciones.style.display = 'none';
+    acciones.style.display   = 'none';
     infoEstado.style.display = 'none';
   }
 
-  /* Mostrar modal */
   const modal = document.getElementById('modal-detalle-mov');
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -632,31 +499,12 @@ function switchTabById(panelId) {
   });
 }
 
-function toggleCotejarTipo(val) {
-  const bloqueRT  = document.getElementById('mdm-bloque-remesa');
-  const bloqueMan = document.getElementById('mdm-bloque-manual');
-  const lblManual = document.getElementById('lbl-manual-modal');
-  if (val === 'REMESA') {
-    bloqueRT.style.display  = '';
-    bloqueMan.style.display = 'none';
-    document.getElementById('mdm-sel-rt').required = true;
-    document.getElementById('mdm-desc').required   = false;
-    lblManual.style.borderColor = 'var(--line)';
-  } else {
-    bloqueRT.style.display  = 'none';
-    bloqueMan.style.display = '';
-    document.getElementById('mdm-sel-rt').required = false;
-    document.getElementById('mdm-desc').required   = true;
-    lblManual.style.borderColor = 'var(--fgulem-blue)';
-  }
-}
-
 function irAnadirConRemesaDesdeModal() {
   const sel = document.getElementById('mdm-sel-rd');
   if (!sel || !sel.value) { alert('Selecciona una remesa directa.'); return; }
   const movId = document.getElementById('modal-detalle-mov').dataset.movId;
   cerrarDetalle();
-  window.location.href = '/movimientos/anadir-a-remesa?ids=' + movId + '&id_remesa=' + sel.value;
+  window.location.href = '/tarjetas/anadir-a-remesa?ids=' + movId + '&id_remesa=' + sel.value;
 }
 
 document.addEventListener('keydown', function(e) {

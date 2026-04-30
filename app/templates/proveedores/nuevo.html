@@ -4,6 +4,10 @@
 {% block page_title %}Alta de proveedor{% endblock %}
 {% block page_subtitle %}Registro inicial de terceros para su reutilización en propuestas específicas de gasto, pagos y remesas{% endblock %}
 
+{% block extra_head %}
+<style>[data-upper]{text-transform:uppercase}</style>
+{% endblock %}
+
 {% block content %}
 <div class="card">
     <h2 style="margin-bottom: 6px;">Nuevo proveedor</h2>
@@ -21,7 +25,7 @@
 
             <div class="grid-4 field">
                 <label for="cif_nif">CIF/NIF</label>
-                <input id="cif_nif" type="text" name="cif_nif" required>
+                <input id="cif_nif" type="text" name="cif_nif" required data-upper="1">
             </div>
 
             <div class="grid-4 field">
@@ -31,12 +35,12 @@
 
             <div class="grid-8 field">
                 <label for="razon_social">Razón social</label>
-                <input id="razon_social" type="text" name="razon_social" required>
+                <input id="razon_social" type="text" name="razon_social" required data-upper="1">
             </div>
 
             <div class="grid-4 field">
                 <label for="nombre_comercial">Nombre comercial</label>
-                <input id="nombre_comercial" type="text" name="nombre_comercial">
+                <input id="nombre_comercial" type="text" name="nombre_comercial" data-upper="1">
             </div>
 
             <div class="grid-6 field">
@@ -93,12 +97,12 @@
 
             <div class="grid-12 field">
                 <label for="direccion">Dirección</label>
-                <input id="direccion" type="text" name="direccion" placeholder="Calle, número, piso...">
+                <input id="direccion" type="text" name="direccion" placeholder="Calle, número, piso..." data-upper="1">
             </div>
 
             <div class="grid-6 field">
                 <label for="localidad">Localidad</label>
-                <input id="localidad" type="text" name="localidad">
+                <input id="localidad" type="text" name="localidad" data-upper="1">
             </div>
 
             <div class="grid-3 field">
@@ -108,7 +112,7 @@
 
             <div class="grid-3 field">
                 <label for="provincia">Provincia</label>
-                <input id="provincia" type="text" name="provincia">
+                <input id="provincia" type="text" name="provincia" data-upper="1">
             </div>
 
             <div class="grid-3 field">
@@ -181,6 +185,14 @@
 
 {% block extra_scripts %}
 <script>
+document.addEventListener('input', function(e) {
+  if (e.target.dataset.upper === '1') {
+    const pos = e.target.selectionStart;
+    e.target.value = e.target.value.toUpperCase();
+    try { e.target.setSelectionRange(pos, pos); } catch(x) {}
+  }
+});
+
 function aplicarOpcionCuenta(sel) {
   const input = document.getElementById("cuenta_cliente");
   if (sel.value === "saco") {

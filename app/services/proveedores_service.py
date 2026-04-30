@@ -180,3 +180,11 @@ def actualizar_proveedor(id_proveedor: int, datos: dict) -> bool:
         if campo in datos:
             proveedor[campo] = datos[campo] or None
     return True
+
+
+def eliminar_proveedor(id_proveedor: int) -> bool:
+    prov = obtener_proveedor(id_proveedor)
+    if not prov:
+        return False
+    proveedores_db.remove(prov)
+    return True

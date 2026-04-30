@@ -12,6 +12,7 @@ from pathlib import Path
 from app.services import mock_bancos, pegs_service, remesas_service
 from app.services.factura_interna_service import generar_numero_factura
 from app.services.pdf_remesa_service import generar_pdf_remesa
+from app.services import historial_remesas_service as historial
 
 # Raíz del proyecto para resolver rutas relativas de PDF
 # app/routers/remesas.py → app/routers → app → PEG/
@@ -45,6 +46,7 @@ def remesas_crear(
         id_servicio=1,
         creado_por=usuario["nombre_completo"],
     )
+    historial.registrar_evento("RT", nueva["id_remesa"], "CREADA", usuario["nombre_completo"])
     return RedirectResponse(url=f"/remesas/{nueva['id_remesa']}?msg=Remesa+creada+correctamente&msg_type=success", status_code=303)
 
 
@@ -91,6 +93,8 @@ def remesas_generar(
         return RedirectResponse(url=f"/remesas/{id_remesa}?msg={msg}&msg_type=error", status_code=303)
 
     remesas_service.cambiar_estado_remesa(id_remesa, "GENERADA")
+    historial.registrar_evento("RT", id_remesa, "GENERADA", usuario["nombre_completo"], "Cuaderno 34 generado")
+    historial.registrar_evento("RT", id_remesa, "PDF_GENERADO", usuario["nombre_completo"])
     return RedirectResponse(url=f"/remesas/{id_remesa}?msg=Remesa+generada+y+PDF+creado+correctamente&msg_type=success", status_code=303)
 
 
@@ -130,6 +134,8 @@ def remesas_cerrar(
     except Exception:
         pass  # No bloquear el cierre si falla la regeneración del PDF
 
+    historial.registrar_evento("RT", id_remesa, "CERRADA", usuario["nombre_completo"],
+                               f"{n} PEG{'s' if n != 1 else ''} marcado{'s' if n != 1 else ''} como PAGADO")
     msg = urllib.parse.quote(f"Remesa cerrada. {n} PEGs marcados como PAGADO.")
     return RedirectResponse(url=f"/remesas/{id_remesa}?msg={msg}&msg_type=success", status_code=303)
 
@@ -153,6 +159,7 @@ def remesas_generar_pdf(
         msg = urllib.parse.quote(f"Error al generar el PDF: {str(exc)[:120]}")
         return RedirectResponse(url=f"/remesas/{id_remesa}?msg={msg}&msg_type=error", status_code=303)
     remesas_service.actualizar_pdf_path(id_remesa, pdf_path)
+    historial.registrar_evento("RT", id_remesa, "PDF_GENERADO", usuario["nombre_completo"])
     return RedirectResponse(url=f"/remesas/{id_remesa}?msg=PDF+generado+correctamente&msg_type=success", status_code=303)
 
 
@@ -172,7 +179,9 @@ def remesas_descargar_pdf(
     # Resolver siempre como ruta absoluta para que funcione independientemente del CWD
     pdf_abs = str(_PROJECT_ROOT / remesa["pdf_path"])
     if not os.path.exists(pdf_abs):
+        historial.registrar_evento("RT", id_remesa, "PDF_DESCARGADO", usuario["nombre_completo"])
         return HTMLResponse("<p style='font-family:sans-serif;padding:20px;'>PDF no disponible en entorno de desarrollo.</p>", status_code=200)
+    historial.registrar_evento("RT", id_remesa, "PDF_DESCARGADO", usuario["nombre_completo"])
     return FileResponse(path=pdf_abs, media_type="application/pdf", filename=os.path.basename(pdf_abs))
 
 
@@ -204,8 +213,19 @@ def remesas_agregar_peg(id_remesa: int, id_peg: int, usuario: dict = Depends(req
         return JSONResponse({"ok": False, "error": "El PEG no está en estado Validado"})
     if peg.get("id_remesa") is not None:
         return JSONResponse({"ok": False, "error": "El PEG ya está en una remesa"})
+    from app.services.proveedores_service import obtener_proveedor as _get_prov
+    _prov = _get_prov(peg.get("id_proveedor"))
+    if _prov and not _prov.get("cuenta_cliente"):
+        return JSONResponse({
+            "ok": False,
+            "error": f"No se puede remesar: el proveedor «{_prov['razon_social']}» "
+                     "no tiene asignada la cuenta contable de acreedor (grupo 4). "
+                     "Asígnala en la ficha del proveedor antes de incluirlo en la remesa."
+        })
     pegs_service.asignar_a_remesa(id_peg, id_remesa, usuario["nombre_completo"])
     remesas_service.añadir_pago(id_remesa, id_peg)
+    historial.registrar_evento("RT", id_remesa, "PEG_AÑADIDA", usuario["nombre_completo"],
+                               f"PEG #{id_peg}")
     return JSONResponse({"ok": True, "mensaje": "PEG añadido correctamente"})
 
 @router.post("/{id_remesa}/quitar-peg/{id_peg}")
@@ -220,6 +240,8 @@ def remesas_quitar_peg(id_remesa: int, id_peg: int, usuario: dict = Depends(requ
         return JSONResponse({"ok": False, "error": "PEG no encontrado"}, status_code=404)
     pegs_service.quitar_de_remesa(id_peg, usuario["nombre_completo"])
     remesas_service.quitar_pago(id_remesa, id_peg)
+    historial.registrar_evento("RT", id_remesa, "PEG_QUITADA", usuario["nombre_completo"],
+                               f"PEG #{id_peg}")
     return JSONResponse({"ok": True, "mensaje": "PEG eliminado de la remesa"})
 
 
@@ -236,6 +258,7 @@ def remesa_descargar_suenlace(
     from fastapi.responses import Response
     try:
         contenido, nombre = generar_suenlace_remesa(id_remesa, empresa)
+        historial.registrar_evento("RT", id_remesa, "A3CON_EXPORTADO", usuario["nombre_completo"])
         return Response(
             content=contenido.encode("latin-1"),
             media_type="application/octet-stream",
@@ -262,7 +285,9 @@ def remesas_detalle(
     pagos = [p for p in pagos if p]
     banco = mock_bancos.obtener_banco(remesa.get("id_banco", 0))
     return templates.TemplateResponse(request=request, name="remesas/detalle.html",
-        context={"remesa": remesa, "pagos": pagos, "banco": banco, "usuario": usuario, "msg": msg, "msg_type": msg_type})
+        context={"remesa": remesa, "pagos": pagos, "banco": banco, "usuario": usuario,
+                 "msg": msg, "msg_type": msg_type,
+                 "historial": historial.obtener_historial("RT", id_remesa)})
 
 
 # ── LISTADO (siempre al final) ─────────────────────────────────────────────────

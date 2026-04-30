@@ -433,10 +433,11 @@
             {% set counts = menu_counts(usuario) %}
 
             <div class="nav-section-title">Principal</div>
-            <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">Inicio</a>
+            <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">Dashboard</a>
+            <a class="nav-link {% if request.url.path == '/ayuda' %}active{% endif %}" href="/ayuda">Ayuda</a>
 
             <div class="nav-section-title">Autorizaciones</div>
-            <a class="nav-link {% if request.url.path.startswith('/solicitudes') %}active{% endif %}" href="/solicitudes/">Solicitudes</a>
+            <a class="nav-link {% if request.url.path.startswith('/solicitudes') %}active{% endif %}" href="/solicitudes/">Todas las solicitudes</a>
             {% if counts.menu_solicitudes_pendientes > 0 %}
             <a class="nav-sublink" href="/solicitudes/?estado=PENDIENTE"
                style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
@@ -484,10 +485,11 @@
             {% set counts = menu_counts(usuario) %}
 
             <div class="nav-section-title">Principal</div>
-            <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">Inicio</a>
+            <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">Dashboard</a>
+            <a class="nav-link {% if request.url.path == '/ayuda' %}active{% endif %}" href="/ayuda">Ayuda</a>
 
             <div class="nav-section-title">Autorizaciones</div>
-            <a class="nav-link {% if request.url.path.startswith('/solicitudes') %}active{% endif %}" href="/solicitudes/">Solicitudes</a>
+            <a class="nav-link {% if request.url.path.startswith('/solicitudes') %}active{% endif %}" href="/solicitudes/">Todas las solicitudes</a>
             {% if counts.menu_solicitudes_pendientes > 0 %}
             <a class="nav-sublink" href="/solicitudes/?estado=PENDIENTE"
                style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
@@ -527,12 +529,41 @@
             </a>
             {% endif %}
 
-            <div class="nav-section-title">Movimientos bancarios</div>
-            <a class="nav-link {% if request.url.path.startswith('/movimientos') %}active{% endif %}" href="/movimientos/">Extractos e importación</a>
+            <div class="nav-section-title">Cuentas y tarjetas</div>
+            <a class="nav-link {% if request.url.path.startswith('/movimientos') %}active{% endif %}" href="/movimientos/">Cuentas bancarias</a>
+            <a class="nav-link {% if request.url.path.startswith('/tarjetas') %}active{% endif %}" href="/tarjetas/">Tarjetas</a>
+            {% if counts.menu_tarjetas_pendientes > 0 %}
+            <a class="nav-sublink" href="/tarjetas/?estado=PENDIENTE"
+               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
+              · Pendientes
+              <span style="background:#854f0b;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_tarjetas_pendientes }}</span>
+            </a>
+            {% endif %}
 
             <div class="nav-section-title">Remesas</div>
-            <a class="nav-link {% if request.url.path.startswith('/remesas') and not request.url.path.startswith('/remesas-directas') %}active{% endif %}" href="/remesas/">RT – Transferencias</a>
+            <a class="nav-link {% if request.url.path.startswith('/remesas') and not request.url.path.startswith('/remesas-directas') %}active{% endif %}" href="/remesas/">RT – PEGs</a>
+            {% if counts.menu_rt_abiertas > 0 %}
+            <a class="nav-sublink" href="/remesas/?estado=ABIERTA"
+               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
+              · Abiertas
+              <span style="background:#5a2db5;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_rt_abiertas }}</span>
+            </a>
+            {% endif %}
+            {% if counts.menu_rt_generadas > 0 %}
+            <a class="nav-sublink" href="/remesas/?estado=GENERADA"
+               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
+              · Generadas
+              <span style="background:#5a2db5;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_rt_generadas }}</span>
+            </a>
+            {% endif %}
             <a class="nav-link {% if request.url.path.startswith('/remesas-directas') %}active{% endif %}" href="/remesas-directas/">RD – Directas</a>
+            {% if counts.menu_rd_abiertas > 0 %}
+            <a class="nav-sublink" href="/remesas-directas/"
+               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
+              · Abiertas
+              <span style="background:#0c5460;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_rd_abiertas }}</span>
+            </a>
+            {% endif %}
 
             <div class="nav-section-title">Gestión de datos</div>
             <a class="nav-link {% if request.url.path.startswith('/proveedores') %}active{% endif %}" href="/proveedores/">Proveedores</a>

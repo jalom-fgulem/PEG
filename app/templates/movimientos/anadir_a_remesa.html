@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+{% block title %}Añadir a remesa directa{% endblock %}
+{% block page_title %}Añadir a remesa directa{% endblock %}
+{% block page_subtitle %}Incorpora movimientos bancarios a una remesa directa ya abierta{% endblock %}
+
+{% block extra_head %}
+<style>
+  .mov-card { border:1px solid var(--line); border-radius:10px; margin-bottom:12px; overflow:visible; }
+  .mov-card-hdr {
+    display:grid; gap:10px; padding:11px 16px; background:#fafafa;
+    border-bottom:1px solid var(--line); align-items:end;
+    grid-template-columns: 110px 1fr 110px 100px 1fr 1fr;
+    border-radius:10px 10px 0 0;
+  }
+  .mov-card-body { padding:12px 16px; }
+  .rd-lbl { font-size:0.69rem; color:#8a8691; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.05em; margin-bottom:3px; }
+  .at { width:100%; border-collapse:collapse; margin-bottom:6px; }
+  .at th { font-size:0.69rem; text-transform:uppercase; letter-spacing:0.05em; color:#8a8691;
+    font-weight:700; padding:5px 6px; border-bottom:1px solid var(--line); text-align:left; }
+  .at td { padding:4px 5px; border-bottom:1px solid rgba(0,0,0,0.04); vertical-align:middle; }
+  .at tr:last-child td { border-bottom:none; }
+  .at select, .at input {
+    width:100%; padding:6px 7px; border:1px solid var(--line); border-radius:6px;
+    font-size:0.83rem; background:#fff; box-sizing:border-box; }
+  .at select:focus, .at input:focus { outline:none; border-color:var(--fgulem-blue); }
+  .at input[type=number] { text-align:right; }
+  .btn-add-line { background:transparent; border:1px dashed rgba(22,163,74,0.4); color:#16a34a;
+    border-radius:6px; padding:3px 10px; cursor:pointer; font-size:0.80rem; font-weight:600; }
+  .btn-del { background:transparent; border:1px solid rgba(226,75,74,0.3); color:#a32d2d;
+    border-radius:5px; padding:3px 7px; cursor:pointer; font-size:0.80rem; }
+  .pct-total { font-size:0.82rem; font-weight:700; }
+  .pct-ok    { color:#16a34a; }
+  .pct-warn  { color:#854f0b; }
+  .pct-err   { color:#a32d2d; }
+  .hdr-sel { width:100%; padding:5px 7px; border:1px solid var(--line); border-radius:6px;
+    font-size:0.82rem; background:#fff; }
+  .hdr-sel:focus { outline:none; border-color:var(--fgulem-blue); }
+  .prov-banco { padding:6px 10px; background:rgba(95,159,211,0.07); border:1px solid rgba(95,159,211,0.22);
+    border-radius:7px; font-size:0.80rem; color:#185fa5; font-weight:600; white-space:nowrap; }
+  #ps-buscador { display: none !important; }
+  #ps-select   { display: none !important; }
+  .ps-wrapper > div:first-child { display: none !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:940px;">
+
+  {% if error %}
+  <div style="margin-bottom:14px; padding:10px 14px; border-radius:8px;
+    background:rgba(226,75,74,0.10); border:1px solid rgba(226,75,74,0.28);
+    color:#a32d2d; font-weight:600; font-size:0.88rem;">⚠ {{ error }}</div>
+  {% endif %}
+
+  <form method="post" action="/movimientos/anadir-a-remesa" id="form-anadir">
+    <input type="hidden" name="ids_movimientos" value="{{ ids_str }}">
+
+    <!-- Remesa destino (ya seleccionada desde el modal) -->
+    <input type="hidden" name="id_remesa_directa" value="{{ remesa.id_remesa_directa }}">
+    <div style="margin-bottom:14px; padding:12px 16px; border-radius:10px;
+      background:rgba(194,27,132,0.06); border:1px solid rgba(194,27,132,0.20);
+      display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <span style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#8b1560;">Remesa destino</span>
+      <span style="font-weight:700; color:#8b1560;">RD-{{ "%04d"|format(remesa.numero) }}</span>
+      <span style="color:#555; font-size:0.9rem;">{{ remesa.descripcion or "Sin descripción" }}</span>
+      <span style="font-size:0.80rem; color:#888; margin-left:auto;">Creada el {{ remesa.fecha_creacion }}</span>
+    </div>
+
+    <!-- Una tarjeta por movimiento -->
+    {% for m in movimientos %}
+    {% set banco = banco_map.get(m.id_banco) %}
+    <div class="mov-card">
+      <div class="mov-card-hdr">
+
+        <div>
+          <div class="rd-lbl">Fecha</div>
+          <div style="font-family:monospace; font-size:0.86rem; font-weight:600;">{{ m.fecha_operacion }}</div>
+        </div>
+
+        <div style="overflow:hidden;">
+          <div class="rd-lbl">Concepto</div>
+          <div style="font-weight:600; font-size:0.88rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+               title="{{ m.concepto }}">{{ m.concepto or "—" }}</div>
+          <div style="font-size:0.77rem; color:#aaa;">{{ banco.alias if banco else "—" }}</div>
+        </div>
+
+        <div>
+          <div class="rd-lbl">Importe</div>
+          <div style="font-family:monospace; font-weight:800; color:#a32d2d; font-size:0.95rem; white-space:nowrap;">
+            {{ "%+.2f"|format(m.importe) }} €
+          </div>
+        </div>
+
+        <div>
+          <div class="rd-lbl">Tipo de gasto</div>
+          <select name="tipo_gasto" class="hdr-sel">
+            {% for t in tipos_gasto %}
+            <option value="{{ t }}">{{ t.replace("_"," ").title() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <div class="rd-lbl">Cuenta de gasto <span style="color:#a32d2d;">*</span></div>
+          <select name="cuenta_gasto_mov" class="hdr-sel cta-sel" data-idx="{{ loop.index0 }}">
+            <option value="">— Selecciona —</option>
+            {% for cg in cuentas_gasto %}
+            <option value="{{ cg.codigo }}">{{ cg.codigo }} – {{ cg.descripcion }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+          <div class="rd-lbl" style="align-self:flex-start;">Analítica</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="pct-total pct-warn" id="pct-total-{{ loop.index0 }}">0.00%</span>
+            <button type="button" class="btn-add-line" onclick="añadirLinea({{ loop.index0 }})">
+              + Añadir línea
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="mov-card-body">
+
+        <!-- Proveedor -->
+        <div style="margin-bottom:12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span style="font-size:0.69rem; font-weight:700; text-transform:uppercase;
+                letter-spacing:0.05em; color:#8a8691; white-space:nowrap;">
+            Proveedor {% if m.tipo != 'COMISION' %}<span style="color:#a32d2d;">*</span>{% endif %}
+          </span>
+          {% if m.tipo == 'COMISION' %}
+            {% set _banco_prov_txt = banco.nombre_proveedor_banco if banco else (banco.alias if banco else "Banco") %}
+            <div class="prov-banco">🏦 {{ _banco_prov_txt }} <span style="font-size:0.75rem; color:#8a8691; font-weight:400;">(comisión bancaria)</span></div>
+            <input type="hidden" name="id_proveedor" value="{{ banco.id_proveedor_banco if banco else '' }}">
+          {% else %}
+            {% set _idx = loop.index0 %}
+            <div style="flex:1; min-width:240px; max-width:360px; position:relative;">
+              {% set pd_uid = "a" ~ _idx %}
+              {% set pd_field_name = "id_proveedor" %}
+              {% set pd_required = true %}
+              {% include "components/prov_search_inline.html" %}
+            </div>
+            <button type="button" class="btn btn-secondary"
+                    onclick="_provANuevo({{ _idx }})"
+                    style="font-size:0.78rem; padding:4px 9px; white-space:nowrap;">
+              ＋ Nuevo
+            </button>
+            <button type="button" class="btn btn-secondary"
+                    id="btn-editar-prov-{{ _idx }}"
+                    onclick="_provAEditar({{ _idx }})"
+                    style="font-size:0.78rem; padding:4px 9px; white-space:nowrap;" disabled>
+              ✏ Editar
+            </button>
+          {% endif %}
+        </div>
+
+        <table class="at">
+          <thead><tr>
+            <th style="width:55%;">Servicio / Proyecto</th>
+            <th style="width:35%;">Descripción</th>
+            <th style="width:8%; text-align:right;">%</th>
+            <th style="width:2%;"></th>
+          </tr></thead>
+          <tbody id="tbody-{{ loop.index0 }}" data-importe="{{ m.importe|abs }}"></tbody>
+        </table>
+        <div id="err-{{ loop.index0 }}" style="display:none; font-size:0.80rem; color:#a32d2d; margin-top:4px; font-weight:600;"></div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <!-- Resumen -->
+    <div style="display:flex; gap:20px; align-items:center; padding:11px 16px;
+      background:rgba(95,159,211,0.05); border:1px solid rgba(95,159,211,0.18);
+      border-radius:10px; font-size:0.88rem; flex-wrap:wrap;">
+      <span>{{ movimientos|length }} movimiento(s)</span>
+      {% set total = movimientos|sum(attribute="importe")|abs %}
+      <span>Total: <strong style="font-family:monospace; color:#a32d2d;">{{ "%.2f"|format(total) }} €</strong></span>
+      <span style="font-size:0.80rem; color:#888; margin-left:auto;">
+        Al confirmar, los movimientos quedarán como <strong>Cotejados</strong> y se añadirán gastos a la remesa seleccionada.
+      </span>
+    </div>
+
+    <div id="msg-error" style="display:none; margin-top:10px; padding:9px 13px; border-radius:7px;
+      background:rgba(226,75,74,0.09); border:1px solid rgba(226,75,74,0.25);
+      color:#a32d2d; font-weight:600; font-size:0.86rem;"></div>
+
+    <div style="display:flex; gap:10px; margin-top:16px;">
+      <button class="btn btn-primary" type="submit">Añadir a remesa directa</button>
+      <a class="btn btn-secondary" href="/movimientos/">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+{% include "components/proveedor_selector.html" %}
+
+<select id="tpl-serv-proy" style="display:none;">
+  <option value="">— Servicio / Proyecto —</option>
+  {% for s in servicios_proyectos %}{% for p in s.proyectos %}
+  <option value="{{ s.id }}-{{ p.id }}">{{ s.nombre }} / {{ p.nombre }}</option>
+  {% endfor %}{% endfor %}
+</select>
+
+<script>
+const N_MOVS = {{ movimientos|length }};
+
+(function() {
+  var sel = document.getElementById('ps-select');
+  if (sel) sel.removeAttribute('name');
+})();
+
+function _pdActualizarDesde(uid, id, texto) {
+  var inp = document.getElementById('pd-val-' + uid);
+  if (inp) inp.value = String(id);
+  var lbl = document.getElementById('pd-txt-' + uid);
+  if (lbl) { lbl.textContent = texto; lbl.style.color = 'var(--ink,#1a1523)'; }
+  document.querySelectorAll('.pd-opt[data-uid="' + uid + '"]').forEach(function(o) {
+    o.classList.toggle('pd-sel', o.dataset.id === String(id));
+  });
+  var idx = window._pdActiveAIdx;
+  if (typeof idx !== 'undefined') {
+    var btnEd = document.getElementById('btn-editar-prov-' + idx);
+    if (btnEd) btnEd.disabled = false;
+  }
+}
+
+var _pdSelBase = window._pdSel;
+window._pdSel = function(uid, el) {
+  if (_pdSelBase) _pdSelBase(uid, el);
+  if (uid && uid.charAt(0) === 'a') {
+    var idx2 = parseInt(uid.slice(1));
+    var btnEd2 = document.getElementById('btn-editar-prov-' + idx2);
+    if (btnEd2) btnEd2.disabled = false;
+  }
+};
+
+window._provANuevo = function(idx) {
+  window._pdActiveAIdx = idx;
+  _psAbrirNuevo();
+};
+
+window._provAEditar = function(idx) {
+  window._pdActiveAIdx = idx;
+  var uid = 'a' + idx;
+  var inp = document.getElementById('pd-val-' + uid);
+  var sel = document.getElementById('ps-select');
+  if (inp && sel) sel.value = inp.value;
+  _psAbrirEditar();
+};
+
+window._psOnProveedorSeleccionado = function(prov) {
+  var idx = window._pdActiveAIdx;
+  if (typeof idx === 'undefined') return;
+  var uid  = 'a' + idx;
+  var txt  = prov.razon_social + ' — ' + prov.cif_nif;
+  _pdActualizarDesde(uid, prov.id, txt);
+  var lista = document.getElementById('pd-lista-' + uid);
+  if (lista && !document.querySelector('.pd-opt[data-uid="' + uid + '"][data-id="' + prov.id + '"]')) {
+    var div = document.createElement('div');
+    div.className = 'pd-opt';
+    div.dataset.uid   = uid;
+    div.dataset.id    = String(prov.id);
+    div.dataset.texto = txt;
+    div.setAttribute('onclick', '_pdSel("' + uid + '",this)');
+    div.innerHTML = '<span style="font-weight:600;">' + prov.razon_social + '</span>'
+      + '<span style="color:#6b7280;font-size:0.82rem;"> — ' + prov.cif_nif + '</span>';
+    lista.appendChild(div);
+  }
+};
+
+function _cloneSP() {
+  const t = document.getElementById('tpl-serv-proy');
+  const s = document.createElement('select');
+  s.innerHTML = t.innerHTML;
+  return s;
+}
+
+function añadirLinea(idx) {
+  const tbody = document.getElementById('tbody-' + idx);
+  if (tbody.querySelectorAll('tr').length >= 5) return;
+
+  const tr = document.createElement('tr');
+
+  const selSP = _cloneSP();
+  selSP.name = 'servicio_proyecto';
+  const tdSP = document.createElement('td'); tdSP.appendChild(selSP);
+
+  const tdDesc = document.createElement('td');
+  tdDesc.innerHTML = '<input type="text" name="descripcion_linea" placeholder="Descripción opcional">';
+
+  const tdPct = document.createElement('td');
+  const esPrimera = tbody.querySelectorAll('tr').length === 0;
+  tdPct.innerHTML = `<input type="number" name="porcentaje_linea" step="0.01" min="0.01" max="100"
+    value="${esPrimera ? '100' : ''}" placeholder="0.00" oninput="recalcPct(${idx})">`;
+
+  const tdDel = document.createElement('td');
+  tdDel.style.textAlign = 'center';
+  tdDel.innerHTML = `<button type="button" class="btn-del" onclick="eliminarLinea(this,${idx})">×</button>`;
+
+  tr.append(tdSP, tdDesc, tdPct, tdDel);
+  tbody.appendChild(tr);
+  recalcPct(idx);
+}
+
+function eliminarLinea(btn, idx) {
+  const tbody = document.getElementById('tbody-' + idx);
+  if (tbody.querySelectorAll('tr').length <= 1) return;
+  btn.closest('tr').remove();
+  recalcPct(idx);
+}
+
+function recalcPct(idx) {
+  const tbody = document.getElementById('tbody-' + idx);
+  const total = Array.from(tbody.querySelectorAll('input[name="porcentaje_linea"]'))
+    .reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+  const lbl = document.getElementById('pct-total-' + idx);
+  lbl.textContent = total.toFixed(2) + '%';
+  if (Math.abs(total - 100) <= 0.01) {
+    lbl.className = 'pct-total pct-ok';
+  } else if (total > 100.01) {
+    lbl.className = 'pct-total pct-err';
+  } else {
+    lbl.className = 'pct-total pct-warn';
+  }
+}
+
+document.getElementById('form-anadir').addEventListener('submit', function(e) {
+  const errores = [];
+  for (let i = 0; i < N_MOVS; i++) {
+    const tbody = document.getElementById('tbody-' + i);
+    const ctaSel = document.querySelector(`.cta-sel[data-idx="${i}"]`);
+    if (!ctaSel || !ctaSel.value) {
+      errores.push(`Movimiento ${i+1}: falta la cuenta de gasto.`);
+      continue;
+    }
+    const rows = tbody.querySelectorAll('tr');
+    if (rows.length === 0) {
+      errores.push(`Movimiento ${i+1}: añade al menos una línea analítica.`);
+      continue;
+    }
+    const total = Array.from(tbody.querySelectorAll('input[name="porcentaje_linea"]'))
+      .reduce((s, x) => s + (parseFloat(x.value) || 0), 0);
+    if (Math.abs(total - 100) > 0.01) {
+      errores.push(`Movimiento ${i+1}: la analítica suma ${total.toFixed(2)}% (debe ser 100%).`);
+    }
+  }
+  if (errores.length) {
+    e.preventDefault();
+    const el = document.getElementById('msg-error');
+    el.innerHTML = '⚠ Corrija los siguientes errores antes de continuar:<br>' + errores.join('<br>');
+    el.style.display = 'block';
+    el.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+});
+
+for (let i = 0; i < N_MOVS; i++) añadirLinea(i);
+</script>
+{% endblock %}

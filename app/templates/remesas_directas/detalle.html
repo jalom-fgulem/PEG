@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Remesa Directa RD-{{ "%04d"|format(remesa.numero) }}{% endblock %}
 {% block page_title %}RD-{{ "%04d"|format(remesa.numero) }}{% endblock %}
-{% block page_subtitle %}{{ remesa.tipo }} · Período {{ remesa.periodo }}{% endblock %}
+{% block page_subtitle %}{{ remesa.descripcion or "Sin descripción" }}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -41,11 +41,13 @@
     <!-- Cabecera remesa -->
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-        <div>
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
           <span class="estado-badge estado-{{ remesa.estado|lower }}">
             {% if remesa.estado == 'ABIERTA' %}Abierta{% elif remesa.estado == 'CERRADA' %}Cerrada{% else %}{{ remesa.estado }}{% endif %}
           </span>
-          <span class="muted" style="margin-left:10px; font-size:0.88rem;">{{ remesa.tipo }}</span>
+          {% if banco %}
+          <span style="font-size:0.85rem; color:#555;">🏦 {{ banco.alias }} — {{ banco.iban }}</span>
+          {% endif %}
         </div>
         <div style="font-size:0.9rem; color:var(--ink-soft);">
           Creada el {{ remesa.fecha_creacion }}
@@ -54,7 +56,6 @@
       </div>
 
       <div class="totales-strip">
-        <div class="t-item"><label>Período</label><span>{{ remesa.periodo }}</span></div>
         <div class="t-item"><label>Gastos</label><span>{{ totales.num_gastos }}</span></div>
         <div class="t-item"><label>Base</label><span>{{ "%.2f"|format(totales.total_base) }} €</span></div>
         <div class="t-item"><label>IVA</label><span>{{ "%.2f"|format(totales.total_iva) }} €</span></div>
@@ -71,7 +72,8 @@
           <tr>
             <th>Código</th>
             <th>Proveedor</th>
-            <th>Fecha doc.</th>
+            <th>Concepto</th>
+            <th>Fecha</th>
             <th style="text-align:right;">Importe</th>
             {% if remesa.estado == 'ABIERTA' %}<th></th>{% endif %}
           </tr>
@@ -81,6 +83,7 @@
           <tr>
             <td style="font-family:monospace; font-weight:700; font-size:0.9rem;">{{ g.codigo }}</td>
             <td>{{ g.nombre_proveedor }}</td>
+            <td style="font-size:0.85rem; color:#555; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ g.concepto or "—" }}</td>
             <td>{{ g.fecha_documento }}</td>
             <td style="text-align:right; font-weight:700;">{{ "%.2f"|format(g.importe_total) }} €</td>
             {% if remesa.estado == 'ABIERTA' %}
@@ -100,37 +103,6 @@
       {% endif %}
     </div>
 
-    <!-- Añadir gasto (solo si ABIERTA) -->
-    {% if remesa.estado == 'ABIERTA' %}
-    <div class="card">
-      <h3 style="margin-top:0; margin-bottom:12px;">Añadir gasto disponible</h3>
-      {% if gastos_disponibles %}
-      <form method="POST" action="/remesas-directas/{{ remesa.id_remesa_directa }}/añadir-gasto"
-            style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
-        <div style="flex:1; min-width:260px;">
-          <label style="font-size:0.8rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.06em; display:block; margin-bottom:6px;">
-            Gasto cotejado
-          </label>
-          <select name="id_gasto" required
-                  style="padding:10px 12px; border:1px solid #d8dce2; border-radius:10px; font-size:0.95rem; width:100%;">
-            {% for g in gastos_disponibles %}
-            <option value="{{ g.id_gasto }}">
-              {{ g.codigo }} — {{ g.nombre_proveedor }} — {{ "%.2f"|format(g.importe_total) }} €
-            </option>
-            {% endfor %}
-          </select>
-        </div>
-        <button type="submit" class="btn btn-primary" style="white-space:nowrap;">
-          + Añadir
-        </button>
-      </form>
-      {% else %}
-      <p class="muted" style="font-size:0.9rem; margin:0;">
-        No hay gastos cotejados disponibles del tipo {{ remesa.tipo }}.
-      </p>
-      {% endif %}
-    </div>
-    {% endif %}
 
   </div>
 
@@ -140,7 +112,6 @@
       <h3 style="margin-top:0; margin-bottom:14px;">Acciones</h3>
 
       {% if remesa.estado == 'ABIERTA' %}
-      <!-- Cerrar remesa -->
       <form method="POST" action="/remesas-directas/{{ remesa.id_remesa_directa }}/cerrar"
             onsubmit="return confirm('¿Cerrar esta remesa? Los gastos asignados pasarán a estado CERRADO.')">
         <button type="submit" class="btn-cerrar">Cerrar remesa</button>
@@ -150,7 +121,6 @@
       </p>
       {% endif %}
 
-      <!-- Exportar SUENLACE (solo si está cerrada) -->
       {% if remesa.estado == 'CERRADA' %}
       <a class="btn-export" href="/remesas-directas/{{ remesa.id_remesa_directa }}/exportar-suenlace?empresa=real">
         ⬇ Exportar SUENLACE (real)
@@ -169,4 +139,34 @@
   </div>
 
 </div>
+
+{# ── Historial de actuaciones ── #}
+{% if historial %}
+<div class="card" style="margin-top:24px;">
+  <h3 style="margin-top:0; margin-bottom:16px; font-size:0.95rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#8a8691;">
+    Historial de actuaciones
+  </h3>
+  <div style="display:flex; flex-direction:column; gap:0;">
+    {% for e in historial|reverse %}
+    <div style="display:flex; gap:14px; align-items:flex-start; padding:10px 0;
+      {% if not loop.last %}border-bottom:1px solid var(--line);{% endif %}">
+      <div style="flex-shrink:0; width:32px; height:32px; border-radius:50%;
+        background:rgba(95,159,211,0.12); display:flex; align-items:center;
+        justify-content:center; font-size:0.95rem; margin-top:1px;">
+        {{ e.icono }}
+      </div>
+      <div style="flex:1; min-width:0;">
+        <div style="font-weight:700; font-size:0.88rem; color:var(--ink);">{{ e.label }}</div>
+        {% if e.detalle %}
+        <div style="font-size:0.82rem; color:var(--ink-soft); margin-top:1px;">{{ e.detalle }}</div>
+        {% endif %}
+        <div style="font-size:0.78rem; color:#aaa; margin-top:3px;">
+          {{ e.usuario }} · {{ e.fecha }} {{ e.hora }}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 {% endblock %}

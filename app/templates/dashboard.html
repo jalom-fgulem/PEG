@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SGPEG{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Resumen del estado actual de la gestión de gastos{% endblock %}
+
+{% block extra_head %}
+<style>
+  .kpi-section-title {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #8a8691;
+    margin: 24px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .kpi-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+  .kpi-grid {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .kpi-card {
+    flex: 1 1 110px;
+    max-width: 160px;
+    background: rgba(255,255,255,0.94);
+    border: 1px solid rgba(229,231,235,0.95);
+    border-radius: 16px;
+    padding: 16px 18px 14px;
+    box-shadow: 0 4px 14px rgba(42,46,56,0.07);
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    border-top: 3px solid transparent;
+  }
+  .kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 22px rgba(42,46,56,0.13);
+  }
+  .kpi-valor {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .kpi-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+  }
+  .kpi-sub {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 2px;
+    opacity: 0.75;
+  }
+  .kpi-pendiente  { border-top-color: #d97706; }
+  .kpi-pendiente  .kpi-valor { color: #854f0b; }
+  .kpi-incidencia { border-top-color: #ef4444; }
+  .kpi-incidencia .kpi-valor { color: #a32d2d; }
+  .kpi-validado   { border-top-color: #5a9fd3; }
+  .kpi-validado   .kpi-valor { color: #185fa5; }
+  .kpi-remesa     { border-top-color: #7f55d3; }
+  .kpi-remesa     .kpi-valor { color: #5a2db5; }
+  .kpi-pagado     { border-top-color: #7faa55; }
+  .kpi-pagado     .kpi-valor { color: #3b6d11; }
+  .kpi-abierta    { border-top-color: #5a9fd3; }
+  .kpi-abierta    .kpi-valor { color: #185fa5; }
+  .kpi-alerta     { border-top-color: #ef4444; background: rgba(226,75,74,0.04); }
+  .kpi-alerta     .kpi-valor { color: #a32d2d; }
+  .kpi-neutro     { border-top-color: #9ca3af; }
+  .kpi-neutro     .kpi-valor { color: #374151; }
+
+  button.kpi-card {
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    width: 100%;
+  }
+
+  .kpi-filtro-btn {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .kpi-filtro-btn:hover { background: #e5e7eb; }
+  .kpi-filtro-btn.activo { background: #166534; color: white; border-color: #166534; }
+
+  /* modal sin-acceso */
+  .modal-intro {
+    background: rgba(95,159,211,0.08);
+    border-left: 3px solid var(--fgulem-blue);
+    border-radius: 0 12px 12px 0;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    color: var(--ink-soft);
+    font-size: 0.94rem;
+    line-height: 1.55;
+  }
+  .flow-step { display: flex; gap: 14px; margin-bottom: 15px; align-items: flex-start; }
+  .step-num {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--fgulem-magenta), var(--fgulem-magenta-soft));
+    color: white; font-weight: 700; font-size: 0.82rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step-content strong { display: block; margin-bottom: 3px; color: var(--ink); font-size: 0.95rem; }
+  .step-content p { margin: 0; color: var(--ink-soft); font-size: 0.91rem; line-height: 1.55; }
+  .flow-note {
+    background: rgba(194,27,132,0.05); border: 1px solid rgba(194,27,132,0.15);
+    border-radius: 10px; padding: 11px 14px; font-size: 0.88rem;
+    color: var(--ink-soft); line-height: 1.55; margin: 12px 0;
+  }
+  .state-pill {
+    padding: 4px 11px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em;
+  }
+  .sp-paid { background: #d4edda; color: #155724; }
+  .modal-footer {
+    padding: 12px 24px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Bienvenida ── #}
+<p style="margin:0 0 22px; font-size:0.98rem; color:var(--ink-soft);">
+  Bienvenido/a de nuevo,
+  <strong style="color:var(--ink);">{{ usuario.nombre_completo }}</strong>.
+</p>
+
+{# ── Filtro de servicios (GE/Admin) ── #}
+{% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+<div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:18px;">
+  <a href="/" class="kpi-filtro-btn {% if not filtro_servicio %}activo{% endif %}">
+    Todos los servicios
+  </a>
+  {% for s in servicios %}
+  <a href="/?servicio={{ s.id_servicio }}"
+     class="kpi-filtro-btn {% if filtro_servicio == s.id_servicio %}activo{% endif %}">
+    {{ s.nombre }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# ════════════════════════════════
+   SECCIÓN: Autorizaciones
+   ════════════════════════════════ #}
+<div class="kpi-section-title">Autorizaciones</div>
+<div class="kpi-grid">
+
+  <a class="kpi-card kpi-pendiente"
+     href="/solicitudes/?estado=PENDIENTE_AUTORIZACION{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
+     title="Solicitudes pendientes de autorizar">
+    <div class="kpi-valor">{{ kpis.sol_pendientes or 0 }}</div>
+    <div class="kpi-label">Pendiente{% if (kpis.sol_pendientes or 0) != 1 %}s{% endif %} de autorizar</div>
+  </a>
+
+  <a class="kpi-card kpi-validado"
+     href="/solicitudes/?estado=AUTORIZADA{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
+     title="Solicitudes autorizadas sin PEG generada">
+    <div class="kpi-valor">{{ kpis.sol_autorizadas_sin_peg or 0 }}</div>
+    <div class="kpi-label">Autorizada{% if (kpis.sol_autorizadas_sin_peg or 0) != 1 %}s{% endif %} sin PEG</div>
+  </a>
+
+</div>
+
+{# ════════════════════════════════
+   SECCIÓN: PEGs
+   ════════════════════════════════ #}
+<div class="kpi-section-title">PEGs</div>
+<div class="kpi-grid">
+
+  <a class="kpi-card kpi-pendiente"
+     href="/pegs/?estado=PENDIENTE{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
+     title="Ver PEGs pendientes de validar">
+    <div class="kpi-valor">{{ kpis.pendiente }}</div>
+    <div class="kpi-label">Pendiente{% if kpis.pendiente != 1 %}s{% endif %}</div>
+    <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_pendiente) }} €</div>
+  </a>
+
+  <a class="kpi-card kpi-incidencia"
+     href="/pegs/?estado=INCIDENCIA{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
+     title="Ver PEGs con incidencia">
+    <div class="kpi-valor">{{ kpis.incidencia }}</div>
+    <div class="kpi-label">Incidencia{% if kpis.incidencia != 1 %}s{% endif %}</div>
+    <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_incidencia) }} €</div>
+  </a>
+
+  <a class="kpi-card kpi-validado"
+     href="/pegs/?estado=VALIDADO{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
+     title="Ver PEGs validadas">
+    <div class="kpi-valor">{{ kpis.validado }}</div>
+    <div class="kpi-label">Validada{% if kpis.validado != 1 %}s{% endif %}</div>
+    <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_validado) }} €</div>
+  </a>
+
+  {% if usuario.rol == 'GESTOR_SERVICIO' %}
+  <button class="kpi-card kpi-remesa"
+          onclick="document.getElementById('modal-sin-acceso').classList.add('active'); document.body.style.overflow='hidden';"
+          title="PEGs en remesa de pago">
+    <div class="kpi-valor">{{ kpis.en_remesa }}</div>
+    <div class="kpi-label">En remesa</div>
+    <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_en_remesa) }} €</div>
+  </button>
+  {% else %}
+  <a class="kpi-card kpi-remesa"
+     href="/pegs/?estado=EN_REMESA{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
+     title="Ver PEGs en remesa">
+    <div class="kpi-valor">{{ kpis.en_remesa }}</div>
+    <div class="kpi-label">En remesa</div>
+    <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_en_remesa) }} €</div>
+  </a>
+  {% endif %}
+
+  <a class="kpi-card kpi-pagado"
+     href="/pegs/?estado=PAGADO{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
+     title="Ver PEGs pagadas">
+    <div class="kpi-valor">{{ kpis.pagado }}</div>
+    <div class="kpi-label">Pagada{% if kpis.pagado != 1 %}s{% endif %}</div>
+    <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_pagado) }} €</div>
+  </a>
+
+  {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+  {% if kpis.pagados_sin_factura > 0 %}
+  <a class="kpi-card kpi-alerta"
+     href="/pegs/?estado=PAGADO&factura_recibida=0"
+     title="PEGs pagadas sin factura recibida">
+    <div class="kpi-valor">{{ kpis.pagados_sin_factura }}</div>
+    <div class="kpi-label">Sin factura</div>
+  </a>
+  {% endif %}
+  {% endif %}
+
+</div>
+
+{# ════════════════════════════════
+   SECCIÓN: Movimientos bancarios (GE/Admin)
+   ════════════════════════════════ #}
+{% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+<div class="kpi-section-title">Movimientos bancarios</div>
+<div class="kpi-grid">
+
+  <a class="kpi-card kpi-pendiente"
+     href="/movimientos/?estado=PENDIENTE"
+     title="Movimientos de gasto pendientes de cotejar">
+    <div class="kpi-valor">{{ kpis.mov_pendientes or 0 }}</div>
+    <div class="kpi-label">Gasto{% if (kpis.mov_pendientes or 0) != 1 %}s{% endif %} pendiente{% if (kpis.mov_pendientes or 0) != 1 %}s{% endif %}</div>
+    <div class="kpi-sub">Por cotejar</div>
+  </a>
+
+</div>
+
+{# ════════════════════════════════
+   SECCIÓN: Remesas directas (GE/Admin)
+   ════════════════════════════════ #}
+<div class="kpi-section-title">Remesas directas</div>
+<div class="kpi-grid">
+
+  <a class="kpi-card kpi-abierta"
+     href="/remesas-directas/"
+     title="Remesas directas abiertas">
+    <div class="kpi-valor">{{ kpis.rd_abiertas or 0 }}</div>
+    <div class="kpi-label">Abierta{% if (kpis.rd_abiertas or 0) != 1 %}s{% endif %}</div>
+    <div class="kpi-sub">Pendientes de cerrar</div>
+  </a>
+
+  {% if kpis.remesas_abiertas > 0 %}
+  <a class="kpi-card kpi-neutro"
+     href="/remesas/?estado=ABIERTA"
+     title="Remesas de transferencia abiertas">
+    <div class="kpi-valor">{{ kpis.remesas_abiertas }}</div>
+    <div class="kpi-label">RT abierta{% if kpis.remesas_abiertas != 1 %}s{% endif %}</div>
+    <div class="kpi-sub">Transferencias</div>
+  </a>
+  {% endif %}
+
+</div>
+{% endif %}
+
+{# ── Modal: acceso restringido (GESTOR_SERVICIO → En remesa) ── #}
+{% if usuario.rol == 'GESTOR_SERVICIO' %}
+<div id="modal-sin-acceso" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal-panel" style="max-width:480px;">
+    <div class="modal-header">
+      <span style="font-weight:700; font-size:1.05rem;">🔒 Sección gestionada por el equipo económico</span>
+      <button class="modal-close" onclick="document.getElementById('modal-sin-acceso').classList.remove('active'); document.body.style.overflow='';">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-intro" style="margin-bottom:14px;">
+        Las PEGs que aparecen en este estado han sido validadas por el equipo económico
+        e incluidas en una remesa de pago. El proceso de pago es gestionado exclusivamente
+        por el equipo económico.
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:linear-gradient(135deg,#5a2db5,#7f55d3);">R</div>
+        <div class="step-content">
+          <strong>¿Qué significa "En remesa"?</strong>
+          <p>Tu PEG ha sido agrupada junto a otras en un fichero bancario (Cuaderno 34)
+            que se enviará al banco para realizar el pago al proveedor.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:linear-gradient(135deg,#3b6d11,#7faa55);">✓</div>
+        <div class="step-content">
+          <strong>¿Qué debes hacer?</strong>
+          <p>Nada. Recibirás una notificación por correo cuando el pago se haya realizado
+            y la PEG pase a estado
+            <span class="state-pill sp-paid" style="font-size:0.78rem;vertical-align:middle;">PAGADO</span>.
+          </p>
+        </div>
+      </div>
+      <div class="flow-note" style="margin-top:4px;">
+        💡 Puedes consultar el detalle de cada PEG en remesa desde
+        <a href="/pegs/?estado=EN_REMESA" style="color:var(--fgulem-magenta);font-weight:700;">el listado de PEGs</a>
+        filtrado por estado <strong>En remesa</strong>.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <a href="/pegs/?estado=EN_REMESA" class="btn btn-secondary" style="margin-right:8px;">Ver mis PEGs en remesa</a>
+      <button class="btn btn-primary" onclick="document.getElementById('modal-sin-acceso').classList.remove('active'); document.body.style.overflow='';">Entendido</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

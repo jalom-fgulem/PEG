@@ -8,9 +8,11 @@ from app.core.auth import get_usuario_actual, require_rol
 from app.services import mock_bancos, mock_movimientos, mock_cotejos
 from app.services import remesas_service
 from app.services import mock_remesas_directas
+from app.services import remesas_directas_service
 from app.services.parser_extracto import detectar_y_parsear
 from app.services import pegs_service
 from app.services import proveedores_service
+from app.services import historial_remesas_service as historial
 
 router = APIRouter(prefix="/movimientos", tags=["Movimientos bancarios"])
 
@@ -23,17 +25,24 @@ TIPOS = ["TRANSFERENCIA", "DOMICILIACION", "TARJETA", "COMISION", "OTROS"]
 @router.get("/", response_class=HTMLResponse)
 def listar_movimientos(
     request: Request,
-    id_banco: int | None = None,
+    id_banco: str | None = None,
     estado: str | None = None,
     tipo: str | None = None,
 ):
     usuario = get_usuario_actual(request)
     require_rol(usuario, ["ADMIN", "GESTOR_ECONOMICO"])
 
-    items = mock_movimientos.listar_movimientos(id_banco=id_banco, estado=estado, tipo=tipo)
+    id_banco_int = int(id_banco) if id_banco and id_banco.strip().isdigit() else None
+    estado_val   = estado.strip()  if estado  and estado.strip()  else None
+    tipo_val     = tipo.strip()    if tipo    and tipo.strip()    else None
+    items = mock_movimientos.listar_movimientos(id_banco=id_banco_int, estado=estado_val, tipo=tipo_val)
     bancos = mock_bancos.listar_bancos(solo_activas=True)
     banco_map = {b["id_banco"]: b for b in mock_bancos.listar_bancos()}
     cotejo_map = {c["id_movimiento"]: c for c in mock_cotejos.listar_cotejos()}
+    todas_remesas_rd = remesas_directas_service.listar_remesas()
+    remesas_map = {r["id_remesa_directa"]: r for r in todas_remesas_rd}
+    remesas_abiertas = [r for r in todas_remesas_rd if r["estado"] == "ABIERTA"]
+    remesas_rt = remesas_service.listar_remesas()
 
     return templates.TemplateResponse(request=request, name="movimientos/listado.html", context={
         "usuario": usuario,
@@ -41,9 +50,12 @@ def listar_movimientos(
         "bancos": bancos,
         "banco_map": banco_map,
         "cotejo_map": cotejo_map,
-        "filtro_banco": id_banco,
-        "filtro_estado": estado,
-        "filtro_tipo": tipo,
+        "remesas_map": remesas_map,
+        "remesas_abiertas": remesas_abiertas,
+        "remesas_rt": remesas_rt,
+        "filtro_banco": id_banco_int,
+        "filtro_estado": estado_val,
+        "filtro_tipo": tipo_val,
         "estados": ESTADOS,
         "tipos": TIPOS,
     })
@@ -230,19 +242,41 @@ async def accion_masiva(request: Request):
     return RedirectResponse(url=f"/movimientos/?msg={quote(msg)}&msg_type=success", status_code=303)
 
 
-# ── AUTO-COTEJO ───────────────────────────────────────────────────────────────
+# ── PROPUESTAS DE COTEJO ──────────────────────────────────────────────────────
 
-@router.post("/autocotejar")
-def autocotejar(request: Request):
+@router.get("/propuestas-cotejo", response_class=HTMLResponse)
+def ver_propuestas_cotejo(request: Request):
     usuario = get_usuario_actual(request)
     require_rol(usuario, ["ADMIN", "GESTOR_ECONOMICO"])
 
     pendientes = mock_movimientos.listar_movimientos(estado="PENDIENTE")
     remesas = remesas_service.listar_remesas()
-    n = mock_cotejos.autocotejar_pendientes(pendientes, remesas)
+    propuestas = mock_cotejos.generar_propuestas_cotejo(pendientes, remesas)
+    banco_map = {b["id_banco"]: b for b in mock_bancos.listar_bancos()}
 
-    msg = f"{n} movimiento(s) cotejado(s) automáticamente" if n else "No se encontraron coincidencias automáticas"
-    from urllib.parse import quote
+    return templates.TemplateResponse(request=request, name="movimientos/propuestas_cotejo.html", context={
+        "usuario": usuario,
+        "propuestas": propuestas,
+        "banco_map": banco_map,
+    })
+
+
+@router.post("/propuestas-cotejo")
+async def confirmar_propuestas_cotejo(request: Request):
+    usuario = get_usuario_actual(request)
+    require_rol(usuario, ["ADMIN", "GESTOR_ECONOMICO"])
+
+    form = await request.form()
+    confirmados = []
+    for key, val in form.multi_items():
+        if key == "confirmar":
+            # val = "id_movimiento:id_remesa"
+            partes = val.split(":")
+            if len(partes) == 2 and partes[0].isdigit() and partes[1].isdigit():
+                confirmados.append({"id_movimiento": int(partes[0]), "id_remesa": int(partes[1])})
+
+    n = mock_cotejos.ejecutar_cotejos(confirmados, usuario["username"])
+    msg = f"{n} cotejo(s) confirmado(s)" if n else "Ningún cotejo confirmado"
     return RedirectResponse(url=f"/movimientos/?msg={quote(msg)}&msg_type=success", status_code=303)
 
 
@@ -456,6 +490,126 @@ async def guardar_remesa_directa_grupal(request: Request):
     n = len(movimientos_validos)
     return RedirectResponse(
         url=f"/movimientos/?msg={quote(f'Remesa directa creada y {n} movimiento(s) cotejado(s)')}&msg_type=success",
+        status_code=303,
+    )
+
+
+# ── AÑADIR A REMESA DIRECTA ABIERTA ──────────────────────────────────────────
+
+@router.get("/anadir-a-remesa", response_class=HTMLResponse)
+def formulario_anadir_a_remesa(request: Request, ids: str = "", id_remesa: int = 0):
+    usuario = get_usuario_actual(request)
+    require_rol(usuario, ["ADMIN", "GESTOR_ECONOMICO"])
+
+    id_list = [int(i) for i in ids.split(",") if i.strip().isdigit()]
+    movimientos_sel = [
+        mock_movimientos.obtener_movimiento(i)
+        for i in id_list
+        if mock_movimientos.obtener_movimiento(i) and mock_movimientos.obtener_movimiento(i)["estado"] == "PENDIENTE"
+    ]
+
+    if not movimientos_sel:
+        return RedirectResponse(url="/movimientos/?msg=No+hay+movimientos+pendientes+seleccionados&msg_type=error", status_code=302)
+
+    remesa = remesas_directas_service.obtener_remesa(id_remesa) if id_remesa else None
+    if not remesa or remesa["estado"] != "ABIERTA":
+        return RedirectResponse(url="/movimientos/?msg=Remesa+no+válida+o+no+abierta&msg_type=error", status_code=302)
+
+    banco_map = {b["id_banco"]: b for b in mock_bancos.listar_bancos()}
+    return templates.TemplateResponse(request=request, name="movimientos/anadir_a_remesa.html", context={
+        "usuario": usuario,
+        "movimientos": movimientos_sel,
+        "banco_map": banco_map,
+        "remesa": remesa,
+        "tipos_gasto": mock_remesas_directas.TIPOS_GASTO,
+        "ids_str": ids,
+        "cuentas_gasto": pegs_service.listar_cuentas_gasto(),
+        "servicios_proyectos": pegs_service.get_servicios_proyectos_todos(),
+        "proveedores": proveedores_service.listar_proveedores(),
+    })
+
+
+@router.post("/anadir-a-remesa")
+async def guardar_anadir_a_remesa(request: Request):
+    usuario = get_usuario_actual(request)
+    require_rol(usuario, ["ADMIN", "GESTOR_ECONOMICO"])
+
+    form = await request.form()
+    id_remesa_str = str(form.get("id_remesa_directa", "")).strip()
+    ids_raw = str(form.get("ids_movimientos", ""))
+    id_list = [int(i) for i in ids_raw.split(",") if i.strip().isdigit()]
+
+    if not id_remesa_str.isdigit():
+        return RedirectResponse(url="/movimientos/?msg=Remesa+no+válida&msg_type=error", status_code=302)
+    id_remesa = int(id_remesa_str)
+
+    tipos_gasto_list = form.getlist("tipo_gasto")
+    cuentas_gasto_mov = form.getlist("cuenta_gasto_mov")
+    proveedores_mov = form.getlist("id_proveedor")
+    serv_proy_list = form.getlist("servicio_proyecto")
+    descripciones_l = form.getlist("descripcion_linea")
+    porcentajes_raw = form.getlist("porcentaje_linea")
+
+    n_movs = len(id_list)
+    n_lineas = len(porcentajes_raw)
+    lineas_por_mov = (n_lineas // n_movs) if (n_movs > 0 and n_lineas > 0 and n_lineas % n_movs == 0) else max(1, n_lineas)
+
+    movimientos_validos = []
+    for idx, id_mov in enumerate(id_list):
+        mov = mock_movimientos.obtener_movimiento(id_mov)
+        if not mov or mov["estado"] != "PENDIENTE":
+            continue
+
+        tipo_gasto = tipos_gasto_list[idx] if idx < len(tipos_gasto_list) else "OTROS"
+        cuenta_gasto = cuentas_gasto_mov[idx] if idx < len(cuentas_gasto_mov) else ""
+        id_prov = proveedores_mov[idx] if idx < len(proveedores_mov) else ""
+
+        inicio = idx * lineas_por_mov if (n_movs > 0 and n_lineas % n_movs == 0) else 0
+        fin = inicio + lineas_por_mov
+        lineas = []
+        for j in range(inicio, min(fin, len(porcentajes_raw))):
+            try:
+                pct = round(float(porcentajes_raw[j].replace(",", ".")), 2)
+            except (ValueError, AttributeError):
+                pct = 0.0
+            if pct <= 0:
+                continue
+            lineas.append({
+                "servicio_proyecto": serv_proy_list[j] if j < len(serv_proy_list) else "",
+                "descripcion_linea": descripciones_l[j] if j < len(descripciones_l) else "",
+                "porcentaje": pct,
+            })
+
+        res = remesas_directas_service.crear_gasto_desde_movimiento(
+            id_remesa=id_remesa,
+            mov=mov,
+            tipo_gasto=tipo_gasto,
+            cuenta_gasto=cuenta_gasto,
+            proveedor_id=id_prov,
+            lineas_analitica=lineas,
+        )
+        if res.get("ok"):
+            mock_cotejos.crear_cotejo({
+                "id_movimiento": mov["id_movimiento"],
+                "tipo_referencia": "REMESA_DIRECTA",
+                "id_referencia": id_remesa,
+                "descripcion": f"Añadido a remesa directa #{id_remesa}",
+                "id_usuario": usuario["username"],
+            })
+            mock_movimientos.marcar_cotejado(mov["id_movimiento"])
+            concepto = (mov.get("concepto") or "")[:50]
+            historial.registrar_evento(
+                "RD", id_remesa, "GASTO_AÑADIDO", usuario["nombre_completo"],
+                f"Movimiento {mov['fecha_operacion']} · {concepto}",
+            )
+            movimientos_validos.append(mov)
+
+    if not movimientos_validos:
+        return RedirectResponse(url="/movimientos/?msg=No+se+añadió+ningún+movimiento&msg_type=error", status_code=302)
+
+    n = len(movimientos_validos)
+    return RedirectResponse(
+        url=f"/movimientos/?msg={quote(f'{n} movimiento(s) añadido(s) a la remesa directa #{id_remesa}')}&msg_type=success",
         status_code=303,
     )
 

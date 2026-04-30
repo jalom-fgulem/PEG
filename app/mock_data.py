@@ -197,11 +197,9 @@ GASTOS_DIRECTOS: list[dict] = [
 
 REMESAS_DIRECTAS: list[dict] = [
     {"id_remesa_directa": 1, "numero": 1,
-     "tipo": "DOMICILIACIONES",
-     "periodo": "2026-03",
+     "descripcion": "Domiciliaciones marzo 2026",
      "estado": "ABIERTA",
      "cuenta_bancaria_id": 1,
-     "servicio_id": 1,
      "fecha_creacion": "2026-03-31",
      "fecha_cierre": None},
 ]

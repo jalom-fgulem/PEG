@@ -15,6 +15,7 @@
   }
   .btn-filtro:hover { background: #e5e7eb; }
   .btn-filtro.activo { background: #166534; color: white; border-color: #166534; }
+  [data-upper] { text-transform: uppercase; }
 </style>
 {% endblock %}
 
@@ -203,17 +204,17 @@
 
         <div class="field" style="margin:0;">
           <label>CIF/NIF <span style="color:var(--fgulem-magenta)">*</span></label>
-          <input type="text" id="mp-cif-nif" placeholder="B12345678">
+          <input type="text" id="mp-cif-nif" placeholder="B12345678" data-upper="1">
         </div>
 
         <div class="field" style="grid-column:span 2;margin:0;">
           <label>Razón social <span style="color:var(--fgulem-magenta)">*</span></label>
-          <input type="text" id="mp-razon-social" placeholder="Nombre o denominación social">
+          <input type="text" id="mp-razon-social" placeholder="Nombre o denominación social" data-upper="1">
         </div>
 
         <div class="field" style="grid-column:span 2;margin:0;">
           <label>Nombre comercial</label>
-          <input type="text" id="mp-nombre-comercial" placeholder="Si difiere de la razón social">
+          <input type="text" id="mp-nombre-comercial" placeholder="Si difiere de la razón social" data-upper="1">
         </div>
 
         <!-- Contacto -->
@@ -281,12 +282,12 @@
 
         <div class="field" style="grid-column:span 2;margin:0;">
           <label>Dirección</label>
-          <input type="text" id="mp-direccion" placeholder="Calle, número, piso...">
+          <input type="text" id="mp-direccion" placeholder="Calle, número, piso..." data-upper="1">
         </div>
 
         <div class="field" style="margin:0;">
           <label>Localidad</label>
-          <input type="text" id="mp-localidad">
+          <input type="text" id="mp-localidad" data-upper="1">
         </div>
 
         <div class="field" style="margin:0;">
@@ -296,7 +297,7 @@
 
         <div class="field" style="margin:0;">
           <label>Provincia</label>
-          <input type="text" id="mp-provincia">
+          <input type="text" id="mp-provincia" data-upper="1">
         </div>
 
         <div class="field" style="margin:0;">
@@ -604,11 +605,16 @@
                         <div><p><strong>Provincia</strong><br><span id="v-prov-${id}">${data.provincia||"—"}</span></p></div>
                         <div><p><strong>País</strong><br><span id="v-pais-${id}">${(PAISES.find(([v])=>v===(data.pais||"ES"))||["","—"])[1]}</span></p></div>
                     </div>
-                    <div style="margin-bottom:20px;">
+                    <div style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                         <button type="button" onclick="activarEdicion(${id})"
                             style="background:linear-gradient(135deg,#c21b84,#d94da0);color:#fff;border:none;
                                    border-radius:10px;padding:8px 18px;cursor:pointer;font-weight:700;font-size:0.9rem;">
                             Editar
+                        </button>
+                        <button type="button" onclick="eliminarProveedor(${id})"
+                            style="background:rgba(226,75,74,0.10);color:#a32d2d;border:1.5px solid rgba(226,75,74,0.30);
+                                   border-radius:10px;padding:8px 18px;cursor:pointer;font-weight:700;font-size:0.9rem;">
+                            Eliminar
                         </button>
                     </div>
                     <h3 style="margin-bottom:10px;">Histórico de PEGs</h3>
@@ -632,20 +638,20 @@
                             <label>CIF/NIF <span style="color:var(--fgulem-magenta)">*</span></label>
                             <input id="e-cif-${id}" name="cif_nif" type="text" required
                                    value="${data.cif_nif||""}" style="${inputStyle}"
-                                   oninput="validarCampoCif(${id})">
+                                   data-upper="1" oninput="validarCampoCif(${id})">
                             <p id="err-cif-${id}" style="${errStyle}">CIF/NIF no válido.</p>
                         </div>
 
                         <div class="field" style="grid-column:span 2">
                             <label>Razón social <span style="color:var(--fgulem-magenta)">*</span></label>
                             <input id="e-rs-${id}" name="razon_social" type="text" required
-                                   value="${data.razon_social||""}" style="${inputStyle}">
+                                   value="${data.razon_social||""}" style="${inputStyle}" data-upper="1">
                         </div>
 
                         <div class="field">
                             <label>Nombre comercial</label>
                             <input id="e-nc-${id}" name="nombre_comercial" type="text"
-                                   value="${data.nombre_comercial||""}" style="${inputStyle}">
+                                   value="${data.nombre_comercial||""}" style="${inputStyle}" data-upper="1">
                         </div>
 
                         <div class="field">
@@ -703,13 +709,13 @@
                             <label>Dirección</label>
                             <input name="direccion" type="text"
                                    value="${data.direccion||""}" placeholder="Calle, número, piso..."
-                                   style="${inputStyle}">
+                                   style="${inputStyle}" data-upper="1">
                         </div>
 
                         <div class="field">
                             <label>Localidad</label>
                             <input name="localidad" type="text"
-                                   value="${data.localidad||""}" style="${inputStyle}">
+                                   value="${data.localidad||""}" style="${inputStyle}" data-upper="1">
                         </div>
 
                         <div class="field">
@@ -722,7 +728,7 @@
                         <div class="field">
                             <label>Provincia</label>
                             <input name="provincia" type="text"
-                                   value="${data.provincia||""}" style="${inputStyle}">
+                                   value="${data.provincia||""}" style="${inputStyle}" data-upper="1">
                         </div>
 
                         <div class="field">
@@ -960,6 +966,32 @@
             errGlob.style.display = "block";
         }
     }
+
+    // ── Eliminar proveedor ────────────────────────────────────────────────────
+    async function eliminarProveedor(id) {
+        if (!confirm('¿Eliminar este proveedor? Esta acción no se puede deshacer.')) return;
+        try {
+            const res  = await fetch(`/proveedores/${id}/eliminar`, { method: 'POST' });
+            const data = await res.json();
+            if (data.ok) {
+                modal.classList.remove('active');
+                window.location.reload();
+            } else {
+                alert('No se puede eliminar:\n\n' + data.error);
+            }
+        } catch (e) {
+            alert('Error de red. Inténtelo de nuevo.');
+        }
+    }
+
+    // ── Uppercase automático en campos con data-upper ─────────────────────────
+    document.addEventListener('input', function(e) {
+        if (e.target.dataset && e.target.dataset.upper === '1') {
+            const pos = e.target.selectionStart;
+            e.target.value = e.target.value.toUpperCase();
+            try { e.target.setSelectionRange(pos, pos); } catch(x) {}
+        }
+    });
 
     // ── Cerrar modal ──────────────────────────────────────────────────────────
     cerrarModal.addEventListener("click", () => modal.classList.remove("active"));

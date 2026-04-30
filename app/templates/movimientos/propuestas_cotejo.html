@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Propuestas de cotejo{% endblock %}
+{% block page_title %}Propuestas de cotejo{% endblock %}
+{% block page_subtitle %}Revisa las coincidencias sugeridas y confirma las que sean correctas{% endblock %}
+
+{% block extra_head %}
+<style>
+  .prop-row { border:1px solid var(--line); border-radius:10px; margin-bottom:10px; overflow:hidden; }
+  .prop-row.sin-match { opacity:0.55; }
+  .prop-hdr {
+    display:grid; gap:12px; padding:11px 16px; background:#fafafa;
+    border-bottom:1px solid var(--line); align-items:center;
+    grid-template-columns: 32px 110px 1fr 110px 120px 180px 120px;
+  }
+  .prop-hdr.sin-match { background:rgba(150,150,150,0.06); }
+  .prop-hdr.con-match { background:rgba(99,153,34,0.05); }
+  .lbl { font-size:0.69rem; color:#8a8691; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px; }
+  .badge-match { display:inline-block; padding:3px 9px; border-radius:6px; font-size:0.78rem; font-weight:700; background:rgba(99,153,34,0.14); color:#3b6d11; }
+  .badge-sinmatch { display:inline-block; padding:3px 9px; border-radius:6px; font-size:0.78rem; font-weight:700; background:rgba(150,150,150,0.12); color:#666; }
+  .badge-pct { display:inline-block; padding:2px 7px; border-radius:5px; font-size:0.75rem; font-weight:700; background:rgba(95,159,211,0.14); color:#185fa5; }
+  .cb-confirm { width:20px; height:20px; cursor:pointer; accent-color:#16a34a; }
+  .prop-row.sin-match .cb-confirm { display:none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:1000px;">
+
+{% set con_match = propuestas | selectattr("remesa") | list %}
+{% set sin_match = propuestas | rejectattr("remesa") | list %}
+
+{% if not propuestas %}
+<div class="card" style="text-align:center; padding:40px;">
+  <div style="font-size:1.3rem; margin-bottom:8px;">✓</div>
+  <div style="font-weight:700; margin-bottom:6px;">No hay movimientos de gasto pendientes</div>
+  <div class="muted">Todos los gastos ya están cotejados o no hay movimientos importados.</div>
+  <a class="btn btn-secondary" href="/movimientos/" style="margin-top:18px; display:inline-block;">← Volver</a>
+</div>
+{% else %}
+
+<form method="post" action="/movimientos/propuestas-cotejo">
+
+  <!-- Resumen -->
+  <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:16px; align-items:center;">
+    <div style="flex:1;">
+      <span style="font-weight:700; font-size:1rem;">{{ propuestas|length }} gasto(s) pendiente(s)</span>
+      <span style="color:#3b6d11; font-weight:700; margin-left:12px;">{{ con_match|length }} con propuesta</span>
+      {% if sin_match %}
+      <span style="color:#666; margin-left:8px;">· {{ sin_match|length }} sin coincidencia</span>
+      {% endif %}
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button type="button" class="btn btn-secondary" onclick="marcarTodos(true)"
+              style="font-size:0.82rem;">Seleccionar todo</button>
+      <button type="button" class="btn btn-secondary" onclick="marcarTodos(false)"
+              style="font-size:0.82rem;">Deseleccionar</button>
+      <button type="submit" class="btn btn-primary"
+              onclick="return confirm('¿Confirmar los cotejos seleccionados?')">
+        ✓ Confirmar seleccionados
+      </button>
+      <a class="btn btn-secondary" href="/movimientos/">Cancelar</a>
+    </div>
+  </div>
+
+  <!-- Cabecera de columnas -->
+  <div style="display:grid; gap:12px; padding:6px 16px; margin-bottom:4px;
+    grid-template-columns: 32px 110px 1fr 110px 120px 180px 120px;
+    font-size:0.69rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#8a8691;">
+    <div></div>
+    <div>Fecha</div>
+    <div>Concepto / Cuenta</div>
+    <div>Importe</div>
+    <div>Estado</div>
+    <div>Remesa propuesta</div>
+    <div>Ajuste</div>
+  </div>
+
+  {% for p in propuestas %}
+  {% set m = p.movimiento %}
+  {% set r = p.remesa %}
+  {% set banco = banco_map.get(m.id_banco) %}
+  <div class="prop-row {% if r %}con-match{% else %}sin-match{% endif %}">
+    <div class="prop-hdr {% if r %}con-match{% else %}sin-match{% endif %}">
+
+      <div>
+        {% if r %}
+        <input type="checkbox" class="cb-confirm" name="confirmar"
+               value="{{ m.id_movimiento }}:{{ r.id_remesa }}" checked>
+        {% else %}
+        <span style="color:#ccc; font-size:1rem;">—</span>
+        {% endif %}
+      </div>
+
+      <div>
+        <div class="lbl">Fecha</div>
+        <div style="font-family:monospace; font-size:0.86rem; font-weight:600;">{{ m.fecha_operacion }}</div>
+      </div>
+
+      <div style="overflow:hidden;">
+        <div class="lbl">Concepto</div>
+        <div style="font-weight:600; font-size:0.86rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+             title="{{ m.concepto }}">{{ m.concepto or "—" }}</div>
+        <div style="font-size:0.75rem; color:#aaa;">{{ banco.alias if banco else "—" }}</div>
+      </div>
+
+      <div>
+        <div class="lbl">Importe</div>
+        <div style="font-family:monospace; font-weight:800; color:#a32d2d; font-size:0.92rem; white-space:nowrap;">
+          {{ "%+.2f"|format(m.importe) }} €
+        </div>
+      </div>
+
+      <div>
+        <div class="lbl">Estado</div>
+        {% if r %}
+          <span class="badge-match">✓ Propuesta</span>
+        {% else %}
+          <span class="badge-sinmatch">Sin coincidencia</span>
+        {% endif %}
+      </div>
+
+      <div>
+        <div class="lbl">Remesa</div>
+        {% if r %}
+          <div style="font-weight:700; font-size:0.86rem;">{{ r.codigo_remesa }}</div>
+          <div style="font-size:0.77rem; color:#555; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+               title="{{ r.descripcion }}">{{ r.descripcion or "—" }}</div>
+        {% else %}
+          <span style="color:#aaa; font-size:0.82rem;">Ninguna dentro del ±5%</span>
+        {% endif %}
+      </div>
+
+      <div>
+        <div class="lbl">Diferencia</div>
+        {% if r %}
+          <span class="badge-pct">{{ "%.2f"|format(p.diff_pct) }}%</span>
+        {% else %}
+          <span style="color:#aaa;">—</span>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if sin_match %}
+  <div style="margin-top:14px; padding:10px 14px; border-radius:8px;
+    background:rgba(150,150,150,0.07); border:1px solid rgba(150,150,150,0.18);
+    font-size:0.83rem; color:#666;">
+    Los {{ sin_match|length }} movimiento(s) sin coincidencia no se pueden cotejar automáticamente.
+    Usa <strong>Cotejar</strong> manualmente desde el listado o incorpóralos a una remesa directa.
+  </div>
+  {% endif %}
+
+  <div style="margin-top:18px; display:flex; gap:10px; justify-content:flex-end;">
+    <button type="submit" class="btn btn-primary"
+            onclick="return confirm('¿Confirmar los cotejos seleccionados?')">
+      ✓ Confirmar seleccionados
+    </button>
+    <a class="btn btn-secondary" href="/movimientos/">Cancelar</a>
+  </div>
+
+</form>
+{% endif %}
+</div>
+
+<script>
+function marcarTodos(estado) {
+  document.querySelectorAll('.cb-confirm').forEach(cb => cb.checked = estado);
+}
+</script>
+{% endblock %}

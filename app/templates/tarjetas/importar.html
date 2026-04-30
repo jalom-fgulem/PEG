@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Importar extracto de tarjeta{% endblock %}
+{% block page_title %}Importar extracto de tarjeta{% endblock %}
+{% block page_subtitle %}Sube el extracto de movimientos de tu tarjeta{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Botón de selección de fichero */
+  .file-pick-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1.5px solid var(--accent, #5b5bd6);
+    color: var(--accent, #5b5bd6);
+    font-size: 0.88rem;
+    font-weight: 600;
+    background: transparent;
+    transition: background 0.15s, color 0.15s;
+    user-select: none;
+  }
+  .file-pick-label:hover {
+    background: var(--accent, #5b5bd6);
+    color: #fff;
+  }
+  .file-pick-input { display: none; }
+  .file-pick-name {
+    margin-left: 10px;
+    font-size: 0.85rem;
+    color: #666;
+    font-style: italic;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if error %}
+<div style="margin-bottom:16px; padding:12px 16px; border-radius:10px; font-weight:600;
+            background:rgba(226,75,74,0.10); border:1px solid rgba(226,75,74,0.28); color:#a32d2d;">
+  ⚠ {{ error }}
+</div>
+{% endif %}
+
+<div style="display:grid; grid-template-columns:1fr 300px; gap:18px; align-items:start;">
+
+  <div class="card">
+    <h3 style="margin-top:0; margin-bottom:18px;">Selecciona tarjeta y fichero</h3>
+    <form method="post" action="/tarjetas/importar" enctype="multipart/form-data">
+
+      <div class="form-group">
+        <label for="id_tarjeta">Tarjeta <span style="color:#a32d2d;">*</span></label>
+        <select name="id_tarjeta" id="id_tarjeta" required style="width:100%;">
+          <option value="">— Selecciona tarjeta —</option>
+          {% for t in tarjetas %}
+          <option value="{{ t.id_tarjeta }}">{{ t.alias }} ({{ t.numero }}) — {{ t.entidad }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Fichero <span style="color:#a32d2d;">*</span></label>
+        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:4px;">
+          <label class="file-pick-label" for="fichero">
+            📂 Seleccionar fichero
+          </label>
+          <input type="file" name="fichero" id="fichero"
+                 accept=".csv,.txt,.xlsx,.xls" required
+                 class="file-pick-input">
+          <span class="file-pick-name" id="fichero-nombre">Ningún fichero seleccionado</span>
+        </div>
+        <div style="font-size:0.80rem; color:#8a8691; margin-top:8px;">
+          Formatos admitidos: <code>.xlsx</code> (Santander), <code>.xls</code> (Unicaja) y <code>.csv</code> genérico.
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button type="submit" class="btn btn-primary">↑ Importar</button>
+        <a class="btn btn-secondary" href="/tarjetas/">Cancelar</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0; margin-bottom:12px; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.06em; color:#8a8691;">Formatos soportados</h3>
+
+    <p style="font-size:0.85rem; font-weight:600; color:#333; margin-bottom:4px;">Santander (.xlsx)</p>
+    <p style="font-size:0.83rem; color:#555; margin-top:0; line-height:1.6; margin-bottom:12px;">
+      Exportación de la app / banca online del Santander.<br>
+      Hoja <em>Liquidación mensual</em>. Columnas leídas:<br>
+      <code>Fecha operación</code>, <code>Concepto</code>, <code>Beneficiario</code>, <code>Importe</code>.
+    </p>
+
+    <p style="font-size:0.85rem; font-weight:600; color:#333; margin-bottom:4px;">Unicaja (.xls)</p>
+    <p style="font-size:0.83rem; color:#555; margin-top:0; line-height:1.6; margin-bottom:12px;">
+      Exportación de la app / banca online de Unicaja.<br>
+      Hoja <em>Unicaja01</em>. Columnas leídas:<br>
+      <code>Fecha operación</code>, <code>Nombre comercio</code>, <code>Concepto</code>, <code>Importe</code>.
+    </p>
+
+    <p style="font-size:0.85rem; font-weight:600; color:#333; margin-bottom:4px;">CSV genérico (.csv / .txt)</p>
+    <p style="font-size:0.83rem; color:#555; margin-top:0; line-height:1.6;">
+      Separador <code>;</code> o <code>,</code>. Columnas reconocidas por nombre:<br>
+      <code>Fecha</code>, <code>Concepto</code>, <code>Importe</code> (y variantes).
+    </p>
+
+    <p style="font-size:0.82rem; color:#8a8691; margin-top:12px; border-top:1px solid var(--line); padding-top:10px;">
+      Los registros duplicados (misma fecha, concepto e importe) se omiten automáticamente.
+    </p>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  document.getElementById('fichero').addEventListener('change', function () {
+    const label = document.getElementById('fichero-nombre');
+    label.textContent = this.files.length ? this.files[0].name : 'Ningún fichero seleccionado';
+  });
+</script>
+{% endblock %}
