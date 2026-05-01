@@ -30,14 +30,22 @@ def enviar_email(destinatario: str | list[str], asunto: str, cuerpo_html: str) -
     msg.attach(MIMEText(cuerpo_html, "html", "utf-8"))
 
     try:
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as servidor:
-            servidor.ehlo()
-            if servidor.has_extn("STARTTLS"):
-                servidor.starttls()
+        # Puerto 465 → SSL implícito (SMTPS); resto → STARTTLS
+        if settings.SMTP_PORT == 465:
+            with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as servidor:
                 servidor.ehlo()
-            if settings.SMTP_USER and settings.SMTP_PASSWORD:
-                servidor.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-            servidor.sendmail(settings.SMTP_FROM, destinatarios, msg.as_string())
+                if settings.SMTP_USER and settings.SMTP_PASSWORD:
+                    servidor.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                servidor.sendmail(settings.SMTP_FROM, destinatarios, msg.as_string())
+        else:
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as servidor:
+                servidor.ehlo()
+                if servidor.has_extn("STARTTLS"):
+                    servidor.starttls()
+                    servidor.ehlo()
+                if settings.SMTP_USER and settings.SMTP_PASSWORD:
+                    servidor.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                servidor.sendmail(settings.SMTP_FROM, destinatarios, msg.as_string())
         logger.info("Correo enviado a %s — %s", destinatarios, asunto)
         return True
     except Exception:

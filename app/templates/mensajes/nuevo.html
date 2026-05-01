@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo mensaje — SGPEG{% endblock %}
+{% block page_title %}Mensajes{% endblock %}
+{% block page_subtitle %}Redactar nuevo mensaje{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:16px;">
+  <a href="/mensajes/" class="btn btn-secondary" style="font-size:0.88rem;">← Volver a bandeja</a>
+</div>
+
+<div class="card" style="max-width:680px;">
+  <h2 style="margin-top:0;">Nuevo mensaje</h2>
+  <form method="post" action="/mensajes/nuevo">
+    <input type="hidden" name="entidad_tipo" value="{{ entidad_tipo }}">
+    <input type="hidden" name="entidad_id" value="{{ entidad_id or '' }}">
+
+    <div class="field">
+      <label for="id_destinatario">Para</label>
+      <select name="id_destinatario" id="id_destinatario" required>
+        <option value="">— Selecciona destinatario —</option>
+        {% for u in usuarios %}
+        <option value="{{ u.id_usuario }}"
+          {% if para and u.id_usuario == para %}selected{% endif %}>
+          {{ u.nombre_completo }} ({{ u.rol }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="asunto">Asunto</label>
+      <input type="text" name="asunto" id="asunto"
+             value="{{ asunto_prefill }}"
+             placeholder="Asunto del mensaje" required maxlength="200">
+    </div>
+
+    <div class="field">
+      <label for="cuerpo">Mensaje</label>
+      <textarea name="cuerpo" id="cuerpo" rows="8"
+                placeholder="Escribe tu mensaje aquí…" required></textarea>
+    </div>
+
+    {% if entidad_tipo and entidad_id %}
+    <div style="background:rgba(95,159,211,0.08);border:1px solid rgba(95,159,211,0.2);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:0.91rem;color:var(--ink-soft);">
+      Este mensaje quedará vinculado a
+      <strong>{{ entidad_tipo | lower | replace('_', ' ') }} #{{ entidad_id }}</strong>.
+    </div>
+    {% endif %}
+
+    <div style="display:flex;gap:10px;">
+      <button type="submit" class="btn btn-primary">Enviar mensaje</button>
+      <a href="/mensajes/" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

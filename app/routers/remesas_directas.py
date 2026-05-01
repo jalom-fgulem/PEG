@@ -16,6 +16,7 @@ from app.services.remesas_directas_service import (
 )
 from app.services import mock_bancos
 from app.services import historial_remesas_service as historial
+from app.services import mensajes_service
 
 router = APIRouter(prefix="/remesas-directas", tags=["Remesas Directas"])
 
@@ -164,6 +165,9 @@ def remesas_directas_cerrar(
     resultado = cerrar_remesa(id_remesa)
     if resultado["ok"]:
         historial.registrar_evento("RD", id_remesa, "CERRADA", usuario["nombre_completo"])
+        remesa_rd = obtener_remesa(id_remesa)
+        if remesa_rd:
+            mensajes_service.notif_remesa_directa_cerrada(remesa_rd)
         return RedirectResponse(
             url=f"/remesas-directas/{id_remesa}?msg=Remesa+cerrada+correctamente&msg_type=success",
             status_code=303,

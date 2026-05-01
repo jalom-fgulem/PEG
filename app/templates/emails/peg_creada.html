@@ -1,0 +1,53 @@
+{% extends "emails/_base.html" %}
+{% block content %}
+
+<h2 style="margin:0 0 6px;font-size:1.25rem;color:#c21b84;">
+  Nueva PEG pendiente de validación
+</h2>
+<p style="margin:0 0 24px;font-size:0.93rem;color:#6e6a73;">
+  Se ha registrado una nueva propuesta específica de gasto que requiere su revisión y validación.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+       style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;
+              font-size:0.93rem;margin-bottom:28px;">
+  <tr>
+    <td style="padding:11px 16px;background:#f7f7f8;color:#6e6a73;width:38%;font-weight:600;">Código PEG</td>
+    <td style="padding:11px 16px;font-weight:700;">{{ codigo_peg }}</td>
+  </tr>
+  <tr>
+    <td style="padding:11px 16px;color:#6e6a73;font-weight:600;">Servicio</td>
+    <td style="padding:11px 16px;">{{ servicio }}</td>
+  </tr>
+  <tr>
+    <td style="padding:11px 16px;background:#f7f7f8;color:#6e6a73;font-weight:600;">Proveedor</td>
+    <td style="padding:11px 16px;background:#f7f7f8;">{{ proveedor }}</td>
+  </tr>
+  <tr>
+    <td style="padding:11px 16px;color:#6e6a73;font-weight:600;">Descripción</td>
+    <td style="padding:11px 16px;">{{ descripcion }}</td>
+  </tr>
+  <tr>
+    <td style="padding:11px 16px;background:#f7f7f8;color:#6e6a73;font-weight:600;">Importe total</td>
+    <td style="padding:11px 16px;background:#f7f7f8;font-weight:700;font-size:1.05rem;">{{ importe }}</td>
+  </tr>
+  <tr>
+    <td style="padding:11px 16px;color:#6e6a73;font-weight:600;">Creado por</td>
+    <td style="padding:11px 16px;">{{ creado_por }}</td>
+  </tr>
+</table>
+
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+  <tr>
+    <td align="center">
+      <a href="{{ url }}"
+         style="display:inline-block;background:#c21b84;color:#ffffff;
+                font-weight:700;font-size:0.95rem;text-decoration:none;
+                padding:13px 32px;border-radius:10px;">
+        Revisar y validar este PEG →
+      </a>
+    </td>
+  </tr>
+</table>
+
+{% endblock %}

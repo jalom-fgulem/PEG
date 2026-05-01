@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Plantillas de correo{% endblock %}
+{% block page_title %}Plantillas de correo{% endblock %}
+{% block page_subtitle %}Edita el contenido HTML de las notificaciones enviadas por el sistema{% endblock %}
+
+{% block extra_head %}
+<style>
+  .plantilla-list { display:flex; flex-direction:column; gap:8px; }
+  .plantilla-row {
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 18px; border-radius:12px;
+    background:#fff; border:1px solid var(--line);
+    transition:border-color 0.15s;
+  }
+  .plantilla-row:hover { border-color:var(--fgulem-magenta); }
+  .plantilla-row-info { display:flex; flex-direction:column; gap:4px; }
+  .plantilla-row-info strong { font-size:0.93rem; color:var(--ink); }
+  .plantilla-row-nombre {
+    font-family:monospace; font-size:0.78rem; color:var(--ink-soft);
+    background:#f7f7f8; border:1px solid var(--line);
+    padding:2px 8px; border-radius:6px; display:inline-block;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set admin_tab = 'plantillas' %}
+{% include "admin/_tabs.html" %}
+
+<div class="card">
+  <div style="margin-bottom:16px;">
+    <p style="margin:0;font-size:0.9rem;color:var(--ink-soft);">
+      Las plantillas extienden una base común con la cabecera y pie institucional de FGULEM.
+      Solo se edita el bloque de contenido de cada plantilla; el encabezado y firma se añaden automáticamente.
+    </p>
+  </div>
+  <div class="plantilla-list">
+    {% for p in plantillas %}
+    <div class="plantilla-row">
+      <div class="plantilla-row-info">
+        <strong>{{ p.descripcion }}</strong>
+        <span class="plantilla-row-nombre">emails/{{ p.nombre }}</span>
+      </div>
+      <a href="/admin/plantillas-correo/{{ p.nombre }}" class="btn btn-secondary" style="white-space:nowrap;">
+        Editar →
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}

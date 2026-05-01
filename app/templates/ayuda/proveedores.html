@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Gestión de proveedores — Ayuda SGPEG{% endblock %}
+{% block page_title %}Gestión de proveedores{% endblock %}
+{% block page_subtitle %}Catálogo compartido de proveedores: búsqueda, creación y mantenimiento{% endblock %}
+
+{% block content %}
+<div class="ayuda-wrap">
+  {% include "ayuda/_nav.html" %}
+
+  <div class="ayuda-content">
+    <h2>Gestión de proveedores</h2>
+    <p class="lead">El catálogo de proveedores es compartido por todos los servicios de FGULEM. Un proveedor solo necesita crearse una vez, y todos los servicios pueden usarlo en sus PEGs. Los datos bancarios del proveedor se usan directamente para generar el fichero Cuaderno 34.</p>
+
+    <div class="ayuda-section-title">1. El catálogo de proveedores</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Todos los usuarios pueden buscar en el catálogo. Puedes crear proveedores nuevos desde el formulario del PEG (modal rápido) o desde el menú «Proveedores → Nuevo proveedor» (formulario completo con todos los campos).</p>
+      <div class="tip"><strong>Antes de crear un proveedor nuevo,</strong> busca por CIF/NIF para asegurarte de que no existe ya. El sistema impide duplicados de CIF, pero podrías encontrarlo con una variación del nombre.</div>
+    </div>
+
+    <div class="ayuda-section-title">2. Buscar un proveedor desde el formulario de PEG</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">El campo <strong>Proveedor</strong> del formulario de PEG tiene un buscador en tiempo real. Empieza a escribir el nombre o el CIF/NIF del proveedor y aparecerán sugerencias automáticamente. Selecciona el que corresponda.</p>
+      <div class="tip"><strong>Consejo:</strong> busca por los primeros dígitos del CIF (ej. «B47») para encontrar proveedores aunque no recuerdes exactamente el nombre.</div>
+    </div>
+
+    <div class="ayuda-section-title">3. Crear un proveedor rápido (desde el PEG)</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Si el proveedor no existe, haz clic en <strong>«+ Nuevo proveedor»</strong> junto al buscador. Se abrirá un modal con los campos mínimos necesarios para continuar:</p>
+      <ul class="checklist">
+        <li>CIF/NIF (obligatorio, único)</li>
+        <li>Razón social (obligatorio)</li>
+        <li>IBAN (obligatorio si el pago es por transferencia)</li>
+        <li>Email (para notificaciones)</li>
+      </ul>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;margin-top:10px;">El proveedor quedará guardado en el catálogo y podrás completar el resto de sus datos más adelante desde el menú de Proveedores.</p>
+    </div>
+
+    <div class="ayuda-section-title">4. Crear un proveedor completo</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Ve a <strong>Proveedores → Nuevo proveedor</strong> para el formulario completo. Es la opción recomendada cuando vas a crear un proveedor con el que trabajarás de forma recurrente.</p>
+    </div>
+
+    <div class="ayuda-section-title">5. Campos del proveedor — referencia completa</div>
+    <div class="ayuda-card">
+      <table class="field-table">
+        <thead>
+          <tr><th>Campo</th><th>Descripción y notas importantes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>CIF / NIF <span class="req">*</span></td>
+            <td>Identificador fiscal del proveedor. Para empresas: CIF (letra + 8 dígitos). Para autónomos: NIF (8 dígitos + letra) o NIE. Debe ser único en el sistema.</td>
+          </tr>
+          <tr>
+            <td>Razón social <span class="req">*</span></td>
+            <td>El nombre legal completo tal como aparece en la factura y en el registro mercantil. Para autónomos, nombre y apellidos.</td>
+          </tr>
+          <tr>
+            <td>Nombre comercial</td>
+            <td>El nombre con el que se conoce habitualmente al proveedor si es diferente de la razón social. Ej: razón social «García López, Juan» → nombre comercial «Estudio GráficoJG».</td>
+          </tr>
+          <tr>
+            <td>Tipo de proveedor <span class="req">*</span></td>
+            <td>
+              Define cómo se realiza el pago:<br>
+              <strong>Transferencia:</strong> pago bancario SEPA (el más habitual, requiere IBAN)<br>
+              <strong>Domiciliación:</strong> el cargo lo inicia el proveedor desde su banco<br>
+              <strong>Caja:</strong> pago en efectivo<br>
+              <strong>Mixto:</strong> puede usar más de un método según la factura
+            </td>
+          </tr>
+          <tr>
+            <td>IBAN <span class="req">*</span></td>
+            <td>Número de cuenta bancaria internacional (ES + 22 dígitos). Obligatorio para proveedores de tipo Transferencia. Este número se incluye directamente en el fichero Cuaderno 34 que se envía al banco. <strong>Un IBAN incorrecto provoca la devolución del pago.</strong></td>
+          </tr>
+          <tr>
+            <td>BIC / SWIFT</td>
+            <td>Código identificador del banco del proveedor (8 u 11 caracteres). Recomendado para pagos internacionales. Para cuentas españolas generalmente no es necesario.</td>
+          </tr>
+          <tr>
+            <td>Email</td>
+            <td>Dirección de correo del proveedor o su persona de contacto. SGPEG puede usarla para enviar confirmaciones de pago si está configurado.</td>
+          </tr>
+          <tr>
+            <td>Teléfono</td>
+            <td>Dato de contacto para incidencias de facturación.</td>
+          </tr>
+          <tr>
+            <td>Dirección</td>
+            <td>Dirección fiscal del proveedor. Útil para verificar la identidad en caso de dudas.</td>
+          </tr>
+          <tr>
+            <td>Sujeto a IRPF</td>
+            <td>Activa si las facturas de este proveedor llevan retención de IRPF. Se activa automáticamente para autónomos que prestan servicios profesionales. Al activarlo, debes indicar también el tipo de retención.</td>
+          </tr>
+          <tr>
+            <td>Tipo IRPF</td>
+            <td>Porcentaje de retención: 7% (inicio de actividad), 15% (retención general de profesionales), 19% (arrendamientos de bienes). Consulta la factura del proveedor para ver qué tipo aplica.</td>
+          </tr>
+          <tr>
+            <td>Cuenta cliente A3Con</td>
+            <td>Código de cuenta en el plan contable de A3Con, en el grupo 410 (acreedores por prestación de servicios) o 400 (proveedores). Formato: 410XXXXX. Solo visible y editable por GE y Admin. Se usa para generar el fichero SUENLACE.DAT de exportación a A3Con.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ayuda-section-title">6. La importancia del IBAN correcto</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">El IBAN del proveedor se incluye directamente en el fichero Cuaderno 34 que se sube al banco. Si el IBAN es incorrecto:</p>
+      <ul class="checklist">
+        <li>El banco devolverá la transferencia (devolución SEPA)</li>
+        <li>El PEG quedará como pagado en SGPEG pero el proveedor no habrá cobrado</li>
+        <li>Será necesario repetir el proceso en una nueva remesa</li>
+        <li>El proveedor puede reclamar intereses de demora</li>
+      </ul>
+      <div class="warning"><strong>Verifica siempre el IBAN</strong> directamente con el proveedor antes de introducirlo en el sistema. Pide un correo de confirmación o un documento oficial con el IBAN.</div>
+    </div>
+
+    <div class="ayuda-section-title">7. Cuenta A3Con — qué es y cómo funciona</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">La <strong>cuenta cliente A3Con</strong> es el código que identifica al proveedor en el software de contabilidad de FGULEM. Es un código del grupo 410 (acreedores prestación de servicios) del Plan General Contable. Ejemplos:</p>
+      <ul class="checklist">
+        <li>4100001 — Proveedor nº 1 en A3Con</li>
+        <li>4100142 — Proveedor nº 142 en A3Con</li>
+      </ul>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;margin-top:10px;">Cuando el GE exporta una remesa a A3Con (fichero SUENLACE.DAT), cada asiento contable incluye este código para que A3Con lo registre correctamente en la cuenta del proveedor.</p>
+      <div class="tip"><strong>Si el proveedor no tiene cuenta A3Con asignada,</strong> el Gestor Económico debe asignarla antes de cerrar la remesa o el fichero de exportación tendrá errores. El sistema muestra una alerta en este caso.</div>
+    </div>
+
+    <div class="quick-links" style="margin-top:24px;">
+      <a class="btn btn-primary" href="/proveedores/">Ir a proveedores</a>
+      <a class="btn btn-secondary" href="/proveedores/nuevo">Nuevo proveedor</a>
+      <a class="btn btn-secondary" href="/ayuda/pegs">Guía de PEGs →</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

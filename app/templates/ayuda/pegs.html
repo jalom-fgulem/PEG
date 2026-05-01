@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}Propuestas Específicas de Gasto (PEGs) — Ayuda SGPEG{% endblock %}
+{% block page_title %}Propuestas Específicas de Gasto{% endblock %}
+{% block page_subtitle %}Guía completa para crear, gestionar y hacer seguimiento de PEGs{% endblock %}
+
+{% block content %}
+<div class="ayuda-wrap">
+  {% include "ayuda/_nav.html" %}
+
+  <div class="ayuda-content">
+    <h2>Propuestas Específicas de Gasto (PEGs)</h2>
+    <p class="lead">Un PEG es el registro de una factura de proveedor que debe pagarse con fondos de FGULEM. Cada PEG documenta el gasto, se revisa por el Gestor Económico y se incluye en una remesa de pago que genera el fichero bancario.</p>
+
+    <div class="ayuda-section-title">1. ¿Qué es una PEG y para qué sirve?</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Una PEG agrupa toda la información necesaria para pagar una factura: quién es el proveedor, qué se compró, cuánto vale, qué IVA lleva y si hay retención de IRPF. Con estos datos, el sistema genera automáticamente el fichero de transferencia bancaria (Cuaderno 34) y los asientos contables para A3Con.</p>
+      <div class="tip"><strong>Regla general:</strong> una PEG = una factura de proveedor. No mezcles varias facturas en un mismo PEG aunque sean del mismo proveedor.</div>
+    </div>
+
+    <div class="ayuda-section-title">2. ¿Cuándo crear una PEG directamente vs. solicitar autorización primero?</div>
+    <div class="ayuda-card">
+      <div class="perm-grid">
+        <div class="perm perm-yes">
+          <strong>Crear PEG directamente</strong><br>
+          <span style="font-weight:400;font-size:0.85rem;">Tu servicio no requiere autorización previa, ya tienes la factura en mano y es un proveedor conocido.</span>
+        </div>
+        <div class="perm perm-no">
+          <strong>Solicitar autorización primero</strong><br>
+          <span style="font-weight:400;font-size:0.85rem;">Tu servicio lo exige, es un proveedor nuevo, el importe es inusualmente alto o quieres garantizar presupuesto antes de pedir el servicio.</span>
+        </div>
+      </div>
+      <div class="tip" style="margin-top:14px;"><strong>Atención:</strong> si tu servicio tiene activada la autorización obligatoria, el sistema no te permitirá crear un PEG sin una solicitud AUTORIZADA previa.</div>
+    </div>
+
+    <div class="ayuda-section-title">3. Cómo crear una PEG — campo a campo</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;margin:0 0 14px;">Ve a <strong>PEGs → Nueva PEG</strong> y rellena el formulario siguiendo esta guía:</p>
+      <table class="field-table">
+        <thead>
+          <tr><th>Campo</th><th>Descripción y consejos</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Proveedor <span class="req">*</span></td>
+            <td>Busca por nombre o CIF/NIF en el buscador en tiempo real. Si el proveedor no existe, usa el botón <em>«+ Nuevo proveedor»</em> para crearlo desde el formulario del PEG (se abrirá un modal con los campos mínimos). Asegúrate de que tiene IBAN si el pago es por transferencia.</td>
+          </tr>
+          <tr>
+            <td>Número de documento <span class="req">*</span></td>
+            <td>El número de factura que aparece en el documento del proveedor. Debe coincidir exactamente con el impreso. Este número queda registrado en A3Con como referencia del proveedor.</td>
+          </tr>
+          <tr>
+            <td>Fecha del documento <span class="req">*</span></td>
+            <td>La fecha que figura en la factura del proveedor (no la de recepción). Relevante para los plazos de pago de 30/60 días.</td>
+          </tr>
+          <tr>
+            <td>Fecha de recepción</td>
+            <td>Cuándo recibiste físicamente la factura. Si la recibiste por email, es la fecha del correo. Opcional pero recomendable para justificar plazos.</td>
+          </tr>
+          <tr>
+            <td>Descripción del gasto <span class="req">*</span></td>
+            <td>Texto libre que explica qué se ha comprado o qué servicio se ha recibido. Sé específico: «Servicios de diseño gráfico campaña X, enero 2026» es mejor que «Diseño». Este texto aparece en el PDF de remesa.</td>
+          </tr>
+          <tr>
+            <td>Proyecto analítico <span class="req">*</span></td>
+            <td>Selecciona el proyecto de tu servicio al que se imputa el gasto. Si tienes duda, consulta con el Gestor Económico. El GE puede redistribuir el importe entre varios proyectos en el momento de la validación.</td>
+          </tr>
+          <tr>
+            <td>Líneas de IVA <span class="req">*</span></td>
+            <td>
+              Añade una línea por cada tipo de IVA que aparezca en la factura:<br>
+              <ul>
+                <li><strong>Base imponible:</strong> el importe sin IVA</li>
+                <li><strong>Tipo de IVA:</strong> 0%, 4%, 10% o 21% (el sistema calcula la cuota automáticamente)</li>
+                <li><strong>Total:</strong> se calcula solo (base + cuota)</li>
+              </ul>
+              La mayoría de facturas tienen una sola línea al 21%. Las de servicios médicos o educativos pueden ir al 0% o 4%.
+            </td>
+          </tr>
+          <tr>
+            <td>IRPF</td>
+            <td>
+              Retención fiscal aplicable solo a determinadas facturas. Actívala si:<br>
+              <ul>
+                <li>El proveedor es un autónomo que presta servicios profesionales (diseño, traducción, formación, consultoría, etc.)</li>
+                <li>El gasto es un arrendamiento de local o equipo</li>
+              </ul>
+              Tipos habituales: <strong>7%</strong> (nuevos autónomos en sus primeros años), <strong>15%</strong> (el más frecuente), <strong>19%</strong> (algunos arrendamientos).<br>
+              El IRPF <em>reduce</em> el importe a transferir al proveedor; FGULEM ingresa esa retención directamente a Hacienda.
+            </td>
+          </tr>
+          <tr>
+            <td>Adjuntos <span class="req">*</span></td>
+            <td>
+              Debes adjuntar al menos la factura escaneada. Formatos aceptados: PDF, JPG, PNG. Tamaño máximo por fichero: 10 MB.<br>
+              <strong>Documentos habituales:</strong> factura del proveedor, albarán de entrega, presupuesto aceptado, informe de recepción del servicio.<br>
+              El GE no puede validar el PEG sin haber revisado los adjuntos.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ayuda-section-title">4. Estados de un PEG — qué significa cada uno</div>
+    <div class="ayuda-card">
+      <div class="step">
+        <div class="step-num" style="background:linear-gradient(135deg,#856404,#a07810);">P</div>
+        <div class="step-body">
+          <strong><span class="sp sp-pending">PENDIENTE</span> — Recién creado</strong>
+          <p>El PEG ha sido creado y está esperando que el Gestor Económico lo revise. Puedes seguir editándolo y añadiendo adjuntos mientras esté en este estado.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:linear-gradient(135deg,#0c5460,#1a7080);">V</div>
+        <div class="step-body">
+          <strong><span class="sp sp-validated">VALIDADO</span> — Revisado y aprobado</strong>
+          <p>El GE ha verificado la documentación, los datos del proveedor y los importes. Ha asignado las cuentas contables y las líneas analíticas. El PEG está listo para incluirse en una remesa. Ya no puedes editarlo.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:linear-gradient(135deg,#004085,#1a5aaa);">R</div>
+        <div class="step-body">
+          <strong><span class="sp sp-remesa">EN_REMESA</span> — Incluido en una remesa</strong>
+          <p>El PEG ha sido añadido a una remesa de pago abierta. El pago está en proceso de preparación. El GE está generando o ya ha generado el fichero bancario.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:linear-gradient(135deg,#155724,#1e7a32);">✓</div>
+        <div class="step-body">
+          <strong><span class="sp sp-paid">PAGADO</span> — Pago ejecutado</strong>
+          <p>La remesa ha sido cerrada: el banco ha procesado la transferencia. Se ha asignado un número de factura interno y se ha registrado la fecha de pago. Ahora toca confirmar que has recibido la factura física del proveedor.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:linear-gradient(135deg,#721c24,#9e2a35);">!</div>
+        <div class="step-body">
+          <strong><span class="sp sp-incident">INCIDENCIA</span> — Problema detectado</strong>
+          <p>El GE ha detectado un error o falta información. Revisa el campo «Descripción de incidencia» para saber exactamente qué corregir. Una vez subsanado, el PEG vuelve a PENDIENTE automáticamente cuando el GE lo resuelve.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ayuda-section-title">5. Qué puedes hacer en cada estado</div>
+    <div class="ayuda-card">
+      <table class="field-table">
+        <thead>
+          <tr><th>Acción</th><th>PENDIENTE</th><th>VALIDADO</th><th>EN_REMESA</th><th>PAGADO</th><th>INCIDENCIA</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Editar datos básicos</td><td style="text-align:center;color:var(--fgulem-green-dark);">✓ (GS)</td><td style="text-align:center;color:#ccc;">—</td><td style="text-align:center;color:#ccc;">—</td><td style="text-align:center;color:#ccc;">—</td><td style="text-align:center;color:#ccc;">—</td></tr>
+          <tr><td>Añadir adjuntos</td><td style="text-align:center;color:var(--fgulem-green-dark);">✓</td><td style="text-align:center;color:var(--fgulem-green-dark);">✓</td><td style="text-align:center;color:#ccc;">—</td><td style="text-align:center;color:#ccc;">—</td><td style="text-align:center;color:var(--fgulem-green-dark);">✓</td></tr>
+          <tr><td>Ver adjuntos</td><td style="text-align:center;color:var(--fgulem-green-dark);">✓</td><td style="text-align:center;color:var(--fgulem-green-dark);">✓</td><td style="text-align:center;color:var(--fgulem-green-dark);">✓</td><td style="text-align:center;color:var(--fgulem-green-dark);">✓</td><td style="text-align:center;color:var(--fgulem-green-dark);">✓</td></tr>
+          <tr><td>Confirmar factura física</td><td style="text-align:center;color:#ccc;">—</td><td style="text-align:center;color:#ccc;">—</td><td style="text-align:center;color:#ccc;">—</td><td style="text-align:center;color:var(--fgulem-green-dark);">✓</td><td style="text-align:center;color:#ccc;">—</td></tr>
+          <tr><td>Eliminar PEG</td><td style="text-align:center;color:var(--fgulem-green-dark);">✓ (GS)</td><td style="text-align:center;color:#ccc;">—</td><td style="text-align:center;color:#ccc;">—</td><td style="text-align:center;color:#ccc;">—</td><td style="text-align:center;color:#ccc;">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ayuda-section-title">6. Filtrar y hacer seguimiento de tus PEGs</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">En el listado de PEGs puedes filtrar por:</p>
+      <ul class="checklist">
+        <li>Estado (PENDIENTE, VALIDADO, EN_REMESA, PAGADO, INCIDENCIA)</li>
+        <li>Proveedor (nombre o CIF)</li>
+        <li>Rango de fechas de documento</li>
+        <li>Proyecto analítico</li>
+        <li>Número de documento (número de factura del proveedor)</li>
+      </ul>
+      <div class="tip"><strong>Consejo:</strong> filtra por INCIDENCIA regularmente para no dejar incidencias sin atender. El GE no puede incluir en una remesa un PEG con incidencia abierta.</div>
+    </div>
+
+    <div class="ayuda-section-title">7. Confirmar recepción de factura física</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Una vez que el PEG está en estado PAGADO, aparecerá un botón <strong>«Confirmar recepción»</strong> en el detalle del PEG. Úsalo cuando hayas recibido la factura original en papel del proveedor y la hayas archivado físicamente.</p>
+      <div class="warning"><strong>¿Por qué importa?</strong> La normativa fiscal exige conservar las facturas originales. Esta confirmación queda registrada con la fecha y el usuario, sirviendo como evidencia de que el documento físico está archivado en el servicio.</div>
+    </div>
+
+    <div class="ayuda-section-title">8. Notificaciones por correo</div>
+    <div class="ayuda-card">
+      <table class="field-table">
+        <thead>
+          <tr><th>Evento</th><th>¿Quién recibe el correo?</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>PEG validado</td><td>Gestor de Servicio que creó el PEG</td></tr>
+          <tr><td>PEG marcado con incidencia</td><td>Gestor de Servicio que creó el PEG (con descripción de la incidencia)</td></tr>
+          <tr><td>Remesa cerrada (PEGs pagados)</td><td>Todos los GS cuyos PEGs están en la remesa</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+    <div class="ayuda-section-title">9. Vista del Gestor Económico — PEGs de todos los servicios</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Como GE o ADMIN ves todos los PEGs de todos los servicios. El listado añade la columna <strong>Servicio</strong> para identificar el origen de cada PEG.</p>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Los filtros adicionales disponibles son:</p>
+      <ul class="checklist">
+        <li>Filtro por servicio</li>
+        <li>Filtro por banco ordenante</li>
+        <li>Filtro por cuenta analítica</li>
+        <li>Filtro por número de factura interno (asignado al cerrar la remesa)</li>
+        <li>Filtro por remesa</li>
+      </ul>
+    </div>
+    {% endif %}
+
+    <div class="quick-links" style="margin-top:24px;">
+      <a class="btn btn-primary" href="/pegs">Ir a PEGs</a>
+      <a class="btn btn-secondary" href="/pegs/nuevo">Crear nueva PEG</a>
+      <a class="btn btn-secondary" href="/ayuda/solicitudes">Guía de solicitudes →</a>
+      {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+      <a class="btn btn-secondary" href="/ayuda/validacion">Guía de validación →</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -10,6 +10,7 @@ from app.schemas.pegs import PegCrear, PegCambioEstado, LineaIVA
 from app.services import pegs_service, remesas_service
 from app.services import proveedores_service
 from app.services import email_service
+from app.services import mensajes_service
 from app.services.mock_servicios import obtener_servicio as _obtener_servicio
 
 router = APIRouter(prefix="/pegs", tags=["PEGs"])
@@ -249,6 +250,7 @@ async def pegs_nuevo_post(
 
     peg_creada = pegs_service.obtener_peg(resultado["id_peg"])
     email_service.notificar_peg_creada(peg_creada, usuario)
+    mensajes_service.notif_peg_creada(peg_creada)
 
     return RedirectResponse(url=f"/pegs/{resultado['id_peg']}", status_code=303)
 
@@ -667,6 +669,10 @@ def post_validar_peg(
         id_peg, body.cuenta_gasto, body.lineas_analitica, usuario
     )
     if resultado["ok"]:
+        peg_val = pegs_service.obtener_peg(id_peg)
+        id_creador = peg_val.get("creado_por")
+        if id_creador:
+            mensajes_service.notif_peg_validada(peg_val, id_creador)
         return JSONResponse({"ok": True})
     return JSONResponse({"ok": False, "error": resultado.get("error", "Error al validar")}, status_code=400)
 
@@ -682,6 +688,10 @@ def peg_incidencia(
     pegs_service.cambiar_estado_directo(
         id_peg, 5, usuario["nombre_completo"], comentario or "Marcada como incidencia"
     )
+    peg_inc = pegs_service.obtener_peg(id_peg)
+    id_creador = peg_inc.get("creado_por") if peg_inc else None
+    if id_creador:
+        mensajes_service.notif_peg_incidencia(peg_inc, id_creador, comentario or "")
     return RedirectResponse(url=f"/pegs/{id_peg}", status_code=303)
 
 
@@ -747,5 +757,15 @@ def peg_cambiar_estado(
             )
         elif id_peg_estado_destino == 4:  # PAGADO
             email_service.notificar_peg_pagada(peg_actual, email_sol)
+
+    if id_creador:
+        if id_peg_estado_destino == 2:
+            mensajes_service.notif_peg_validada(peg_actual, id_creador)
+        elif id_peg_estado_destino == 5:
+            mensajes_service.notif_peg_incidencia(
+                peg_actual, id_creador, comentario or ""
+            )
+        elif id_peg_estado_destino == 4:
+            mensajes_service.notif_peg_pagada(peg_actual, id_creador)
 
     return RedirectResponse(url=f"/pegs/{id_peg}", status_code=303)

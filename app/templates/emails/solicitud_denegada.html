@@ -1,0 +1,52 @@
+{% extends "emails/_base.html" %}
+{% block content %}
+
+<h2 style="margin:0 0 6px;font-size:1.25rem;color:#c21b84;">
+  Solicitud de autorización denegada
+</h2>
+<p style="margin:0 0 24px;font-size:0.93rem;color:#6e6a73;">
+  Su solicitud de autorización previa al gasto ha sido <strong style="color:#c21b84;">denegada</strong>.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+       style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;
+              font-size:0.93rem;margin-bottom:24px;">
+  <tr>
+    <td style="padding:11px 16px;background:#f7f7f8;color:#6e6a73;width:38%;font-weight:600;">Nº solicitud</td>
+    <td style="padding:11px 16px;font-weight:700;">#{{ id_solicitud }}</td>
+  </tr>
+  <tr>
+    <td style="padding:11px 16px;color:#6e6a73;font-weight:600;">Concepto</td>
+    <td style="padding:11px 16px;">{{ concepto }}</td>
+  </tr>
+  <tr>
+    <td style="padding:11px 16px;background:#f7f7f8;color:#6e6a73;font-weight:600;">Importe estimado</td>
+    <td style="padding:11px 16px;background:#f7f7f8;font-weight:700;">{{ importe }}</td>
+  </tr>
+  <tr>
+    <td style="padding:11px 16px;color:#6e6a73;font-weight:600;">Denegado por</td>
+    <td style="padding:11px 16px;">{{ denegado_por }}</td>
+  </tr>
+</table>
+
+<p style="margin:0 0 8px;font-size:0.82rem;font-weight:700;text-transform:uppercase;
+          letter-spacing:0.07em;color:#c21b84;">Motivo de la denegación</p>
+<div style="background:#fff3f9;border-left:4px solid #c21b84;
+            border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:28px;">
+  <p style="margin:0;font-size:0.93rem;color:#4f4c55;line-height:1.6;">{{ motivo }}</p>
+</div>
+
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+  <tr>
+    <td align="center">
+      <a href="{{ url }}"
+         style="display:inline-block;background:#6e6a73;color:#ffffff;
+                font-weight:700;font-size:0.95rem;text-decoration:none;
+                padding:13px 32px;border-radius:10px;">
+        Ver solicitud →
+      </a>
+    </td>
+  </tr>
+</table>
+
+{% endblock %}

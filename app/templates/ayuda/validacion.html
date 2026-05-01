@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Validación de PEGs — Ayuda SGPEG{% endblock %}
+{% block page_title %}Validación de PEGs{% endblock %}
+{% block page_subtitle %}Proceso completo de revisión, asignación contable y aprobación de propuestas de gasto{% endblock %}
+
+{% block content %}
+<div class="ayuda-wrap">
+  {% include "ayuda/_nav.html" %}
+
+  <div class="ayuda-content">
+    <h2>Validación de PEGs</h2>
+    <p class="lead">La validación es el proceso mediante el cual el Gestor Económico revisa cada propuesta de gasto, verifica la documentación, asigna las cuentas contables y las líneas analíticas, y aprueba el pago. Sin validación, un PEG no puede incluirse en ninguna remesa.</p>
+
+    <div class="ayuda-section-title">1. ¿Qué es la validación?</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">La validación combina tres funciones:</p>
+      <ul class="checklist">
+        <li><strong>Revisión documental:</strong> verificar que la factura existe, es correcta y corresponde al gasto descrito</li>
+        <li><strong>Revisión fiscal:</strong> comprobar IVA, IRPF, base imponible y totales</li>
+        <li><strong>Asignación contable:</strong> asignar cuentas del grupo 6 y líneas analíticas (servicio + proyecto + porcentaje)</li>
+      </ul>
+    </div>
+
+    <div class="ayuda-section-title">2. Acceder a los PEGs pendientes</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Ve a <strong>PEGs</strong> y filtra por estado <strong>PENDIENTE</strong>. El número de PEGs pendientes también aparece en el menú lateral. Puedes filtrar además por servicio, proveedor o rango de fechas para priorizar.</p>
+      <div class="tip"><strong>Priorización sugerida:</strong> atiende primero los PEGs con fecha de vencimiento más próxima y los que correspondan a la remesa más próxima en el calendario de pagos.</div>
+    </div>
+
+    <div class="ayuda-section-title">3. El proceso de validación paso a paso</div>
+    <div class="ayuda-card">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Abre el detalle del PEG</strong>
+          <p>Haz clic en el PEG desde el listado. Se muestra toda la información: proveedor, documento, fechas, líneas de IVA, IRPF y descripción del gasto.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Revisa los adjuntos</strong>
+          <p>Abre la factura escaneada haciendo clic en cada adjunto. Verifica que:</p>
+          <ul>
+            <li>El número de factura coincide con el campo «Número de documento»</li>
+            <li>La razón social del proveedor coincide con el catálogo</li>
+            <li>El CIF del proveedor coincide con el catálogo</li>
+            <li>Los importes (base, IVA, total) coinciden con las líneas del PEG</li>
+            <li>La fecha del documento es correcta</li>
+          </ul>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Verifica los datos del proveedor</strong>
+          <p>Comprueba que el proveedor tiene IBAN registrado (si el pago es por transferencia). Si falta el IBAN, márcalo como incidencia y pide al GS que lo obtenga del proveedor.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Comprueba los importes</strong>
+          <p>Verifica que base imponible + cuota IVA = total de la línea. Verifica que el tipo de IVA es correcto para el tipo de bien o servicio. Si hay IRPF, verifica el tipo y que aplica correctamente.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>Asigna la cuenta de gasto (grupo 6)</strong>
+          <p>Selecciona la cuenta contable del Plan General Contable que corresponde al tipo de gasto. Ejemplos habituales:</p>
+          <ul>
+            <li>621 — Arrendamientos y cánones</li>
+            <li>622 — Reparaciones y conservación</li>
+            <li>623 — Servicios de profesionales independientes</li>
+            <li>624 — Transportes</li>
+            <li>625 — Primas de seguros</li>
+            <li>626 — Servicios bancarios y similares</li>
+            <li>627 — Publicidad, propaganda y relaciones públicas</li>
+            <li>628 — Suministros</li>
+            <li>629 — Otros servicios</li>
+          </ul>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <strong>Asigna las líneas analíticas</strong>
+          <p>Cada PEG tiene una o varias líneas analíticas. Cada línea indica qué servicio y proyecto asume ese porcentaje del gasto. La suma de todos los porcentajes debe ser exactamente el 100%.</p>
+          <ul>
+            <li>Un gasto puede imputarse al 100% a un solo proyecto</li>
+            <li>O puede repartirse entre varios proyectos (ej: 50% proyecto A, 50% proyecto B)</li>
+            <li>El sistema validará que la suma sea 100% antes de permitir validar el PEG</li>
+          </ul>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <strong>Haz clic en «Validar»</strong>
+          <p>El PEG pasa a estado VALIDADO. El GS recibe automáticamente un correo de notificación. El PEG ya puede añadirse a una remesa de pago.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ayuda-section-title">4. Marcar incidencia</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Usa «Marcar incidencia» cuando hay un problema que el GS debe resolver antes de que puedas validar. Situaciones típicas:</p>
+      <ul class="checklist">
+        <li>Falta la factura adjunta o está ilegible</li>
+        <li>El número de factura no coincide con el documento</li>
+        <li>El proveedor no tiene IBAN registrado</li>
+        <li>Los importes de IVA son incorrectos</li>
+        <li>El CIF del proveedor en la factura no coincide con el registrado</li>
+        <li>La descripción del gasto es insuficiente para asignar la cuenta contable</li>
+      </ul>
+      <div class="tip"><strong>Escribe una descripción clara de la incidencia.</strong> El GS recibirá este texto por correo. Sé específico: «Falta adjuntar la factura original» es mejor que «Documentación incompleta».</div>
+    </div>
+
+    <div class="ayuda-section-title">5. Revertir estados</div>
+    <div class="ayuda-card">
+      <table class="field-table">
+        <thead>
+          <tr><th>Transición</th><th>Cuándo usarla</th><th>Efecto</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>VALIDADO → PENDIENTE</td>
+            <td>Descubres un error después de validar y antes de añadir a remesa</td>
+            <td>El PEG vuelve a PENDIENTE para corrección. El GS NO recibe notificación automática; avísale manualmente o usa el sistema de mensajes.</td>
+          </tr>
+          <tr>
+            <td>EN_REMESA → VALIDADO</td>
+            <td>Necesitas quitar el PEG de una remesa ABIERTA (solo posible antes de generar)</td>
+            <td>El PEG vuelve a VALIDADO y puede añadirse a otra remesa. La remesa sigue existiendo con los PEGs restantes.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="warning"><strong>No se puede revertir</strong> un PEG en estado PAGADO. Si hay un error en un PEG ya pagado, debes crear un nuevo PEG de corrección o tratarlo contablemente de otra forma.</div>
+    </div>
+
+    <div class="ayuda-section-title">6. Número de factura interno</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">El número de factura interno <strong>NO se asigna en el momento de la validación</strong>, sino al cerrar la remesa. Este número es el identificador interno de FGULEM para la factura (diferente del número de factura del proveedor). Se asigna de forma correlativa al cerrar la remesa y queda registrado junto a la fecha de pago.</p>
+    </div>
+
+    <div class="ayuda-section-title">7. Analítica — explicación detallada</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">La analítica permite imputar el gasto a la unidad organizativa y proyecto correctos. Tiene dos niveles:</p>
+      <ul class="checklist">
+        <li><strong>Nivel 1 (Servicio):</strong> la unidad organizativa de FGULEM (ej: Servicio de Formación, Oficina de Proyectos, etc.)</li>
+        <li><strong>Nivel 2 (Proyecto):</strong> el proyecto dentro del servicio (ej: Proyecto LIFE 2025, Formación Continua, etc.)</li>
+      </ul>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;margin-top:10px;">Si un gasto se reparte entre varios proyectos (incluso de servicios distintos), añade una línea por cada asignación. El porcentaje indica qué fracción del importe total se imputa a ese proyecto.</p>
+      <div class="tip"><strong>Ejemplo:</strong> una factura de 1.000€ puede repartirse 60% al proyecto A (600€) y 40% al proyecto B (400€). Añade dos líneas analíticas con porcentajes 60 y 40.</div>
+    </div>
+
+    <div class="ayuda-section-title">8. Problemas frecuentes en validación</div>
+    <div class="ayuda-card">
+      <table class="field-table">
+        <thead>
+          <tr><th>Problema</th><th>Causa habitual</th><th>Solución</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Proveedor sin IBAN</td>
+            <td>El proveedor se creó sin datos bancarios completos</td>
+            <td>Marcar incidencia. El GS obtiene el IBAN del proveedor y actualiza el catálogo.</td>
+          </tr>
+          <tr>
+            <td>IVA incorrecto</td>
+            <td>El GS seleccionó el tipo equivocado</td>
+            <td>Marcar incidencia indicando el tipo correcto. El GS corrige el PEG.</td>
+          </tr>
+          <tr>
+            <td>IRPF aplicado incorrectamente</td>
+            <td>El GS marcó IRPF en un proveedor que es empresa (no está sujeta a retención)</td>
+            <td>Marcar incidencia. Solo los autónomos y profesionales físicos tienen retención.</td>
+          </tr>
+          <tr>
+            <td>Analítica no suma 100%</td>
+            <td>Error al repartir porcentajes</td>
+            <td>El sistema no deja validar hasta que la suma sea exactamente 100%. Ajusta los porcentajes.</td>
+          </tr>
+          <tr>
+            <td>Sin cuenta A3Con en proveedor</td>
+            <td>El proveedor es nuevo y aún no tiene código en A3Con</td>
+            <td>Asignar un código nuevo en el catálogo de proveedores antes de exportar la remesa.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="quick-links" style="margin-top:24px;">
+      <a class="btn btn-primary" href="/pegs?estado=PENDIENTE">Ver PEGs pendientes</a>
+      <a class="btn btn-secondary" href="/ayuda/remesas">Guía de remesas →</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

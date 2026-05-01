@@ -1,0 +1,222 @@
+<style>
+.ayuda-wrap {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+.ayuda-sidebar {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 14px;
+  position: sticky;
+  top: 24px;
+}
+.ayuda-sidebar-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  padding: 0 6px 10px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 10px;
+}
+.ayuda-sidebar-role {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #aaa;
+  display: block;
+  margin-top: 3px;
+}
+.ayuda-nav-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #aaa;
+  padding: 12px 6px 4px;
+}
+.ayuda-nav-link {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink);
+  transition: background 0.12s, color 0.12s;
+  margin-bottom: 2px;
+}
+.ayuda-nav-link:hover { background: rgba(95,159,211,0.08); color: var(--fgulem-magenta); }
+.ayuda-nav-link.active { background: rgba(194,27,132,0.08); color: var(--fgulem-magenta); }
+.ayuda-content { min-width: 0; }
+
+/* Content typography */
+.ayuda-content h2 {
+  font-size: 1.35rem;
+  color: var(--ink);
+  margin: 0 0 6px;
+  font-weight: 800;
+}
+.ayuda-content .lead {
+  font-size: 0.97rem;
+  color: var(--ink-soft);
+  line-height: 1.65;
+  margin: 0 0 28px;
+}
+.ayuda-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #8a8691;
+  margin: 28px 0 12px;
+}
+.ayuda-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px 22px;
+  margin-bottom: 16px;
+}
+.ayuda-card h3 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+/* Steps */
+.step { display: flex; gap: 14px; margin-bottom: 18px; align-items: flex-start; }
+.step-num {
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--fgulem-magenta), var(--fgulem-magenta-soft));
+  color: #fff; font-weight: 700; font-size: 0.82rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.step-body strong { display: block; margin-bottom: 3px; font-size: 0.95rem; }
+.step-body p { margin: 0; color: var(--ink-soft); font-size: 0.91rem; line-height: 1.55; }
+.step-body ul { margin: 6px 0 0 0; padding-left: 18px; color: var(--ink-soft); font-size: 0.91rem; line-height: 1.7; }
+/* Tips and warnings */
+.tip {
+  background: rgba(95,159,211,0.07);
+  border-left: 3px solid var(--fgulem-blue);
+  border-radius: 0 10px 10px 0;
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  line-height: 1.55;
+  margin: 14px 0;
+}
+.warning {
+  background: rgba(194,27,132,0.05);
+  border-left: 3px solid var(--fgulem-magenta);
+  border-radius: 0 10px 10px 0;
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  line-height: 1.55;
+  margin: 14px 0;
+}
+.warning strong, .tip strong { color: var(--ink); }
+/* State pills */
+.sp { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+.sp-pending   { background:#fff3cd; color:#856404; }
+.sp-validated { background:#d1ecf1; color:#0c5460; }
+.sp-remesa    { background:#cce5ff; color:#004085; }
+.sp-paid      { background:#d4edda; color:#155724; }
+.sp-incident  { background:#f8d7da; color:#721c24; }
+.sp-auth      { background:#d4edda; color:#155724; }
+.sp-denied    { background:#f8d7da; color:#721c24; }
+.sp-open      { background:#fff3cd; color:#856404; }
+.sp-generated { background:#cce5ff; color:#004085; }
+.sp-closed    { background:#d4edda; color:#155724; }
+/* Flow chain */
+.flow-chain { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 10px 0 18px; }
+.flow-arrow { color: #bbb; font-size: 1rem; }
+/* Permission grid */
+.perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.perm { padding: 8px 12px; border-radius: 9px; font-size: 0.87rem; font-weight: 600; }
+.perm-yes { background: #f0faf4; color: #155724; }
+.perm-no  { background: #fdf3f4; color: #721c24; }
+/* Branch decisions */
+.branch { margin: -6px 0 16px 44px; display: flex; flex-direction: column; gap: 10px; }
+.branch-row { display: flex; gap: 12px; align-items: flex-start; }
+.branch-tag { flex-shrink:0; padding: 3px 10px; border-radius: 999px; font-size: 0.74rem; font-weight: 700; white-space:nowrap; margin-top: 2px; }
+.branch-ok   { background:#d4edda; color:#155724; }
+.branch-warn { background:#f8d7da; color:#721c24; }
+.branch-row p { margin: 2px 0 0; color: var(--ink-soft); font-size: 0.89rem; line-height: 1.5; }
+/* Field reference table */
+.field-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 10px; }
+.field-table th { text-align: left; padding: 8px 12px; background: #f7f7f8; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
+.field-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.field-table td:first-child { font-weight: 700; white-space: nowrap; }
+.field-table tr:last-child td { border-bottom: none; }
+.req { color: #a32d2d; font-size: 0.75rem; font-weight: 700; vertical-align: super; }
+/* Role badge */
+.role-badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+.role-gs  { background: rgba(95,159,211,0.12); color: #185fa5; }
+.role-ge  { background: rgba(194,27,132,0.10); color: #a01070; }
+.role-adm { background: rgba(42,46,56,0.10); color: #2a2e38; }
+/* Quick links */
+.quick-links { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+/* Checklist */
+.checklist { list-style: none; padding: 0; margin: 10px 0; }
+.checklist li { padding: 6px 0; font-size: 0.91rem; color: var(--ink-soft); display: flex; gap: 8px; }
+.checklist li::before { content: '✓'; color: var(--fgulem-green-dark); font-weight: 700; flex-shrink: 0; }
+/* Role matrix */
+.role-matrix { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 10px; }
+.role-matrix th { text-align: center; padding: 8px 12px; background: #f7f7f8; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
+.role-matrix th:first-child { text-align: left; }
+.role-matrix td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: center; }
+.role-matrix td:first-child { text-align: left; font-weight: 600; }
+.role-matrix .yes { color: var(--fgulem-green-dark); font-weight: 700; }
+.role-matrix .no  { color: #ccc; }
+/* Glossary */
+.glossary dt { font-weight: 700; color: var(--ink); margin-top: 12px; font-size: 0.95rem; }
+.glossary dd { margin: 3px 0 0 0; color: var(--ink-soft); font-size: 0.9rem; line-height: 1.55; }
+/* Responsive */
+@media (max-width: 780px) {
+  .ayuda-wrap { grid-template-columns: 1fr; }
+  .ayuda-sidebar { position: static; }
+}
+</style>
+
+{% set rol = usuario.rol if usuario else '' %}
+
+<nav class="ayuda-sidebar">
+  <div class="ayuda-sidebar-title">
+    Guía SGPEG
+    <span class="ayuda-sidebar-role">
+      {% if rol == 'GESTOR_SERVICIO' %}Gestor de Servicio
+      {% elif rol == 'GESTOR_ECONOMICO' %}Gestor Económico
+      {% elif rol == 'ADMIN' %}Administrador
+      {% else %}Visitante{% endif %}
+    </span>
+  </div>
+
+  <div class="ayuda-nav-label">General</div>
+  <a class="ayuda-nav-link {% if ayuda_section == 'inicio' %}active{% endif %}" href="/ayuda/">Inicio</a>
+  <a class="ayuda-nav-link {% if ayuda_section == 'flujo_general' %}active{% endif %}" href="/ayuda/flujo-general">Flujo general</a>
+
+  <div class="ayuda-nav-label">Tu trabajo</div>
+  <a class="ayuda-nav-link {% if ayuda_section == 'pegs' %}active{% endif %}" href="/ayuda/pegs">Crear y gestionar PEGs</a>
+  <a class="ayuda-nav-link {% if ayuda_section == 'solicitudes' %}active{% endif %}" href="/ayuda/solicitudes">Solicitudes de autorización</a>
+  <a class="ayuda-nav-link {% if ayuda_section == 'proveedores' %}active{% endif %}" href="/ayuda/proveedores">Proveedores</a>
+
+  {% if rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+  <div class="ayuda-nav-label">Gestión económica</div>
+  <a class="ayuda-nav-link {% if ayuda_section == 'validacion' %}active{% endif %}" href="/ayuda/validacion">Validación de PEGs</a>
+  <a class="ayuda-nav-link {% if ayuda_section == 'remesas' %}active{% endif %}" href="/ayuda/remesas">Remesas de pago</a>
+  <a class="ayuda-nav-link {% if ayuda_section == 'remesas_directas' %}active{% endif %}" href="/ayuda/remesas-directas">Remesas directas</a>
+  <a class="ayuda-nav-link {% if ayuda_section == 'movimientos' %}active{% endif %}" href="/ayuda/movimientos">Movimientos bancarios</a>
+  {% endif %}
+
+  {% if rol == 'ADMIN' %}
+  <div class="ayuda-nav-label">Sistema</div>
+  <a class="ayuda-nav-link {% if ayuda_section == 'administracion' %}active{% endif %}" href="/ayuda/administracion">Administración del sistema</a>
+  {% endif %}
+</nav>

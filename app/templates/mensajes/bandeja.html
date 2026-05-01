@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Mensajes — SGPEG{% endblock %}
+{% block page_title %}Mensajes{% endblock %}
+{% block page_subtitle %}Bandeja de comunicaciones internas{% endblock %}
+
+{% block extra_head %}
+<style>
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--line);
+    padding-bottom: 0;
+  }
+  .tab-btn {
+    padding: 10px 18px;
+    border: none;
+    background: transparent;
+    font-weight: 700;
+    font-size: 0.93rem;
+    color: var(--ink-soft);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    border-radius: 8px 8px 0 0;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: color 0.15s;
+  }
+  .tab-btn.active {
+    color: var(--fgulem-magenta);
+    border-bottom-color: var(--fgulem-magenta);
+  }
+  .tab-btn:hover { color: var(--fgulem-magenta); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .msg-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #eef0f3;
+    text-decoration: none;
+    color: var(--ink);
+    transition: background 0.13s;
+  }
+  .msg-row:hover { background: rgba(95,159,211,0.05); }
+  .msg-row.unread { background: rgba(194,27,132,0.03); }
+  .msg-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--fgulem-magenta);
+    flex-shrink: 0;
+  }
+  .msg-dot.read { background: transparent; }
+  .msg-sender {
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    width: 160px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .msg-subject {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .msg-row.unread .msg-subject { font-weight: 700; }
+  .msg-date {
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .msg-tag {
+    font-size: 0.74rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(95,159,211,0.12);
+    color: var(--fgulem-blue);
+    flex-shrink: 0;
+  }
+  .msg-tag.auto { background: rgba(127,170,85,0.14); color: var(--fgulem-green-dark); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  <div></div>
+  <a href="/mensajes/nuevo" class="btn btn-primary">✏️ Nuevo mensaje</a>
+</div>
+
+<div class="card" style="padding:0 0 8px;">
+  <div class="tabs" style="padding: 0 20px;">
+    <a href="/mensajes/?tab=entrada"
+       class="tab-btn {% if tab == 'entrada' %}active{% endif %}">
+      Bandeja de entrada
+      {% set n_no_leidos = recibidos | selectattr('leido', 'equalto', false) | list | length %}
+      {% if n_no_leidos > 0 %}
+      <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.76rem;">{{ n_no_leidos }}</span>
+      {% endif %}
+    </a>
+    <a href="/mensajes/?tab=enviados"
+       class="tab-btn {% if tab == 'enviados' %}active{% endif %}">
+      Enviados
+    </a>
+    <a href="/mensajes/?tab=archivados"
+       class="tab-btn {% if tab == 'archivados' %}active{% endif %}">
+      Archivados
+    </a>
+  </div>
+
+  {# ── Entrada ── #}
+  <div class="tab-panel {% if tab == 'entrada' %}active{% endif %}">
+    {% if recibidos %}
+      {% for m in recibidos %}
+      <a href="/mensajes/{{ m.id_mensaje }}"
+         class="msg-row {% if not m.leido %}unread{% endif %}">
+        <span class="msg-dot {% if m.leido %}read{% endif %}"></span>
+        <span class="msg-sender">{{ m.nombre_emisor }}</span>
+        <span class="msg-subject">{{ m.asunto }}</span>
+        {% if m.tipo == 'AUTO' %}
+        <span class="msg-tag auto">Auto</span>
+        {% endif %}
+        <span class="msg-date">{{ m.fecha.strftime('%d/%m/%Y %H:%M') }}</span>
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">No tienes mensajes en la bandeja de entrada.</div>
+    {% endif %}
+  </div>
+
+  {# ── Enviados ── #}
+  <div class="tab-panel {% if tab == 'enviados' %}active{% endif %}">
+    {% if enviados %}
+      {% for m in enviados %}
+      {% set dest = m.id_destinatario %}
+      <a href="/mensajes/{{ m.id_mensaje }}" class="msg-row">
+        <span class="msg-dot read"></span>
+        <span class="msg-sender" style="color:var(--fgulem-blue);">Enviado</span>
+        <span class="msg-subject">{{ m.asunto }}</span>
+        <span class="msg-date">{{ m.fecha.strftime('%d/%m/%Y %H:%M') }}</span>
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">No has enviado ningún mensaje.</div>
+    {% endif %}
+  </div>
+
+  {# ── Archivados ── #}
+  <div class="tab-panel {% if tab == 'archivados' %}active{% endif %}">
+    {% if archivados %}
+      {% for m in archivados %}
+      <a href="/mensajes/{{ m.id_mensaje }}" class="msg-row">
+        <span class="msg-dot read"></span>
+        <span class="msg-sender">{{ m.nombre_emisor }}</span>
+        <span class="msg-subject">{{ m.asunto }}</span>
+        <span class="msg-date">{{ m.fecha.strftime('%d/%m/%Y %H:%M') }}</span>
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">No tienes mensajes archivados.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

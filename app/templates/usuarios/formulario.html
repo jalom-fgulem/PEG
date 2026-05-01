@@ -4,6 +4,10 @@
 {% block page_subtitle %}{% if accion == 'crear' %}Crear cuenta de acceso{% else %}Modificar datos del usuario{% endif %}{% endblock %}
 
 {% block content %}
+{% if usuario.rol == 'ADMIN' %}
+{% set admin_tab = 'usuarios' %}
+{% include "admin/_tabs.html" %}
+{% endif %}
 <div class="card" style="max-width:680px;">
 
   {% if error %}

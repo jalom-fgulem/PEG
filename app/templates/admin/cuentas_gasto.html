@@ -11,11 +11,13 @@
   .badge-inactivo { display:inline-block; padding:3px 10px; border-radius:999px; font-size:0.78rem; font-weight:700; background:rgba(150,150,150,0.14); color:#666; }
   .modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; }
   .modal-backdrop.active { display:flex; }
-  .modal-panel { background:var(--surface); border-radius:16px; padding:28px; width:100%; max-width:480px; box-shadow:0 8px 40px rgba(0,0,0,0.18); }
+  .modal-panel { background:#fff; border-radius:16px; padding:28px; width:100%; max-width:480px; box-shadow:0 8px 40px rgba(0,0,0,0.18); }
 </style>
 {% endblock %}
 
 {% block content %}
+{% set admin_tab = 'cuentas_gasto' %}
+{% include "admin/_tabs.html" %}
 
 {% if msg %}
 <div class="flash-{{ msg_type }}">
@@ -127,10 +129,6 @@
       </div>
     </form>
   </div>
-</div>
-
-<div style="margin-top:12px;">
-  <a class="btn btn-secondary" href="/">← Volver al inicio</a>
 </div>
 
 {% endblock %}

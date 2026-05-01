@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% block title %}Administración del sistema — Ayuda SGPEG{% endblock %}
+{% block page_title %}Administración del sistema{% endblock %}
+{% block page_subtitle %}Gestión de usuarios, servicios, bancos, cuentas contables y plantillas de correo{% endblock %}
+
+{% block content %}
+<div class="ayuda-wrap">
+  {% include "ayuda/_nav.html" %}
+
+  <div class="ayuda-content">
+    <h2>Administración del sistema</h2>
+    <p class="lead">El panel de administración (<code>/admin/</code>) centraliza toda la configuración del sistema. Solo los usuarios con rol ADMIN tienen acceso. Desde aquí se configuran los usuarios, los servicios y sus proyectos analíticos, las cuentas bancarias ordenantes, el catálogo de cuentas contables y las plantillas de correo.</p>
+
+    <div class="ayuda-section-title">1. Panel de administración — visión general</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">El panel se organiza en pestañas:</p>
+      <ul class="checklist">
+        <li><strong>Usuarios:</strong> crear, editar, activar y desactivar cuentas de usuario</li>
+        <li><strong>Servicios:</strong> crear y configurar las unidades organizativas</li>
+        <li><strong>Bancos:</strong> gestionar las cuentas bancarias ordenantes de FGULEM</li>
+        <li><strong>Cuentas de gasto:</strong> mantener el catálogo de cuentas del grupo 6</li>
+        <li><strong>Plantillas de correo:</strong> editar los correos automáticos del sistema</li>
+      </ul>
+    </div>
+
+    <div class="ayuda-section-title">2. Gestión de usuarios</div>
+    <div class="ayuda-card">
+      <h3>Roles del sistema</h3>
+      <table class="field-table">
+        <thead>
+          <tr><th>Rol</th><th>Nombre visible</th><th>Capacidades principales</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="role-badge role-gs">GESTOR_SERVICIO</span></td>
+            <td>Gestor de Servicio</td>
+            <td>Crear PEGs y solicitudes de su servicio, ver sus PEGs, confirmar facturas físicas, gestionar proveedores</td>
+          </tr>
+          <tr>
+            <td><span class="role-badge role-ge">GESTOR_ECONOMICO</span></td>
+            <td>Gestor Económico</td>
+            <td>Todo lo anterior + validar PEGs de todos los servicios, gestionar remesas, importar movimientos, autorizar solicitudes</td>
+          </tr>
+          <tr>
+            <td><span class="role-badge role-adm">ADMIN</span></td>
+            <td>Administrador</td>
+            <td>Todo lo anterior + acceso al panel de administración, gestión de usuarios, servicios, bancos y plantillas</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:20px;">Crear un usuario nuevo</h3>
+      <table class="field-table">
+        <thead>
+          <tr><th>Campo</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Nombre de usuario <span class="req">*</span></td>
+            <td>Identificador único de login. Sin espacios. Recomendado: nombre.apellido (ej: <code>juan.garcia</code>). No puede cambiarse una vez creado.</td>
+          </tr>
+          <tr>
+            <td>Nombre completo <span class="req">*</span></td>
+            <td>Nombre visible en la plataforma y en las notificaciones por correo.</td>
+          </tr>
+          <tr>
+            <td>Email <span class="req">*</span></td>
+            <td>Dirección donde se reciben las notificaciones del sistema. Debe ser un correo válido al que el usuario tenga acceso.</td>
+          </tr>
+          <tr>
+            <td>Contraseña <span class="req">*</span></td>
+            <td>Al crear el usuario, establece una contraseña inicial y comunícasela al usuario de forma segura. El usuario puede cambiarla desde su perfil.</td>
+          </tr>
+          <tr>
+            <td>Rol <span class="req">*</span></td>
+            <td>GESTOR_SERVICIO, GESTOR_ECONOMICO o ADMIN. Asigna el mínimo privilegio necesario para su función.</td>
+          </tr>
+          <tr>
+            <td>Servicio(s)</td>
+            <td>Para GESTOR_SERVICIO: los servicios a los que tiene acceso. Un GS puede pertenecer a varios servicios. Para GE y ADMIN no aplica (ven todos los servicios).</td>
+          </tr>
+          <tr>
+            <td>Activo</td>
+            <td>Si está inactivo, el usuario no puede acceder. Útil para bajas temporales o permanentes sin eliminar el historial.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:20px;">Editar y desactivar usuarios</h3>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Puedes cambiar el nombre completo, email, rol, servicios asignados y contraseña en cualquier momento. Para bloquear el acceso de un usuario sin eliminar su historial de PEGs y acciones, desactívalo (campo «Activo» = No).</p>
+      <div class="warning"><strong>No elimines usuarios</strong> aunque ya no trabajen en la organización. Desactívalos. Eliminar un usuario puede provocar errores de referencia en PEGs históricos.</div>
+    </div>
+
+    <div class="ayuda-section-title">3. Gestión de servicios</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Un «servicio» es una unidad organizativa de FGULEM que tiene su propio presupuesto y responsable. Cada PEG pertenece a un servicio.</p>
+
+      <h3>Campos del servicio</h3>
+      <table class="field-table">
+        <thead>
+          <tr><th>Campo</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Código <span class="req">*</span></td>
+            <td>Identificador corto del servicio (ej: <code>FORM</code>, <code>OFIC</code>). Se usa en la analítica nivel 1.</td>
+          </tr>
+          <tr>
+            <td>Nombre <span class="req">*</span></td>
+            <td>Nombre completo del servicio (ej: «Servicio de Formación Continua»).</td>
+          </tr>
+          <tr>
+            <td>Analítica nivel 1</td>
+            <td>Código de analítica de primer nivel en A3Con. Corresponde al servicio en el sistema de contabilidad analítica.</td>
+          </tr>
+          <tr>
+            <td>Banco por defecto</td>
+            <td>La cuenta bancaria ordenante que se pre-selecciona al crear una remesa para este servicio.</td>
+          </tr>
+          <tr>
+            <td>Requiere autorización previa</td>
+            <td>Si está activado, los gestores de este servicio deben crear una solicitud AUTORIZADA antes de poder crear un PEG. Configúralo según la política de cada servicio.</td>
+          </tr>
+          <tr>
+            <td>Activo</td>
+            <td>Un servicio inactivo no aparece en los selectores pero su historial se conserva.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:20px;">Proyectos analíticos</h3>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Dentro de cada servicio puedes configurar los proyectos analíticos. Son las subdivisiones del presupuesto dentro del servicio. Los campos de cada proyecto son:</p>
+      <table class="field-table">
+        <thead>
+          <tr><th>Campo</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Nombre del proyecto <span class="req">*</span></td>
+            <td>Ej: «Proyecto LIFE 2025», «Formación sectorial», «Fondo general».</td>
+          </tr>
+          <tr>
+            <td>Analítica nivel 2 <span class="req">*</span></td>
+            <td>Código de analítica de segundo nivel. Junto con el nivel 1 del servicio, identifica el proyecto en A3Con.</td>
+          </tr>
+          <tr>
+            <td>Cuenta de gasto</td>
+            <td>Cuenta del grupo 6 por defecto para los PEGs de este proyecto. El GE puede cambiarla en la validación.</td>
+          </tr>
+          <tr>
+            <td>Cuenta IVA soportado</td>
+            <td>Cuenta del grupo 472 para el IVA soportado de los gastos de este proyecto.</td>
+          </tr>
+          <tr>
+            <td>Cuenta tesorería</td>
+            <td>Cuenta del grupo 572 de la cuenta bancaria desde la que se pagan los gastos del proyecto.</td>
+          </tr>
+          <tr>
+            <td>Cuenta proveedor</td>
+            <td>Cuenta del grupo 400/410 por defecto para los proveedores de este proyecto.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ayuda-section-title">4. Gestión de bancos (ordenantes)</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Un «ordenante» es una cuenta bancaria de FGULEM desde la que se hacen los pagos. Se selecciona al crear una remesa. Campos:</p>
+      <table class="field-table">
+        <thead>
+          <tr><th>Campo</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Alias <span class="req">*</span></td>
+            <td>Nombre identificativo interno (ej: «Cuenta operaciones Santander», «BBVA formación»).</td>
+          </tr>
+          <tr>
+            <td>IBAN <span class="req">*</span></td>
+            <td>IBAN de la cuenta de FGULEM. Aparece como cuenta deudora en el Cuaderno 34.</td>
+          </tr>
+          <tr>
+            <td>BIC / SWIFT</td>
+            <td>Código BIC del banco de FGULEM. Incluido en el fichero SEPA.</td>
+          </tr>
+          <tr>
+            <td>Sufijo ordenante</td>
+            <td>Identificador alfanumérico del ordenante usado en el Cuaderno 34 (campo «Identificación del presentador»). Proporcionado por el banco.</td>
+          </tr>
+          <tr>
+            <td>Nombre del ordenante</td>
+            <td>El nombre legal de FGULEM tal como debe aparecer en las órdenes de transferencia.</td>
+          </tr>
+          <tr>
+            <td>Cuenta contable tesorería</td>
+            <td>Cuenta del grupo 572 en A3Con correspondiente a esta cuenta bancaria. Se usa en el fichero SUENLACE.DAT.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ayuda-section-title">5. Cuentas de gasto (grupo 6)</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">El catálogo de cuentas de gasto contiene las cuentas del <strong>Plan General Contable</strong> del grupo 6 que se usan para clasificar los gastos. El GE selecciona una de estas cuentas al validar cada PEG.</p>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;margin-top:10px;"><strong>Cuentas más habituales en FGULEM:</strong></p>
+      <table class="field-table">
+        <thead>
+          <tr><th>Cuenta</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>621</td><td>Arrendamientos y cánones (alquiler de locales, equipos, licencias de software)</td></tr>
+          <tr><td>622</td><td>Reparaciones y conservación (mantenimiento de instalaciones y equipos)</td></tr>
+          <tr><td>623</td><td>Servicios de profesionales independientes (consultores, diseñadores, traductores, formadores)</td></tr>
+          <tr><td>624</td><td>Transportes (mensajería, portes, desplazamientos de proveedores)</td></tr>
+          <tr><td>625</td><td>Primas de seguros</td></tr>
+          <tr><td>626</td><td>Servicios bancarios y similares (comisiones bancarias)</td></tr>
+          <tr><td>627</td><td>Publicidad, propaganda y relaciones públicas (diseño web, impresión, eventos)</td></tr>
+          <tr><td>628</td><td>Suministros (electricidad, agua, gas, telefonía)</td></tr>
+          <tr><td>629</td><td>Otros servicios (gastos que no encajan en las anteriores)</td></tr>
+          <tr><td>631</td><td>Otros tributos (tasas, licencias de actividad)</td></tr>
+          <tr><td>640</td><td>Sueldos y salarios (si se tramitan nóminas por SGPEG)</td></tr>
+          <tr><td>642</td><td>Seguridad Social a cargo de la empresa</td></tr>
+        </tbody>
+      </table>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;margin-top:12px;">Puedes activar y desactivar cuentas sin eliminarlas. Solo las cuentas activas aparecen en el desplegable de validación de PEGs.</p>
+      <div class="tip"><strong>Mantén el catálogo limpio.</strong> Desactiva las cuentas que ya no uses para simplificar la selección del GE. Si tienes dudas sobre qué cuenta usar para un tipo de gasto, consulta con el responsable de contabilidad.</div>
+    </div>
+
+    <div class="ayuda-section-title">6. Plantillas de correo</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Las plantillas de correo controlan los correos automáticos que envía SGPEG. Se editan en HTML con variables Jinja2.</p>
+      <table class="field-table">
+        <thead>
+          <tr><th>Plantilla</th><th>Cuándo se envía</th><th>Variables disponibles</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>solicitud_recibida</td>
+            <td>Al crear una solicitud de autorización</td>
+            <td><code>{{ solicitud }}</code>, <code>{{ usuario }}</code>, <code>{{ url_solicitud }}</code></td>
+          </tr>
+          <tr>
+            <td>solicitud_autorizada</td>
+            <td>Al autorizar una solicitud</td>
+            <td><code>{{ solicitud }}</code>, <code>{{ gestor_economico }}</code>, <code>{{ url_solicitud }}</code></td>
+          </tr>
+          <tr>
+            <td>solicitud_denegada</td>
+            <td>Al denegar una solicitud</td>
+            <td><code>{{ solicitud }}</code>, <code>{{ motivo }}</code>, <code>{{ gestor_economico }}</code></td>
+          </tr>
+          <tr>
+            <td>peg_validado</td>
+            <td>Al validar un PEG</td>
+            <td><code>{{ peg }}</code>, <code>{{ gestor_economico }}</code>, <code>{{ url_peg }}</code></td>
+          </tr>
+          <tr>
+            <td>peg_incidencia</td>
+            <td>Al marcar un PEG con incidencia</td>
+            <td><code>{{ peg }}</code>, <code>{{ descripcion_incidencia }}</code>, <code>{{ url_peg }}</code></td>
+          </tr>
+          <tr>
+            <td>remesa_cerrada</td>
+            <td>Al cerrar una remesa (un correo por servicio)</td>
+            <td><code>{{ remesa }}</code>, <code>{{ pegs_pagados }}</code>, <code>{{ fecha_pago }}</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="tip"><strong>Cómo editar una plantilla:</strong> abre la plantilla en el panel de administración, edita el HTML y usa el botón «Vista previa» antes de guardar para ver cómo quedará el correo.</div>
+      <div class="warning"><strong>Atención con las variables Jinja2:</strong> si eliminas una variable que el sistema necesita, el correo fallará. Puedes cambiar el texto que rodea a las variables, pero no elimines las variables entre <code>{% raw %}{{ }}{% endraw %}</code>.</div>
+    </div>
+
+    <div class="ayuda-section-title">7. Consejos para el administrador</div>
+    <div class="ayuda-card">
+      <ul class="checklist">
+        <li><strong>Prueba siempre los usuarios nuevos:</strong> después de crear un usuario, haz login con sus credenciales para verificar que el acceso funciona y que ve los servicios correctos.</li>
+        <li><strong>Antes de desactivar un servicio,</strong> verifica que no tiene PEGs en estado PENDIENTE o VALIDADO pendientes de procesar. Filtra los PEGs por servicio y estado antes de desactivarlo.</li>
+        <li><strong>Antes de desactivar un banco,</strong> comprueba que no tiene remesas ABIERTAS o GENERADAS. Una remesa sin banco activo no puede procesarse correctamente.</li>
+        <li><strong>Mantén actualizado el catálogo de cuentas de gasto:</strong> solo las cuentas activas aparecen en el desplegable. Desactiva las que ya no uséis para simplificar la validación.</li>
+        <li><strong>Haz un ciclo completo de prueba al configurar un servicio nuevo:</strong> crea el servicio y sus proyectos, asigna un usuario GS, crea un PEG de prueba, valídalo como GE y verifica que los datos aparecen correctamente en el PDF y en el SUENLACE.DAT.</li>
+        <li><strong>Comunica los cambios de contraseña de forma segura:</strong> no envíes contraseñas por correo electrónico. Usa un canal cifrado o entrega la contraseña en persona y pide al usuario que la cambie en su primer login.</li>
+        <li><strong>Documenta los códigos de A3Con:</strong> mantén una hoja de referencia con la correspondencia entre proveedores y sus cuentas 410XXXXX en A3Con para facilitar la asignación cuando se crean proveedores nuevos.</li>
+      </ul>
+    </div>
+
+    <div class="quick-links" style="margin-top:24px;">
+      <a class="btn btn-primary" href="/admin/">Ir al panel de administración</a>
+      <a class="btn btn-secondary" href="/ayuda/">Volver al centro de ayuda</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

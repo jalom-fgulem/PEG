@@ -35,111 +35,111 @@
         .layout {
             min-height: 100vh;
             display: grid;
-            grid-template-columns: 260px 1fr;
+            grid-template-columns: 240px 1fr;
         }
 
+        /* ── Sidebar ── */
         .sidebar {
             background: linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.90) 100%);
             border-right: 1px solid rgba(229, 231, 235, 0.9);
-            padding: 28px 22px;
+            padding: 22px 16px 32px;
             backdrop-filter: blur(8px);
+            overflow-y: auto;
         }
 
         .brand {
             display: flex;
             flex-direction: column;
-            gap: 14px;
-            margin-bottom: 28px;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid var(--line);
         }
 
-        .brand-logo {
-            width: 100%;
-            max-width: 170px;
-            height: auto;
-            display: block;
-            margin-bottom: 4px;
-        }
+        .brand-logo { width: 100%; max-width: 150px; height: auto; display: block; }
+        .brand-title { font-size: 1rem; font-weight: 700; letter-spacing: 0.01em; color: var(--ink); line-height: 1.25; }
+        .brand-subtitle { color: var(--ink-soft); font-size: 0.82rem; line-height: 1.4; }
 
-        .brand-title {
-            font-size: 1.05rem;
-            font-weight: 700;
-            letter-spacing: 0.01em;
-            color: var(--ink);
-            line-height: 1.25;
-        }
+        /* ── Collapsible nav sections ── */
+        .nav-section { margin-top: 4px; }
 
-        .brand-subtitle {
-            color: var(--ink-soft);
-            font-size: 0.92rem;
-            line-height: 1.4;
-        }
-
-        .nav-section-title {
-            font-size: 0.74rem;
+        .nav-section > summary {
+            list-style: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.72rem;
             text-transform: uppercase;
             letter-spacing: 0.12em;
             color: #8a8691;
-            margin: 24px 0 10px;
+            padding: 10px 6px 6px;
+            margin: 0;
             font-weight: 700;
+            user-select: none;
+            transition: color 0.15s;
         }
+        .nav-section > summary::-webkit-details-marker { display: none; }
+        .nav-section > summary::marker { display: none; }
+        .nav-section > summary:hover { color: var(--fgulem-magenta); }
+        .nav-section > summary::after {
+            content: '›';
+            font-size: 1.1rem;
+            font-weight: 300;
+            transition: transform 0.2s ease;
+            display: inline-block;
+            line-height: 1;
+        }
+        .nav-section[open] > summary::after { transform: rotate(90deg); }
 
         .nav-link {
-            display: block;
-            padding: 12px 14px;
-            margin-bottom: 6px;
-            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            margin-bottom: 3px;
+            border-radius: 10px;
             text-decoration: none;
             color: var(--ink);
             font-weight: 600;
+            font-size: 0.93rem;
             background: transparent;
-            transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+            transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
         }
-
         .nav-link:hover {
             background: rgba(95, 159, 211, 0.10);
             color: var(--fgulem-magenta);
             transform: translateX(2px);
         }
-
-        .nav-group {
-            margin-bottom: 8px;
-        }
-
-        .nav-group summary {
-            list-style: none;
-            cursor: pointer;
-        }
-
-        .nav-group summary::-webkit-details-marker {
-            display: none;
-        }
-
-        .nav-submenu {
-            margin-top: 4px;
-            margin-left: 12px;
-            padding-left: 10px;
-            border-left: 2px solid rgba(95, 159, 211, 0.16);
-        }
-
-        .nav-sublink {
-            display: block;
-            padding: 9px 12px;
-            margin-bottom: 4px;
-            border-radius: 10px;
-            text-decoration: none;
-            color: var(--ink-soft);
-            font-size: 0.94rem;
-            font-weight: 600;
-        }
-
-        .nav-sublink:hover {
-            background: rgba(95, 159, 211, 0.08);
+        .nav-link.active {
+            background: rgba(194, 27, 132, 0.08);
             color: var(--fgulem-magenta);
         }
 
-        .content {
-            padding: 28px 32px 40px;
+        .nav-sublink {
+            display: flex;
+            align-items: center;
+            padding: 7px 12px 7px 24px;
+            margin-bottom: 2px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--ink-soft);
+            font-size: 0.86rem;
+            font-weight: 600;
         }
+        .nav-sublink:hover { background: rgba(95, 159, 211, 0.08); color: var(--fgulem-magenta); }
+
+        .nav-badge {
+            margin-left: auto;
+            border-radius: 10px;
+            padding: 1px 7px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        /* ── Topbar ── */
+        .content { padding: 24px 32px 40px; }
 
         .topbar {
             display: flex;
@@ -149,17 +149,46 @@
             margin-bottom: 24px;
         }
 
-        .page-heading h1 {
-            margin: 0;
-            font-size: 1.8rem;
-            color: var(--ink);
-            letter-spacing: -0.02em;
-        }
+        .page-heading h1 { margin: 0; font-size: 1.75rem; color: var(--ink); letter-spacing: -0.02em; }
+        .page-heading p  { margin: 5px 0 0; color: var(--ink-soft); font-size: 0.96rem; }
 
-        .page-heading p {
-            margin: 6px 0 0;
+        .topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+        .topbar-icon {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.85);
             color: var(--ink-soft);
-            font-size: 0.98rem;
+            text-decoration: none;
+            flex-shrink: 0;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+        }
+        .topbar-icon:hover {
+            background: rgba(194,27,132,0.06);
+            border-color: rgba(194,27,132,0.25);
+            color: var(--fgulem-magenta);
+        }
+        .topbar-icon-badge {
+            position: absolute;
+            top: -5px; right: -5px;
+            background: #e74c3c;
+            color: white;
+            border-radius: 999px;
+            font-size: 0.66rem;
+            font-weight: 700;
+            min-width: 17px;
+            height: 17px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            border: 2px solid #f7f7f8;
         }
 
         .badge {
@@ -173,42 +202,26 @@
             font-size: 0.86rem;
         }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+        .user-info { display: flex; align-items: center; gap: 10px; }
 
         .user-pill {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 8px 14px;
+            padding: 7px 14px;
             border-radius: 999px;
             background: rgba(255,255,255,0.85);
             border: 1px solid var(--line);
-            font-size: 0.88rem;
+            font-size: 0.87rem;
+            text-decoration: none;
             transition: background 0.15s, border-color 0.15s;
         }
-        .user-pill:hover {
-            background: rgba(194,27,132,0.06);
-            border-color: rgba(194,27,132,0.25);
-        }
-
-        .user-pill-name {
-            font-weight: 700;
-            color: var(--ink);
-        }
-
+        .user-pill:hover { background: rgba(194,27,132,0.06); border-color: rgba(194,27,132,0.25); }
+        .user-pill-name { font-weight: 700; color: var(--ink); }
         .user-pill-rol {
-            font-size: 0.76rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            padding: 3px 8px;
-            border-radius: 999px;
-            background: rgba(194, 27, 132, 0.10);
-            color: var(--fgulem-magenta);
+            font-size: 0.74rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.06em; padding: 3px 8px; border-radius: 999px;
+            background: rgba(194, 27, 132, 0.10); color: var(--fgulem-magenta);
         }
 
         .btn-logout {
@@ -224,11 +237,9 @@
             text-decoration: none;
             transition: background 0.15s ease;
         }
+        .btn-logout:hover { background: rgba(194, 27, 132, 0.07); }
 
-        .btn-logout:hover {
-            background: rgba(194, 27, 132, 0.07);
-        }
-
+        /* ── Cards / Tables / Forms ── */
         .card {
             background: rgba(255,255,255,0.94);
             border: 1px solid rgba(229, 231, 235, 0.95);
@@ -237,176 +248,55 @@
             box-shadow: var(--shadow);
             margin-bottom: 18px;
         }
+        .card h2, .card h3 { margin-top: 0; color: var(--ink); }
 
-        .card h2, .card h3 {
-            margin-top: 0;
-            color: var(--ink);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
+        table { width: 100%; border-collapse: collapse; }
         th {
-            text-align: left;
-            font-size: 0.82rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: #86828b;
-            padding: 14px 12px;
+            text-align: left; font-size: 0.82rem; text-transform: uppercase;
+            letter-spacing: 0.06em; color: #86828b; padding: 14px 12px;
             border-bottom: 1px solid var(--line);
         }
+        td { padding: 14px 12px; border-bottom: 1px solid #eef0f3; color: var(--ink); vertical-align: middle; }
+        tr:hover td { background: rgba(95, 159, 211, 0.04); }
+        td.num, tfoot td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 0.84rem; }
 
-        td {
-            padding: 14px 12px;
-            border-bottom: 1px solid #eef0f3;
-            color: var(--ink);
-            vertical-align: middle;
-        }
-
-        tr:hover td {
-            background: rgba(95, 159, 211, 0.04);
-        }
-
-        td.num, tfoot td.num {
-            text-align: right;
-            white-space: nowrap;
-            font-variant-numeric: tabular-nums;
-            font-size: 0.84rem;
-        }
-
-        .toolbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
         .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 11px 16px;
-            border-radius: 12px;
-            border: 1px solid transparent;
-            text-decoration: none;
-            font-weight: 700;
-            cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 8px; padding: 11px 16px; border-radius: 12px; border: 1px solid transparent;
+            text-decoration: none; font-weight: 700; cursor: pointer;
             transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
         }
+        .btn:hover { transform: translateY(-1px); }
+        .btn-primary { background: linear-gradient(135deg, var(--fgulem-magenta) 0%, var(--fgulem-magenta-soft) 100%); color: white; box-shadow: 0 12px 22px rgba(194, 27, 132, 0.20); }
+        .btn-secondary { background: rgba(95, 159, 211, 0.10); color: var(--ink); border-color: rgba(95, 159, 211, 0.20); }
+        .btn-ghost { background: transparent; color: var(--fgulem-magenta); border-color: rgba(194, 27, 132, 0.20); }
 
-        .btn:hover {
-            transform: translateY(-1px);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--fgulem-magenta) 0%, var(--fgulem-magenta-soft) 100%);
-            color: white;
-            box-shadow: 0 12px 22px rgba(194, 27, 132, 0.20);
-        }
-
-        .btn-secondary {
-            background: rgba(95, 159, 211, 0.10);
-            color: var(--ink);
-            border-color: rgba(95, 159, 211, 0.20);
-        }
-
-        .btn-ghost {
-            background: transparent;
-            color: var(--fgulem-magenta);
-            border-color: rgba(194, 27, 132, 0.20);
-        }
-
-        label {
-            display: inline-block;
-            margin-bottom: 8px;
-            color: var(--ink);
-            font-weight: 700;
-            font-size: 0.95rem;
-        }
-
+        label { display: inline-block; margin-bottom: 8px; color: var(--ink); font-weight: 700; font-size: 0.95rem; }
         input, select, textarea {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1px solid #d8dce2;
-            border-radius: 12px;
-            background: white;
-            color: var(--ink);
-            font-size: 0.97rem;
+            width: 100%; padding: 12px 14px; border: 1px solid #d8dce2;
+            border-radius: 12px; background: white; color: var(--ink); font-size: 0.97rem;
             transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
-
         input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: var(--fgulem-blue);
+            outline: none; border-color: var(--fgulem-blue);
             box-shadow: 0 0 0 4px rgba(95, 159, 211, 0.14);
         }
-
-        .field {
-            margin-bottom: 18px;
-        }
-
-        .muted {
-            color: var(--ink-soft);
-        }
-
-        .empty-state {
-            padding: 30px 18px;
-            text-align: center;
-            color: var(--ink-soft);
-        }
+        .field { margin-bottom: 18px; }
+        .muted { color: var(--ink-soft); }
+        .empty-state { padding: 30px 18px; text-align: center; color: var(--ink-soft); }
 
         .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(20, 24, 31, 0.45);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            z-index: 9999;
+            position: fixed; inset: 0; background: rgba(20, 24, 31, 0.45);
+            display: none; align-items: center; justify-content: center; padding: 24px; z-index: 9999;
         }
-
-        .modal-backdrop.active {
-            display: flex;
-        }
-
-        .modal-panel {
-            width: min(760px, 100%);
-            background: #fff;
-            border-radius: 20px;
-            box-shadow: 0 18px 60px rgba(22, 28, 45, 0.20);
-            overflow: hidden;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 18px 22px;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .modal-body {
-            padding: 22px;
-        }
-
-        .modal-close {
-            border: none;
-            background: transparent;
-            font-size: 1.4rem;
-            cursor: pointer;
-            color: var(--ink-soft);
-        }
+        .modal-backdrop.active { display: flex; }
+        .modal-panel { width: min(760px, 100%); background: #fff; border-radius: 20px; box-shadow: 0 18px 60px rgba(22, 28, 45, 0.20); overflow: hidden; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--line); }
+        .modal-body { padding: 22px; }
+        .modal-close { border: none; background: transparent; font-size: 1.4rem; cursor: pointer; color: var(--ink-soft); }
 
         @media (max-width: 980px) {
             .layout { grid-template-columns: 1fr; }
@@ -417,180 +307,193 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <div class="layout">
-        {% set usuario = get_usuario_actual(request) %}
-        <aside class="sidebar">
-            <div class="brand">
-                <img class="brand-logo" src="/static/logo-fgulem.jpg" alt="FGULEM">
-                <div>
-                    <div class="brand-title">SGPEG</div>
-                    <div class="brand-subtitle">Sistema de Gestión de Propuestas Específicas de Gasto</div>
-                </div>
+<div class="layout">
+    {% set usuario = get_usuario_actual(request) %}
+    {% set counts  = menu_counts(usuario) %}
+
+    {# ── SIDEBAR ─────────────────────────────────────────────────────────── #}
+    <aside class="sidebar">
+        <div class="brand">
+            <img class="brand-logo" src="/static/logo-fgulem.jpg" alt="FGULEM">
+            <div>
+                <div class="brand-title">SGPEG</div>
+                <div class="brand-subtitle">Sistema de Gestión de Propuestas Específicas de Gasto</div>
+            </div>
+        </div>
+
+        {# ── GESTOR_SERVICIO ──────────────────────────────────────────────── #}
+        {% if usuario and usuario.get("rol") == "GESTOR_SERVICIO" %}
+
+        <details open class="nav-section">
+          <summary>Principal</summary>
+          <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">Dashboard</a>
+          <a class="nav-link {% if request.url.path.startswith('/ayuda') %}active{% endif %}" href="/ayuda/">Ayuda</a>
+        </details>
+
+        <details {% if request.url.path.startswith('/solicitudes') %}open{% endif %} class="nav-section">
+          <summary>Autorizaciones</summary>
+          <a class="nav-link {% if request.url.path.startswith('/solicitudes') %}active{% endif %}" href="/solicitudes/">Todas las solicitudes</a>
+          {% if counts.menu_solicitudes_pendientes > 0 %}
+          <a class="nav-sublink" href="/solicitudes/?estado=PENDIENTE">
+            · Pendientes <span class="nav-badge" style="background:#e74c3c;">{{ counts.menu_solicitudes_pendientes }}</span>
+          </a>
+          {% endif %}
+        </details>
+
+        <details {% if request.url.path.startswith('/pegs') %}open{% endif %} class="nav-section">
+          <summary>PEGs</summary>
+          <a class="nav-link {% if request.url.path.startswith('/pegs') and 'estado' not in request.url.query %}active{% endif %}" href="/pegs">Todos los PEGs</a>
+          {% if counts.menu_pegs_pendientes > 0 %}
+          <a class="nav-sublink" href="/pegs?estado=PENDIENTE">
+            · Pendientes de validar <span class="nav-badge" style="background:#e74c3c;">{{ counts.menu_pegs_pendientes }}</span>
+          </a>
+          {% endif %}
+          {% if counts.menu_pegs_incidencias > 0 %}
+          <a class="nav-sublink" href="/pegs?estado=INCIDENCIA">
+            · Incidencias <span class="nav-badge" style="background:#e74c3c;">{{ counts.menu_pegs_incidencias }}</span>
+          </a>
+          {% endif %}
+          {% if counts.menu_pegs_en_remesa > 0 %}
+          <a class="nav-sublink" href="/pegs?estado=EN_REMESA">
+            · En remesa <span class="nav-badge" style="background:#e74c3c;">{{ counts.menu_pegs_en_remesa }}</span>
+          </a>
+          {% endif %}
+          {% if counts.menu_pegs_validados > 0 %}
+          <a class="nav-sublink" href="/pegs?estado=VALIDADO">
+            · Validados <span class="nav-badge" style="background:#e74c3c;">{{ counts.menu_pegs_validados }}</span>
+          </a>
+          {% endif %}
+        </details>
+
+        <details {% if request.url.path.startswith('/proveedores') %}open{% endif %} class="nav-section">
+          <summary>Gestión de datos</summary>
+          <a class="nav-link {% if request.url.path.startswith('/proveedores') %}active{% endif %}" href="/proveedores/">Proveedores</a>
+        </details>
+
+        {# ── GESTOR_ECONOMICO / ADMIN ─────────────────────────────────────── #}
+        {% elif usuario and usuario.get("rol") in ["GESTOR_ECONOMICO", "ADMIN"] %}
+
+        <details open class="nav-section">
+          <summary>Principal</summary>
+          <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">Dashboard</a>
+          <a class="nav-link {% if request.url.path.startswith('/ayuda') %}active{% endif %}" href="/ayuda/">Ayuda</a>
+        </details>
+
+        <details {% if request.url.path.startswith('/solicitudes') %}open{% endif %} class="nav-section">
+          <summary>Autorizaciones</summary>
+          <a class="nav-link {% if request.url.path.startswith('/solicitudes') %}active{% endif %}" href="/solicitudes/">Todas las solicitudes</a>
+          {% if counts.menu_solicitudes_pendientes > 0 %}
+          <a class="nav-sublink" href="/solicitudes/?estado=PENDIENTE">
+            · Pendientes <span class="nav-badge" style="background:#e74c3c;">{{ counts.menu_solicitudes_pendientes }}</span>
+          </a>
+          {% endif %}
+        </details>
+
+        <details {% if request.url.path.startswith('/pegs') %}open{% endif %} class="nav-section">
+          <summary>PEGs</summary>
+          <a class="nav-link {% if request.url.path.startswith('/pegs') and 'estado' not in request.url.query %}active{% endif %}" href="/pegs">Todos los PEGs</a>
+          {% if counts.menu_pegs_pendientes > 0 %}
+          <a class="nav-sublink" href="/pegs?estado=PENDIENTE">
+            · Pendientes de validar <span class="nav-badge" style="background:#e74c3c;">{{ counts.menu_pegs_pendientes }}</span>
+          </a>
+          {% endif %}
+          {% if counts.menu_pegs_incidencias > 0 %}
+          <a class="nav-sublink" href="/pegs?estado=INCIDENCIA">
+            · Incidencias <span class="nav-badge" style="background:#e74c3c;">{{ counts.menu_pegs_incidencias }}</span>
+          </a>
+          {% endif %}
+          {% if counts.menu_pegs_en_remesa > 0 %}
+          <a class="nav-sublink" href="/pegs?estado=EN_REMESA">
+            · En remesa <span class="nav-badge" style="background:#e74c3c;">{{ counts.menu_pegs_en_remesa }}</span>
+          </a>
+          {% endif %}
+          {% if counts.menu_pegs_validados > 0 %}
+          <a class="nav-sublink" href="/pegs?estado=VALIDADO">
+            · Validados <span class="nav-badge" style="background:#e74c3c;">{{ counts.menu_pegs_validados }}</span>
+          </a>
+          {% endif %}
+        </details>
+
+        <details {% if request.url.path.startswith('/movimientos') or request.url.path.startswith('/tarjetas') %}open{% endif %} class="nav-section">
+          <summary>Cuentas y tarjetas</summary>
+          <a class="nav-link {% if request.url.path.startswith('/movimientos') %}active{% endif %}" href="/movimientos/">Cuentas bancarias</a>
+          <a class="nav-link {% if request.url.path.startswith('/tarjetas') %}active{% endif %}" href="/tarjetas/">Tarjetas</a>
+          {% if counts.menu_tarjetas_pendientes > 0 %}
+          <a class="nav-sublink" href="/tarjetas/?estado=PENDIENTE">
+            · Pendientes <span class="nav-badge" style="background:#854f0b;">{{ counts.menu_tarjetas_pendientes }}</span>
+          </a>
+          {% endif %}
+        </details>
+
+        <details {% if request.url.path.startswith('/remesas') %}open{% endif %} class="nav-section">
+          <summary>Remesas</summary>
+          <a class="nav-link {% if request.url.path.startswith('/remesas') and not request.url.path.startswith('/remesas-directas') %}active{% endif %}" href="/remesas/">RT – PEGs</a>
+          {% if counts.menu_rt_abiertas > 0 %}
+          <a class="nav-sublink" href="/remesas/?estado=ABIERTA">
+            · Abiertas <span class="nav-badge" style="background:#5a2db5;">{{ counts.menu_rt_abiertas }}</span>
+          </a>
+          {% endif %}
+          {% if counts.menu_rt_generadas > 0 %}
+          <a class="nav-sublink" href="/remesas/?estado=GENERADA">
+            · Generadas <span class="nav-badge" style="background:#5a2db5;">{{ counts.menu_rt_generadas }}</span>
+          </a>
+          {% endif %}
+          <a class="nav-link {% if request.url.path.startswith('/remesas-directas') %}active{% endif %}" href="/remesas-directas/">RD – Directas</a>
+          {% if counts.menu_rd_abiertas > 0 %}
+          <a class="nav-sublink" href="/remesas-directas/">
+            · Abiertas <span class="nav-badge" style="background:#0c5460;">{{ counts.menu_rd_abiertas }}</span>
+          </a>
+          {% endif %}
+        </details>
+
+        <details {% if request.url.path.startswith('/proveedores') %}open{% endif %} class="nav-section">
+          <summary>Gestión de datos</summary>
+          <a class="nav-link {% if request.url.path.startswith('/proveedores') %}active{% endif %}" href="/proveedores/">Proveedores</a>
+        </details>
+
+        {% endif %}
+    </aside>
+
+    {# ── CONTENT ──────────────────────────────────────────────────────────── #}
+    <section class="content">
+        <div class="topbar">
+            <div class="page-heading">
+                <h1>{% block page_title %}SGPEG{% endblock %}</h1>
+                <p>{% block page_subtitle %}Sistema de Gestión de Propuestas Específicas de Gasto{% endblock %}</p>
             </div>
 
-            {# ── GESTOR_SERVICIO ── #}
-            {% if usuario and usuario.get("rol") == "GESTOR_SERVICIO" %}
-            {% set counts = menu_counts(usuario) %}
+            {% if usuario %}
+            <div class="topbar-actions">
 
-            <div class="nav-section-title">Principal</div>
-            <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">Dashboard</a>
-            <a class="nav-link {% if request.url.path == '/ayuda' %}active{% endif %}" href="/ayuda">Ayuda</a>
+                {# Icono de mensajes #}
+                <a href="/mensajes/" class="topbar-icon" title="Bandeja de mensajes">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="1.7"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="4" width="20" height="16" rx="3"/>
+                        <path d="m2 7 10 7 10-7"/>
+                    </svg>
+                    {% if counts.menu_mensajes_no_leidos > 0 %}
+                    <span class="topbar-icon-badge">{{ counts.menu_mensajes_no_leidos }}</span>
+                    {% endif %}
+                </a>
 
-            <div class="nav-section-title">Autorizaciones</div>
-            <a class="nav-link {% if request.url.path.startswith('/solicitudes') %}active{% endif %}" href="/solicitudes/">Todas las solicitudes</a>
-            {% if counts.menu_solicitudes_pendientes > 0 %}
-            <a class="nav-sublink" href="/solicitudes/?estado=PENDIENTE"
-               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
-              · Pendientes
-              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_solicitudes_pendientes }}</span>
-            </a>
-            {% endif %}
+                {# Icono de administración (solo ADMIN) #}
+                {% if usuario.get("rol") == "ADMIN" %}
+                <a href="/admin/" class="topbar-icon" title="Panel de administración">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="1.7"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </a>
+                {% endif %}
 
-            <div class="nav-section-title">PEGs</div>
-            <a class="nav-link {% if request.url.path.startswith('/pegs') and 'estado' not in request.url.query %}active{% endif %}" href="/pegs">Todos los PEGs</a>
-            {% if counts.menu_pegs_pendientes > 0 %}
-            <a class="nav-sublink" href="/pegs?estado=PENDIENTE"
-               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
-              · Pendientes de validar
-              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_pegs_pendientes }}</span>
-            </a>
-            {% endif %}
-            {% if counts.menu_pegs_incidencias > 0 %}
-            <a class="nav-sublink" href="/pegs?estado=INCIDENCIA"
-               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
-              · Incidencias
-              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_pegs_incidencias }}</span>
-            </a>
-            {% endif %}
-            {% if counts.menu_pegs_en_remesa > 0 %}
-            <a class="nav-sublink" href="/pegs?estado=EN_REMESA"
-               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
-              · En remesa
-              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_pegs_en_remesa }}</span>
-            </a>
-            {% endif %}
-            {% if counts.menu_pegs_validados > 0 %}
-            <a class="nav-sublink" href="/pegs?estado=VALIDADO"
-               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
-              · Validados
-              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_pegs_validados }}</span>
-            </a>
-            {% endif %}
-
-            <div class="nav-section-title">Gestión de datos</div>
-            <a class="nav-link {% if request.url.path.startswith('/proveedores') %}active{% endif %}" href="/proveedores/">Proveedores</a>
-
-            {# ── GESTOR_ECONOMICO / ADMIN ── #}
-            {% elif usuario and usuario.get("rol") in ["GESTOR_ECONOMICO", "ADMIN"] %}
-            {% set counts = menu_counts(usuario) %}
-
-            <div class="nav-section-title">Principal</div>
-            <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">Dashboard</a>
-            <a class="nav-link {% if request.url.path == '/ayuda' %}active{% endif %}" href="/ayuda">Ayuda</a>
-
-            <div class="nav-section-title">Autorizaciones</div>
-            <a class="nav-link {% if request.url.path.startswith('/solicitudes') %}active{% endif %}" href="/solicitudes/">Todas las solicitudes</a>
-            {% if counts.menu_solicitudes_pendientes > 0 %}
-            <a class="nav-sublink" href="/solicitudes/?estado=PENDIENTE"
-               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
-              · Pendientes
-              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_solicitudes_pendientes }}</span>
-            </a>
-            {% endif %}
-
-            <div class="nav-section-title">PEGs</div>
-            <a class="nav-link {% if request.url.path.startswith('/pegs') and 'estado' not in request.url.query %}active{% endif %}" href="/pegs">Todos los PEGs</a>
-            {% if counts.menu_pegs_pendientes > 0 %}
-            <a class="nav-sublink" href="/pegs?estado=PENDIENTE"
-               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
-              · Pendientes de validar
-              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_pegs_pendientes }}</span>
-            </a>
-            {% endif %}
-            {% if counts.menu_pegs_incidencias > 0 %}
-            <a class="nav-sublink" href="/pegs?estado=INCIDENCIA"
-               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
-              · Incidencias
-              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_pegs_incidencias }}</span>
-            </a>
-            {% endif %}
-            {% if counts.menu_pegs_en_remesa > 0 %}
-            <a class="nav-sublink" href="/pegs?estado=EN_REMESA"
-               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
-              · En remesa
-              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_pegs_en_remesa }}</span>
-            </a>
-            {% endif %}
-            {% if counts.menu_pegs_validados > 0 %}
-            <a class="nav-sublink" href="/pegs?estado=VALIDADO"
-               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
-              · Validados
-              <span style="background:#e74c3c;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_pegs_validados }}</span>
-            </a>
-            {% endif %}
-
-            <div class="nav-section-title">Cuentas y tarjetas</div>
-            <a class="nav-link {% if request.url.path.startswith('/movimientos') %}active{% endif %}" href="/movimientos/">Cuentas bancarias</a>
-            <a class="nav-link {% if request.url.path.startswith('/tarjetas') %}active{% endif %}" href="/tarjetas/">Tarjetas</a>
-            {% if counts.menu_tarjetas_pendientes > 0 %}
-            <a class="nav-sublink" href="/tarjetas/?estado=PENDIENTE"
-               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
-              · Pendientes
-              <span style="background:#854f0b;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_tarjetas_pendientes }}</span>
-            </a>
-            {% endif %}
-
-            <div class="nav-section-title">Remesas</div>
-            <a class="nav-link {% if request.url.path.startswith('/remesas') and not request.url.path.startswith('/remesas-directas') %}active{% endif %}" href="/remesas/">RT – PEGs</a>
-            {% if counts.menu_rt_abiertas > 0 %}
-            <a class="nav-sublink" href="/remesas/?estado=ABIERTA"
-               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
-              · Abiertas
-              <span style="background:#5a2db5;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_rt_abiertas }}</span>
-            </a>
-            {% endif %}
-            {% if counts.menu_rt_generadas > 0 %}
-            <a class="nav-sublink" href="/remesas/?estado=GENERADA"
-               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
-              · Generadas
-              <span style="background:#5a2db5;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_rt_generadas }}</span>
-            </a>
-            {% endif %}
-            <a class="nav-link {% if request.url.path.startswith('/remesas-directas') %}active{% endif %}" href="/remesas-directas/">RD – Directas</a>
-            {% if counts.menu_rd_abiertas > 0 %}
-            <a class="nav-sublink" href="/remesas-directas/"
-               style="padding-left:28px;font-size:0.82rem;color:#666;display:flex;align-items:center;">
-              · Abiertas
-              <span style="background:#0c5460;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:auto;">{{ counts.menu_rd_abiertas }}</span>
-            </a>
-            {% endif %}
-
-            <div class="nav-section-title">Gestión de datos</div>
-            <a class="nav-link {% if request.url.path.startswith('/proveedores') %}active{% endif %}" href="/proveedores/">Proveedores</a>
-
-            {% if usuario.get("rol") == "ADMIN" %}
-            <div class="nav-section-title">Administración</div>
-            <a class="nav-link {% if request.url.path.startswith('/usuarios') %}active{% endif %}" href="/usuarios/">Usuarios</a>
-            <a class="nav-link {% if request.url.path.startswith('/servicios') %}active{% endif %}" href="/servicios/">Servicios</a>
-            <a class="nav-link {% if request.url.path.startswith('/bancos') %}active{% endif %}" href="/bancos/">Bancos</a>
-            <a class="nav-link {% if request.url.path.startswith('/admin/cuentas-gasto') %}active{% endif %}" href="/admin/cuentas-gasto">Cuentas de gasto</a>
-            {% endif %}
-
-            {% endif %}
-        </aside>
-
-        <section class="content">
-            <div class="topbar">
-                <div class="page-heading">
-                    <h1>{% block page_title %}SGPEG{% endblock %}</h1>
-                    <p>{% block page_subtitle %}Sistema de Gestión de Propuestas Específicas de Gasto{% endblock %}</p>
-                </div>
-                {% if usuario %}
+                {# Perfil de usuario #}
                 <div class="user-info">
-                    <a href="/usuarios/mi-perfil" class="user-pill"
-                       style="text-decoration:none;cursor:pointer;"
-                       title="Mi perfil">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
+                    <a href="/usuarios/mi-perfil" class="user-pill" title="Mi perfil">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"
                              fill="none" stroke="currentColor" stroke-width="1.6"
                              stroke-linecap="round" stroke-linejoin="round"
                              style="flex-shrink:0;color:#8a8691;">
@@ -600,18 +503,20 @@
                         <span class="user-pill-name">{{ usuario.nombre_completo }}</span>
                         <span class="user-pill-rol">{{ usuario.rol }}</span>
                         {% if usuario.servicio %}
-                        <span class="muted" style="font-size:0.82rem;">{{ usuario.servicio }}</span>
+                        <span class="muted" style="font-size:0.80rem;">{{ usuario.servicio }}</span>
                         {% endif %}
                     </a>
                     <a class="btn-logout" href="/logout">Cerrar sesión</a>
                 </div>
-                {% endif %}
+
             </div>
+            {% endif %}
+        </div>
 
-            {% block content %}{% endblock %}
-        </section>
-    </div>
+        {% block content %}{% endblock %}
+    </section>
+</div>
 
-    {% block extra_scripts %}{% endblock %}
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>

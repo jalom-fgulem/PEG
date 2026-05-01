@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.core.auth import require_login, require_rol
 from app.core.templating import templates
-from app.services import solicitudes_service
+from app.services import solicitudes_service, mensajes_service, email_service
 from app.services.mock_servicios import listar_servicios, obtener_servicio
 from app.services.proveedores_service import listar_proveedores, obtener_proveedor
 from app.services.pegs_service import (
@@ -167,6 +167,7 @@ async def solicitudes_nueva_post(
         tipo_irpf=_tipo_irpf,
         id_forma_pago=id_forma_pago,
     )
+    email_service.notificar_solicitud_creada(solicitud, usuario["nombre_completo"])
 
     id_sol = solicitud["id_solicitud"]
     # Mover adjuntos a carpeta definitiva y registrar en BD
@@ -220,6 +221,13 @@ def solicitudes_autorizar(
     if not resultado:
         request.session["flash_error"] = "No se pudo autorizar (estado incorrecto o no encontrada)"
         return RedirectResponse(url=f"/solicitudes/{id_solicitud}", status_code=303)
+    sol = solicitudes_service.obtener_solicitud_raw(id_solicitud)
+    if sol:
+        mensajes_service.notif_solicitud_autorizada(sol)
+        from app.services.mock_usuarios import obtener_usuario
+        gs = obtener_usuario(sol["id_usuario_solicitante"])
+        if gs and gs.get("email"):
+            email_service.notificar_solicitud_autorizada(sol, gs["email"])
     request.session["flash_success"] = "Solicitud autorizada correctamente"
     return RedirectResponse(url=f"/solicitudes/{id_solicitud}", status_code=303)
 
@@ -241,6 +249,13 @@ def solicitudes_denegar(
     if not resultado:
         request.session["flash_error"] = "No se pudo denegar (estado incorrecto o no encontrada)"
         return RedirectResponse(url=f"/solicitudes/{id_solicitud}", status_code=303)
+    sol = solicitudes_service.obtener_solicitud_raw(id_solicitud)
+    if sol:
+        mensajes_service.notif_solicitud_denegada(sol, motivo)
+        from app.services.mock_usuarios import obtener_usuario
+        gs = obtener_usuario(sol["id_usuario_solicitante"])
+        if gs and gs.get("email"):
+            email_service.notificar_solicitud_denegada(sol, gs["email"], motivo)
     request.session["flash_success"] = "Solicitud denegada"
     return RedirectResponse(url=f"/solicitudes/{id_solicitud}", status_code=303)
 

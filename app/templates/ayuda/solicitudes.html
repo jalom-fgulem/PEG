@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}Solicitudes de autorización previa — Ayuda SGPEG{% endblock %}
+{% block page_title %}Solicitudes de autorización previa{% endblock %}
+{% block page_subtitle %}Cómo solicitar y gestionar autorizaciones antes de comprometerse con un proveedor{% endblock %}
+
+{% block content %}
+<div class="ayuda-wrap">
+  {% include "ayuda/_nav.html" %}
+
+  <div class="ayuda-content">
+    <h2>Solicitudes de autorización previa</h2>
+    <p class="lead">Una solicitud es una petición formal al Gestor Económico para que apruebe un gasto antes de pedirlo al proveedor. Cuando se autoriza, el GS puede crear el PEG con la factura real.</p>
+
+    <div class="ayuda-section-title">1. ¿Para qué sirve una solicitud?</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">La solicitud de autorización separa el <em>compromiso de gasto</em> (cuando decides contratar algo) del <em>registro de la factura</em> (cuando ya tienes el documento). Esto permite:</p>
+      <ul class="checklist">
+        <li>Controlar el presupuesto antes de comprometerse</li>
+        <li>Dar al GE visibilidad de los gastos previstos</li>
+        <li>Evitar PEGs rechazados por falta de presupuesto o proveedor no aprobado</li>
+        <li>Documentar la cadena de autorización para auditorías</li>
+      </ul>
+    </div>
+
+    <div class="ayuda-section-title">2. ¿Cuándo es obligatoria?</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Cada servicio tiene un parámetro <strong>«Requiere autorización previa»</strong> que activa el Administrador del sistema. Si está activado en tu servicio, el sistema no te permitirá crear PEGs sin una solicitud AUTORIZADA previa.</p>
+      <div class="warning"><strong>Si intentas crear un PEG sin solicitud previa</strong> y tu servicio la requiere, el sistema te mostrará un aviso y te redirigirá a crear la solicitud primero.</div>
+    </div>
+
+    <div class="ayuda-section-title">3. ¿Cuándo es recomendable aunque no sea obligatoria?</div>
+    <div class="ayuda-card">
+      <ul class="checklist">
+        <li>Cuando el importe supera el presupuesto habitual de tu servicio</li>
+        <li>Cuando el proveedor es nuevo y no está en el catálogo</li>
+        <li>Cuando el tipo de gasto no es habitual en tu servicio</li>
+        <li>Cuando hay dudas sobre si el gasto está justificado o es elegible</li>
+        <li>Para garantizar presupuesto antes de pedir presupuesto al proveedor</li>
+      </ul>
+    </div>
+
+    <div class="ayuda-section-title">4. Estados de una solicitud</div>
+    <div class="ayuda-card">
+      <div class="flow-chain">
+        <span class="sp sp-pending">PENDIENTE_AUTORIZACION</span>
+        <span class="flow-arrow">→</span>
+        <span class="sp sp-auth">AUTORIZADA</span>
+      </div>
+      <div class="branch" style="margin-left:0;margin-top:6px;">
+        <div class="branch-row">
+          <span class="branch-tag branch-warn">DENEGADA</span>
+          <p>El GE ha denegado la solicitud. Se incluye el motivo. No se puede crear PEG a partir de ella.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ayuda-section-title">5. Crear una solicitud — campo a campo</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;margin:0 0 12px;">Ve a <strong>Solicitudes → Nueva solicitud</strong>.</p>
+      <table class="field-table">
+        <thead>
+          <tr><th>Campo</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Concepto <span class="req">*</span></td>
+            <td>Descripción breve y clara del gasto previsto. Ej: «Contratación de servicios de traducción de documentación técnica al inglés». Sé específico.</td>
+          </tr>
+          <tr>
+            <td>Proveedor</td>
+            <td>Si ya tienes un proveedor en mente, selecciónalo. Si no, puedes dejar este campo en blanco e indicarlo en la justificación. El GE puede sugerir un proveedor al autorizar.</td>
+          </tr>
+          <tr>
+            <td>Importe estimado <span class="req">*</span></td>
+            <td>Estimación del coste total. Si tienes presupuesto del proveedor, usa ese importe. Si no, haz una estimación razonable. El importe real puede diferir cuando llegue la factura.</td>
+          </tr>
+          <tr>
+            <td>Fecha prevista</td>
+            <td>Cuándo esperas recibir el servicio o la factura. Ayuda al GE a planificar la tesorería.</td>
+          </tr>
+          <tr>
+            <td>Justificación <span class="req">*</span></td>
+            <td>Explica por qué es necesario el gasto, qué proyecto o actividad cubre y por qué se ha elegido este proveedor (si aplica). A más detalle, más rápida será la autorización.</td>
+          </tr>
+          <tr>
+            <td>Adjuntos</td>
+            <td>Presupuesto del proveedor, correo de oferta, memoria justificativa. No son obligatorios pero ayudan al GE a tomar la decisión.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ayuda-section-title">6. Hacer seguimiento de tus solicitudes</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">En el listado de solicitudes verás el estado actual de cada una. Puedes filtrar por estado para ver solo las pendientes o las autorizadas.</p>
+      <div class="tip"><strong>Recibirás un correo</strong> cuando el GE tome una decisión. No es necesario que estés revisando la plataforma constantemente.</div>
+    </div>
+
+    <div class="ayuda-section-title">7. Qué pasa cuando se autoriza</div>
+    <div class="ayuda-card">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Recibes un correo de notificación</strong>
+          <p>Te avisa de que la solicitud ha sido autorizada y puedes proceder con el proveedor.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>El GE puede crear el PEG desde la solicitud</strong>
+          <p>El Gestor Económico tiene un botón «Crear PEG» en la solicitud AUTORIZADA que pre-rellena automáticamente todos los campos del PEG con los datos de la solicitud. Solo falta adjuntar la factura real.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>También puedes crear el PEG tú mismo</strong>
+          <p>Desde el listado de PEGs, crea uno nuevo. Verás que la solicitud autorizada aparece como referencia disponible. El sistema vincula el PEG a la solicitud.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ayuda-section-title">8. Qué pasa cuando se deniega</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Recibes un correo con el motivo de la denegación que ha indicado el GE. Lee el motivo con atención:</p>
+      <ul class="checklist">
+        <li>Si es por falta de información, puedes crear una <em>nueva solicitud</em> con la información adicional</li>
+        <li>Si es por falta de presupuesto, habla con tu responsable antes de reintentar</li>
+        <li>Si es porque el gasto no es elegible, el GE te habrá indicado la razón en el campo de motivo</li>
+      </ul>
+      <div class="warning"><strong>Las solicitudes denegadas no se pueden reabrir.</strong> Si necesitas intentarlo de nuevo, crea una nueva solicitud.</div>
+    </div>
+
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+    <div class="ayuda-section-title">9. Revisar solicitudes pendientes (GE / Admin)</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">En el listado de solicitudes, filtra por <strong>PENDIENTE_AUTORIZACION</strong> para ver las que requieren tu atención. El número de pendientes también aparece en el menú lateral.</p>
+      <div class="tip"><strong>Revisa los adjuntos</strong> antes de tomar una decisión. El botón de abrir adjunto te permite ver los presupuestos y documentación en el navegador.</div>
+    </div>
+
+    <div class="ayuda-section-title">10. Autorizar una solicitud</div>
+    <div class="ayuda-card">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Abre el detalle de la solicitud</strong>
+          <p>Revisa todos los campos: concepto, proveedor, importe estimado, justificación y adjuntos.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Haz clic en «Autorizar»</strong>
+          <p>La solicitud pasa a AUTORIZADA. Se envía un correo automático al GS con la notificación.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Crea el PEG desde la solicitud (opcional)</strong>
+          <p>Si ya tienes la factura, usa el botón «Crear PEG» para pre-rellenar automáticamente el formulario con los datos de la solicitud. Adjunta la factura y valida.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ayuda-section-title">11. Denegar una solicitud</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Haz clic en «Denegar» e indica el motivo en el campo de texto que aparece. El motivo es obligatorio y se incluirá en el correo que recibirá el GS. Sé claro y constructivo: explica qué falta o por qué no es posible el gasto.</p>
+      <div class="tip"><strong>Ejemplos de buenos motivos de denegación:</strong> «El importe supera el presupuesto disponible del proyecto X»; «Este tipo de gasto debe tramitarse mediante contrato, no por PEG. Contacta con el área jurídica.»; «Falta adjuntar el presupuesto del proveedor para poder evaluar la solicitud.»</div>
+    </div>
+
+    <div class="ayuda-section-title">12. Convertir en PEG — desde una solicitud AUTORIZADA</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Cuando el GS entregue la factura real, usa el botón <strong>«Crear PEG desde esta solicitud»</strong> que aparece en el detalle de la solicitud AUTORIZADA. El sistema creará un PEG nuevo con:</p>
+      <ul class="checklist">
+        <li>Proveedor pre-seleccionado</li>
+        <li>Descripción heredada de la solicitud</li>
+        <li>Proyecto analítico pre-seleccionado</li>
+        <li>Referencia a la solicitud origen</li>
+      </ul>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;margin-top:10px;">Solo tendrás que rellenar el número de documento (factura), la fecha y los importes reales, y adjuntar la factura escaneada.</p>
+    </div>
+    {% endif %}
+
+    <div class="quick-links" style="margin-top:24px;">
+      <a class="btn btn-primary" href="/solicitudes/">Ir a solicitudes</a>
+      <a class="btn btn-secondary" href="/solicitudes/nueva">Nueva solicitud</a>
+      <a class="btn btn-secondary" href="/ayuda/pegs">Guía de PEGs →</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

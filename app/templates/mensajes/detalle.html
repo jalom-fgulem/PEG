@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}{{ mensaje.asunto }} — Mensajes — SGPEG{% endblock %}
+{% block page_title %}Mensajes{% endblock %}
+{% block page_subtitle %}{{ mensaje.asunto }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:16px;">
+  <a href="/mensajes/" class="btn btn-secondary" style="font-size:0.88rem;">← Volver a bandeja</a>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--line);">
+    <div>
+      <h2 style="margin:0 0 6px;">{{ mensaje.asunto }}</h2>
+      <div style="font-size:0.88rem;color:var(--ink-soft);display:flex;gap:16px;flex-wrap:wrap;">
+        <span><strong>De:</strong> {{ mensaje.nombre_emisor }}</span>
+        <span><strong>Fecha:</strong> {{ mensaje.fecha.strftime('%d/%m/%Y a las %H:%M') }}</span>
+        {% if mensaje.tipo == 'AUTO' %}
+        <span style="background:rgba(127,170,85,0.14);color:#2f7a55;border-radius:999px;padding:2px 10px;font-weight:700;font-size:0.8rem;">Notificación automática</span>
+        {% endif %}
+      </div>
+    </div>
+    {% if mensaje.id_destinatario == usuario.id_usuario %}
+    <div style="display:flex;gap:8px;flex-shrink:0;">
+      <form method="post" action="/mensajes/{{ mensaje.id_mensaje }}/archivar">
+        <button type="submit" class="btn btn-secondary" style="font-size:0.86rem;">
+          {% if mensaje.archivado %}Desarchivar{% else %}Archivar{% endif %}
+        </button>
+      </form>
+      <form method="post" action="/mensajes/{{ mensaje.id_mensaje }}/eliminar"
+            onsubmit="return confirm('¿Eliminar este mensaje?')">
+        <button type="submit" class="btn btn-ghost" style="font-size:0.86rem;border-color:rgba(231,76,60,0.3);color:#c0392b;">
+          Eliminar
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if mensaje.url_entidad %}
+  <div style="background:rgba(95,159,211,0.08);border:1px solid rgba(95,159,211,0.2);border-radius:12px;padding:12px 16px;margin-bottom:20px;font-size:0.93rem;">
+    Relacionado con:
+    <a href="{{ mensaje.url_entidad }}" style="color:var(--fgulem-magenta);font-weight:700;margin-left:4px;">
+      Ver {{ mensaje.entidad_tipo | lower | replace('_', ' ') }} →
+    </a>
+  </div>
+  {% endif %}
+
+  <div style="white-space:pre-wrap;font-size:0.97rem;line-height:1.7;color:var(--ink);">{{ mensaje.cuerpo }}</div>
+</div>
+
+{% if mensaje.tipo == 'MANUAL' and mensaje.id_destinatario == usuario.id_usuario %}
+<div class="card">
+  <h3 style="margin-top:0;">Responder</h3>
+  <form method="post" action="/mensajes/nuevo">
+    <input type="hidden" name="id_destinatario" value="{{ mensaje.id_emisor }}">
+    <input type="hidden" name="entidad_tipo" value="{{ mensaje.entidad_tipo or '' }}">
+    <input type="hidden" name="entidad_id" value="{{ mensaje.entidad_id or '' }}">
+    <div class="field">
+      <label>Asunto</label>
+      <input type="text" name="asunto" value="Re: {{ mensaje.asunto }}" required>
+    </div>
+    <div class="field">
+      <label>Mensaje</label>
+      <textarea name="cuerpo" rows="5" required placeholder="Escribe tu respuesta…"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Enviar respuesta</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

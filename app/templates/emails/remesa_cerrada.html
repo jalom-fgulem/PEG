@@ -1,0 +1,77 @@
+{% extends "emails/_base.html" %}
+{% block content %}
+
+<h2 style="margin:0 0 6px;font-size:1.25rem;color:#2f7a55;">
+  Pagos ejecutados — Remesa cerrada
+</h2>
+<p style="margin:0 0 24px;font-size:0.93rem;color:#6e6a73;">
+  La remesa de transferencias <strong>{{ codigo_remesa }}</strong> ha sido cerrada.
+  Los siguientes pagos de su servicio han sido ejecutados correctamente.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+       style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;
+              font-size:0.91rem;margin-bottom:24px;">
+  <thead>
+    <tr style="background:#f7f7f8;">
+      <th style="padding:10px 14px;text-align:left;color:#6e6a73;font-size:0.78rem;
+                 text-transform:uppercase;letter-spacing:0.07em;font-weight:700;
+                 border-bottom:1px solid #e5e7eb;">Código PEG</th>
+      <th style="padding:10px 14px;text-align:left;color:#6e6a73;font-size:0.78rem;
+                 text-transform:uppercase;letter-spacing:0.07em;font-weight:700;
+                 border-bottom:1px solid #e5e7eb;">Descripción</th>
+      <th style="padding:10px 14px;text-align:right;color:#6e6a73;font-size:0.78rem;
+                 text-transform:uppercase;letter-spacing:0.07em;font-weight:700;
+                 border-bottom:1px solid #e5e7eb;">Importe</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for peg in pegs %}
+    <tr {% if loop.index is even %}style="background:#f7f7f8;"{% endif %}>
+      <td style="padding:10px 14px;font-weight:700;">{{ peg.codigo_peg }}</td>
+      <td style="padding:10px 14px;color:#4f4c55;">{{ peg.descripcion_gasto[:60] }}{% if peg.descripcion_gasto|length > 60 %}…{% endif %}</td>
+      <td style="padding:10px 14px;text-align:right;font-weight:700;white-space:nowrap;">{{ "%.2f €"|format(peg.importe_total) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr style="border-top:2px solid #e5e7eb;background:#f0f7eb;">
+      <td colspan="2" style="padding:12px 14px;font-weight:700;color:#2f7a55;">Total pagado</td>
+      <td style="padding:12px 14px;text-align:right;font-weight:700;font-size:1.05rem;
+                 color:#2f7a55;white-space:nowrap;">{{ "%.2f €"|format(total) }}</td>
+    </tr>
+  </tfoot>
+</table>
+
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+       style="margin-bottom:28px;">
+  <tr>
+    <td style="background:#f7f7f8;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+        <tr>
+          <td style="font-size:0.82rem;color:#6e6a73;font-weight:600;width:40%;">Remesa</td>
+          <td style="font-size:0.82rem;color:#4f4c55;font-weight:700;">{{ codigo_remesa }}</td>
+        </tr>
+        <tr>
+          <td style="font-size:0.82rem;color:#6e6a73;font-weight:600;padding-top:6px;">Fecha de cierre</td>
+          <td style="font-size:0.82rem;color:#4f4c55;padding-top:6px;">{{ fecha_cierre }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+  <tr>
+    <td align="center">
+      <a href="{{ url }}"
+         style="display:inline-block;background:#2f7a55;color:#ffffff;
+                font-weight:700;font-size:0.95rem;text-decoration:none;
+                padding:13px 32px;border-radius:10px;">
+        Ver detalle de la remesa →
+      </a>
+    </td>
+  </tr>
+</table>
+
+{% endblock %}

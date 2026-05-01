@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Remesas de pago — Ayuda SGPEG{% endblock %}
+{% block page_title %}Remesas de pago (PEGs){% endblock %}
+{% block page_subtitle %}Cómo agrupar PEGs validados y generar el fichero bancario Cuaderno 34{% endblock %}
+
+{% block content %}
+<div class="ayuda-wrap">
+  {% include "ayuda/_nav.html" %}
+
+  <div class="ayuda-content">
+    <h2>Remesas de pago (PEGs)</h2>
+    <p class="lead">Una remesa de pago agrupa varios PEGs validados para enviarlos al banco como un único lote de transferencias. El sistema genera automáticamente el fichero Cuaderno 34 (formato SEPA), el PDF de control y el fichero de exportación a A3Con.</p>
+
+    <div class="ayuda-section-title">1. ¿Qué es una remesa?</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Una remesa es el contenedor que agrupa PEGs validados para tramitar su pago conjunto. Cada remesa está asociada a una cuenta bancaria de FGULEM (el «ordenante»). El banco recibe un único fichero con todas las órdenes de transferencia y las ejecuta en la fecha indicada.</p>
+      <div class="tip"><strong>Cada remesa puede incluir PEGs de distintos servicios y distintos proveedores.</strong> El banco procesa una transferencia individual para cada proveedor distinto dentro de la remesa.</div>
+    </div>
+
+    <div class="ayuda-section-title">2. Ciclo de vida de una remesa</div>
+    <div class="ayuda-card">
+      <div class="flow-chain">
+        <span class="sp sp-open">ABIERTA</span>
+        <span class="flow-arrow">→</span>
+        <span class="sp sp-generated">GENERADA</span>
+        <span class="flow-arrow">→</span>
+        <span class="sp sp-closed">CERRADA</span>
+      </div>
+      <table class="field-table" style="margin-top:14px;">
+        <thead>
+          <tr><th>Estado</th><th>Descripción</th><th>¿Se pueden añadir PEGs?</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="sp sp-open">ABIERTA</span></td><td>En preparación. El GE añade y revisa PEGs.</td><td style="text-align:center;color:var(--fgulem-green-dark);">✓ Sí</td></tr>
+          <tr><td><span class="sp sp-generated">GENERADA</span></td><td>Fichero Cuaderno 34 generado. Bloqueada.</td><td style="text-align:center;color:#c00;">No</td></tr>
+          <tr><td><span class="sp sp-closed">CERRADA</span></td><td>Pago confirmado. PEGs marcados como PAGADO.</td><td style="text-align:center;color:#c00;">No</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ayuda-section-title">3. Proceso completo paso a paso</div>
+    <div class="ayuda-card">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Crear la remesa</strong>
+          <p>Ve a <strong>Remesas → Nueva remesa</strong>. Rellena:</p>
+          <ul>
+            <li><strong>Descripción:</strong> nombre identificativo (ej: «Remesa mayo 2026 — 1ª quincena»)</li>
+            <li><strong>Banco ordenante:</strong> la cuenta de FGULEM desde la que se harán las transferencias</li>
+            <li><strong>Fecha de ejecución:</strong> cuándo quieres que el banco ejecute los pagos</li>
+          </ul>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Añadir PEGs validados</strong>
+          <p>Desde el detalle de la remesa, verás el botón «Añadir PEGs». Se mostrará la lista de PEGs en estado VALIDADO del banco ordenante seleccionado. Selecciona los que quieres incluir.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Revisar totales antes de generar</strong>
+          <p>Comprueba el resumen: número de PEGs, número de proveedores únicos, importe total bruto, total IVA, total IRPF retenido e importe neto a transferir. Asegúrate de que la cuenta bancaria tiene saldo suficiente.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Generar el fichero Cuaderno 34</strong>
+          <p>Haz clic en «Generar Cuaderno 34». El sistema genera el fichero XML en formato SEPA y la remesa pasa a estado GENERADA. A partir de este momento, no puedes añadir más PEGs. Descarga el fichero C34 y súbelo al portal web de tu banco.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>Generar el PDF de resumen</strong>
+          <p>Haz clic en «Generar PDF». El PDF incluye el listado completo de pagos, agrupados por servicio, con los importes por PEG y los totales. Es el documento de control interno que debe archivarse junto con el justificante del banco.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <strong>Exportar a A3Con (SUENLACE.DAT)</strong>
+          <p>Haz clic en «Exportar A3Con». Se genera el fichero SUENLACE.DAT con los asientos contables de todos los PEGs de la remesa, listo para importar en A3Con. Este paso puede hacerse antes o después de cerrar la remesa.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <strong>Cerrar la remesa</strong>
+          <p>Una vez confirmado que el banco ha procesado las transferencias, haz clic en «Cerrar remesa». Esto provoca:</p>
+          <ul>
+            <li>Todos los PEGs de la remesa pasan a estado PAGADO</li>
+            <li>Se asignan los números de factura internos correlativos</li>
+            <li>Se registra la fecha de pago</li>
+            <li>Se envía un correo a cada GS con sus PEGs pagados</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="ayuda-section-title">4. El fichero Cuaderno 34 — qué es y cómo usarlo</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">El <strong>Cuaderno 34</strong> (también llamado Norma 34 o C34) es el formato estándar español para órdenes de transferencia bancaria. SGPEG genera un fichero XML en formato SEPA (ISO 20022) compatible con todos los bancos españoles.</p>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;margin-top:10px;"><strong>Cómo subir el fichero al banco:</strong></p>
+      <ul class="checklist">
+        <li>Entra en el portal web de tu banco con las credenciales de FGULEM</li>
+        <li>Busca la opción «Transferencias masivas», «Cuaderno 34» o «Importar fichero SEPA»</li>
+        <li>Sube el fichero .xml descargado de SGPEG</li>
+        <li>Revisa el resumen que muestra el banco y confirma</li>
+        <li>El banco ejecutará las transferencias en la fecha indicada en el fichero</li>
+      </ul>
+      <div class="warning"><strong>Guarda el justificante del banco</strong> (pantallazos o PDF de confirmación). Es el documento que demuestra que las transferencias se ejecutaron.</div>
+    </div>
+
+    <div class="ayuda-section-title">5. PDF de resumen de remesa</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">El PDF de resumen contiene:</p>
+      <ul class="checklist">
+        <li>Cabecera con banco ordenante, fecha y número de remesa</li>
+        <li>Listado de PEGs agrupados por servicio</li>
+        <li>Para cada PEG: número de documento, proveedor, descripción, importe total</li>
+        <li>Totales por servicio y gran total</li>
+        <li>Número total de transferencias y proveedores distintos</li>
+      </ul>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;margin-top:10px;">Este documento se archiva en el expediente de la remesa junto al justificante del banco.</p>
+    </div>
+
+    <div class="ayuda-section-title">6. Exportación a A3Con — fichero SUENLACE.DAT</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">El fichero <strong>SUENLACE.DAT</strong> es el formato de importación de A3Con. Contiene un asiento contable por cada PEG de la remesa, con:</p>
+      <ul class="checklist">
+        <li>Cuenta de gasto (grupo 6) asignada en la validación</li>
+        <li>Cuenta de IVA soportado del proyecto analítico</li>
+        <li>Cuenta de proveedor (410XXXXX) del catálogo de proveedores</li>
+        <li>Cuenta de tesorería de la cuenta bancaria ordenante</li>
+        <li>Analítica de nivel 1 (servicio) y nivel 2 (proyecto)</li>
+        <li>Importe, fecha y referencia del documento</li>
+      </ul>
+      <div class="tip"><strong>Importa el SUENLACE.DAT en A3Con</strong> desde el menú de Importación de asientos o Suenlace. Cada remesa genera un único fichero con todos sus asientos.</div>
+    </div>
+
+    <div class="ayuda-section-title">7. Numeración de facturas internas</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Al cerrar la remesa, el sistema asigna automáticamente un <strong>número de factura interno correlativo</strong> a cada PEG. Este número identifica la factura en los registros de FGULEM y aparece en A3Con. El formato es: <code>FGULEM-AAAA-NNNNNN</code> donde AAAA es el año y NNNNNN es un contador correlativo.</p>
+      <div class="tip">El número de factura interno es diferente del número de factura del proveedor (que aparece en el campo «Número de documento» del PEG).</div>
+    </div>
+
+    <div class="ayuda-section-title">8. Notificaciones al cerrar la remesa</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Al cerrar la remesa, el sistema envía automáticamente un correo a cada Gestor de Servicio cuyos PEGs están incluidos. El correo contiene:</p>
+      <ul class="checklist">
+        <li>Listado de sus PEGs pagados con número de documento, proveedor e importe</li>
+        <li>Fecha de pago</li>
+        <li>Número de factura interno asignado a cada PEG</li>
+        <li>Recordatorio de confirmar la recepción de la factura física</li>
+      </ul>
+    </div>
+
+    <div class="ayuda-section-title">9. Confirmación de factura física</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Después de que el PEG pase a PAGADO, el GS debe confirmar que ha recibido la factura original en papel del proveedor. Esta confirmación queda registrada con fecha y usuario en el sistema.</p>
+      <div class="warning"><strong>No confundas la factura digital adjunta al PEG</strong> con la factura original en papel. La confirmación es del documento físico, que debe archivarse en el servicio durante al menos 5 años.</div>
+    </div>
+
+    <div class="ayuda-section-title">10. Una remesa GENERADA está bloqueada</div>
+    <div class="ayuda-card">
+      <div class="warning"><strong>Importante:</strong> una vez generado el Cuaderno 34, la remesa queda bloqueada. No se pueden añadir ni quitar PEGs. Si necesitas añadir un PEG urgente, deberás crear una nueva remesa o esperar a la siguiente.</div>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;margin-top:10px;">Si necesitas corregir un error después de generar y antes de subir el fichero al banco, contacta con el administrador del sistema: puede devolver la remesa al estado ABIERTA excepcionalmente.</p>
+    </div>
+
+    <div class="quick-links" style="margin-top:24px;">
+      <a class="btn btn-primary" href="/remesas/">Ir a remesas</a>
+      <a class="btn btn-secondary" href="/remesas/nueva">Nueva remesa</a>
+      <a class="btn btn-secondary" href="/ayuda/validacion">Guía de validación →</a>
+      <a class="btn btn-secondary" href="/ayuda/remesas-directas">Guía de remesas directas →</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

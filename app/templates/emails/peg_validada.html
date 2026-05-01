@@ -1,0 +1,54 @@
+{% extends "emails/_base.html" %}
+{% block content %}
+
+<h2 style="margin:0 0 6px;font-size:1.25rem;color:#7faa55;">
+  PEG validada
+</h2>
+<p style="margin:0 0 24px;font-size:0.93rem;color:#6e6a73;">
+  Su propuesta específica de gasto ha sido revisada y <strong style="color:#2f7a55;">validada</strong>.
+  Queda pendiente de tramitación para pago.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+       style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;
+              font-size:0.93rem;margin-bottom:28px;">
+  <tr>
+    <td style="padding:11px 16px;background:#f7f7f8;color:#6e6a73;width:38%;font-weight:600;">Código PEG</td>
+    <td style="padding:11px 16px;font-weight:700;">{{ codigo_peg }}</td>
+  </tr>
+  <tr>
+    <td style="padding:11px 16px;color:#6e6a73;font-weight:600;">Descripción</td>
+    <td style="padding:11px 16px;">{{ descripcion }}</td>
+  </tr>
+  <tr>
+    <td style="padding:11px 16px;background:#f7f7f8;color:#6e6a73;font-weight:600;">Importe total</td>
+    <td style="padding:11px 16px;background:#f7f7f8;font-weight:700;font-size:1.05rem;">{{ importe }}</td>
+  </tr>
+  <tr>
+    <td style="padding:11px 16px;color:#6e6a73;font-weight:600;">Proveedor</td>
+    <td style="padding:11px 16px;">{{ proveedor }}</td>
+  </tr>
+</table>
+
+<div style="background:#f0f7eb;border-left:4px solid #7faa55;border-radius:0 10px 10px 0;
+            padding:13px 16px;margin-bottom:28px;">
+  <p style="margin:0;font-size:0.91rem;color:#2f7a55;">
+    Su PEG será incluida en la próxima remesa de transferencias para proceder al pago al proveedor.
+    Recibirá una nueva notificación cuando el pago sea ejecutado.
+  </p>
+</div>
+
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+  <tr>
+    <td align="center">
+      <a href="{{ url }}"
+         style="display:inline-block;background:#7faa55;color:#ffffff;
+                font-weight:700;font-size:0.95rem;text-decoration:none;
+                padding:13px 32px;border-radius:10px;">
+        Ver PEG →
+      </a>
+    </td>
+  </tr>
+</table>
+
+{% endblock %}

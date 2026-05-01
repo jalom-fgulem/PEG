@@ -13,7 +13,8 @@ def _menu_counts(usuario):
                 "menu_pegs_en_remesa": 0, "menu_pegs_validados": 0,
                 "menu_solicitudes_pendientes": 0,
                 "menu_rt_abiertas": 0, "menu_rt_generadas": 0,
-                "menu_rd_abiertas": 0, "menu_tarjetas_pendientes": 0}
+                "menu_rd_abiertas": 0, "menu_tarjetas_pendientes": 0,
+                "menu_mensajes_no_leidos": 0}
     from app.services.pegs_service import get_pegs_count_por_estado
     from app.mock_data import SOLICITUDES_AUTORIZACION
 
@@ -37,6 +38,7 @@ def _menu_counts(usuario):
         menu_rd_abiertas         = sum(1 for r in listar_rd() if r.get("estado") == "ABIERTA")
         menu_tarjetas_pendientes = sum(1 for m in listar_movs_tarjeta(estado="PENDIENTE"))
 
+    from app.services.mock_mensajes import contar_no_leidos
     return {
         "menu_pegs_pendientes":        get_pegs_count_por_estado("PENDIENTE",  id_srv),
         "menu_pegs_incidencias":       get_pegs_count_por_estado("INCIDENCIA", id_srv),
@@ -47,6 +49,7 @@ def _menu_counts(usuario):
         "menu_rt_generadas":           menu_rt_generadas,
         "menu_rd_abiertas":            menu_rd_abiertas,
         "menu_tarjetas_pendientes":    menu_tarjetas_pendientes,
+        "menu_mensajes_no_leidos":     contar_no_leidos(usuario["id_usuario"]),
     }
 
 

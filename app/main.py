@@ -20,6 +20,8 @@ from app.routers import tarjetas as tarjetas_router
 from app.routers import usuarios as usuarios_router
 from app.routers import adjuntos as adjuntos_router
 from app.routers import admin as admin_router
+from app.routers import mensajes as mensajes_router
+from app.routers import ayuda as ayuda_router
 
 os.makedirs("uploads/pegs", exist_ok=True)
 
@@ -45,6 +47,8 @@ app.include_router(admin_router.router)
 app.include_router(solicitudes_router.router)
 app.include_router(gastos_router.router)
 app.include_router(remesas_directas_router.router)
+app.include_router(mensajes_router.router)
+app.include_router(ayuda_router.router)
 
 
 @app.exception_handler(NoAutenticado)
@@ -71,20 +75,6 @@ def dashboard(request: Request, servicio: Optional[int] = None):
         },
     )
 
-
-@app.get("/ayuda", response_class=HTMLResponse)
-def ayuda(request: Request):
-    usuario = get_usuario_actual(request)
-    if not usuario:
-        return RedirectResponse(url="/login", status_code=302)
-    return templates.TemplateResponse(
-        request=request,
-        name="ayuda.html",
-        context={
-            "app_name": settings.APP_NAME,
-            "usuario": usuario,
-        },
-    )
 
 
 @app.get("/salud")

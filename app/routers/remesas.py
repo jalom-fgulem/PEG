@@ -13,6 +13,7 @@ from app.services import mock_bancos, pegs_service, remesas_service
 from app.services.factura_interna_service import generar_numero_factura
 from app.services.pdf_remesa_service import generar_pdf_remesa
 from app.services import historial_remesas_service as historial
+from app.services import mensajes_service
 
 # Raíz del proyecto para resolver rutas relativas de PDF
 # app/routers/remesas.py → app/routers → app → PEG/
@@ -95,6 +96,9 @@ def remesas_generar(
     remesas_service.cambiar_estado_remesa(id_remesa, "GENERADA")
     historial.registrar_evento("RT", id_remesa, "GENERADA", usuario["nombre_completo"], "Cuaderno 34 generado")
     historial.registrar_evento("RT", id_remesa, "PDF_GENERADO", usuario["nombre_completo"])
+    peg_ids = list(remesa.get("pagos", []))
+    from app.services import email_service as _email_svc
+    _email_svc.notificar_remesa_generada(remesa, peg_ids)
     return RedirectResponse(url=f"/remesas/{id_remesa}?msg=Remesa+generada+y+PDF+creado+correctamente&msg_type=success", status_code=303)
 
 
@@ -136,6 +140,12 @@ def remesas_cerrar(
 
     historial.registrar_evento("RT", id_remesa, "CERRADA", usuario["nombre_completo"],
                                f"{n} PEG{'s' if n != 1 else ''} marcado{'s' if n != 1 else ''} como PAGADO")
+    peg_ids_cerrada = list(remesa.get("pagos", []))
+    mensajes_service.notif_remesa_cerrada(remesa_cerrada, peg_ids_cerrada)
+    from app.services import email_service as _email_svc
+    pegs_pagados = [pegs_service.obtener_peg(pid) for pid in peg_ids_cerrada]
+    pegs_pagados = [p for p in pegs_pagados if p]
+    _email_svc.notificar_remesa_cerrada(remesa_cerrada, pegs_pagados)
     msg = urllib.parse.quote(f"Remesa cerrada. {n} PEGs marcados como PAGADO.")
     return RedirectResponse(url=f"/remesas/{id_remesa}?msg={msg}&msg_type=success", status_code=303)
 

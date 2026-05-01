@@ -1,0 +1,26 @@
+<style>
+  .admin-tabs {
+    display:flex; gap:6px; flex-wrap:wrap;
+    margin-bottom:24px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:12px;
+  }
+  .admin-tab {
+    display:inline-flex; align-items:center; gap:7px;
+    padding:8px 16px; border-radius:8px; text-decoration:none;
+    font-weight:600; font-size:0.88rem;
+    transition:background 0.15s, color 0.15s;
+    color:var(--ink-soft); background:transparent;
+  }
+  .admin-tab:hover { background:rgba(95,159,211,0.10); color:var(--fgulem-magenta); }
+  .admin-tab.active { background:rgba(194,27,132,0.08); color:var(--fgulem-magenta); font-weight:700; }
+</style>
+
+<div class="admin-tabs">
+  <a href="/admin/"                   class="admin-tab {% if admin_tab == 'panel'           %}active{% endif %}">Panel</a>
+  <a href="/usuarios/"                class="admin-tab {% if admin_tab == 'usuarios'         %}active{% endif %}">Usuarios</a>
+  <a href="/servicios/"               class="admin-tab {% if admin_tab == 'servicios'        %}active{% endif %}">Servicios</a>
+  <a href="/bancos/"                  class="admin-tab {% if admin_tab == 'bancos'           %}active{% endif %}">Bancos</a>
+  <a href="/admin/cuentas-gasto"      class="admin-tab {% if admin_tab == 'cuentas_gasto'   %}active{% endif %}">Cuentas de gasto</a>
+  <a href="/admin/plantillas-correo"  class="admin-tab {% if admin_tab == 'plantillas'      %}active{% endif %}">Plantillas de correo</a>
+</div>

@@ -1,0 +1,57 @@
+{% extends "emails/_base.html" %}
+{% block content %}
+
+<h2 style="margin:0 0 6px;font-size:1.25rem;color:#c21b84;">
+  Incidencia en su PEG
+</h2>
+<p style="margin:0 0 24px;font-size:0.93rem;color:#6e6a73;">
+  Se ha detectado una incidencia en su propuesta específica de gasto que requiere su atención.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+       style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;
+              font-size:0.93rem;margin-bottom:24px;">
+  <tr>
+    <td style="padding:11px 16px;background:#f7f7f8;color:#6e6a73;width:38%;font-weight:600;">Código PEG</td>
+    <td style="padding:11px 16px;font-weight:700;">{{ codigo_peg }}</td>
+  </tr>
+  <tr>
+    <td style="padding:11px 16px;color:#6e6a73;font-weight:600;">Descripción</td>
+    <td style="padding:11px 16px;">{{ descripcion }}</td>
+  </tr>
+  <tr>
+    <td style="padding:11px 16px;background:#f7f7f8;color:#6e6a73;font-weight:600;">Importe total</td>
+    <td style="padding:11px 16px;background:#f7f7f8;font-weight:700;">{{ importe }}</td>
+  </tr>
+</table>
+
+{% if comentario %}
+<p style="margin:0 0 8px;font-size:0.82rem;font-weight:700;text-transform:uppercase;
+          letter-spacing:0.07em;color:#c21b84;">Comentario del gestor</p>
+<div style="background:#fff3f9;border-left:4px solid #c21b84;
+            border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:28px;">
+  <p style="margin:0;font-size:0.93rem;color:#4f4c55;line-height:1.6;">{{ comentario }}</p>
+</div>
+{% else %}
+<div style="background:#fff3f9;border-left:4px solid #c21b84;
+            border-radius:0 10px 10px 0;padding:13px 16px;margin-bottom:28px;">
+  <p style="margin:0;font-size:0.91rem;color:#c21b84;">
+    Por favor, contacte con el equipo gestor para resolver la incidencia.
+  </p>
+</div>
+{% endif %}
+
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+  <tr>
+    <td align="center">
+      <a href="{{ url }}"
+         style="display:inline-block;background:#c21b84;color:#ffffff;
+                font-weight:700;font-size:0.95rem;text-decoration:none;
+                padding:13px 32px;border-radius:10px;">
+        Ver PEG y resolver incidencia →
+      </a>
+    </td>
+  </tr>
+</table>
+
+{% endblock %}

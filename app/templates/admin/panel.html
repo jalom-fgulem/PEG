@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Panel de administración{% endblock %}
+{% block page_title %}Panel de administración{% endblock %}
+{% block page_subtitle %}Gestión centralizada de la configuración del sistema{% endblock %}
+
+{% block extra_head %}
+<style>
+  .admin-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
+  .admin-card {
+    display:flex; flex-direction:column; gap:10px;
+    background:#fff; border:1px solid var(--line);
+    border-radius:14px; padding:22px 22px 18px; text-decoration:none;
+    transition:box-shadow 0.15s, border-color 0.15s; color:var(--ink);
+  }
+  .admin-card:hover {
+    box-shadow:0 4px 18px rgba(0,0,0,0.09);
+    border-color:var(--fgulem-magenta);
+  }
+  .admin-card-icon {
+    width:44px; height:44px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.4rem; background:rgba(194,27,132,0.08);
+  }
+  .admin-card h4 { margin:0; font-size:1rem; font-weight:700; }
+  .admin-card p  { margin:0; font-size:0.85rem; color:var(--ink-soft); line-height:1.4; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set admin_tab = 'panel' %}
+{% include "admin/_tabs.html" %}
+
+<div class="admin-grid">
+  <a href="/usuarios/" class="admin-card">
+    <div class="admin-card-icon">👥</div>
+    <h4>Usuarios</h4>
+    <p>Gestión de cuentas, roles y servicios asignados</p>
+  </a>
+  <a href="/servicios/" class="admin-card">
+    <div class="admin-card-icon">🏢</div>
+    <h4>Servicios</h4>
+    <p>Unidades de gasto y centros de coste</p>
+  </a>
+  <a href="/bancos/" class="admin-card">
+    <div class="admin-card-icon">🏦</div>
+    <h4>Bancos</h4>
+    <p>Entidades bancarias y cuentas de pago</p>
+  </a>
+  <a href="/admin/cuentas-gasto" class="admin-card">
+    <div class="admin-card-icon">📊</div>
+    <h4>Cuentas de gasto</h4>
+    <p>Catálogo de cuentas contables del grupo 6</p>
+  </a>
+  <a href="/admin/plantillas-correo" class="admin-card">
+    <div class="admin-card-icon">✉️</div>
+    <h4>Plantillas de correo</h4>
+    <p>Editor de notificaciones HTML enviadas por el sistema</p>
+  </a>
+</div>
+
+{% endblock %}

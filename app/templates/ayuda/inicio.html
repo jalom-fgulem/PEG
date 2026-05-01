@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Centro de ayuda — Ayuda SGPEG{% endblock %}
+{% block page_title %}Centro de ayuda{% endblock %}
+{% block page_subtitle %}Documentación y guías de uso de la plataforma{% endblock %}
+
+{% block content %}
+<div class="ayuda-wrap">
+  {% include "ayuda/_nav.html" %}
+
+  <div class="ayuda-content">
+    <h2>Bienvenido/a, {{ usuario.nombre_completo }}</h2>
+    <p class="lead">
+      {% if usuario.rol == 'GESTOR_SERVICIO' %}
+      <span class="role-badge role-gs">Gestor de Servicio</span>
+      &nbsp;Desde aquí puedes crear propuestas de gasto (PEGs), solicitar autorizaciones previas, gestionar tu catálogo de proveedores y hacer seguimiento del estado de tus pagos.
+      {% elif usuario.rol == 'GESTOR_ECONOMICO' %}
+      <span class="role-badge role-ge">Gestor Económico</span>
+      &nbsp;Tienes acceso completo a la validación de PEGs, la gestión de remesas de pago, la importación de movimientos bancarios y la conciliación contable.
+      {% elif usuario.rol == 'ADMIN' %}
+      <span class="role-badge role-adm">Administrador</span>
+      &nbsp;Tienes acceso total al sistema: usuarios, servicios, bancos, cuentas de gasto y plantillas de correo, además de todas las funciones económicas.
+      {% endif %}
+    </p>
+
+    <div class="ayuda-section-title">Inicio rápido — secciones disponibles para tu rol</div>
+
+    <div class="ayuda-card">
+      <h3>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;color:var(--fgulem-magenta)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        PEGs — Propuestas Específicas de Gasto
+      </h3>
+      <p style="color:var(--ink-soft);font-size:0.91rem;margin:0 0 10px;">El corazón del sistema. Registra facturas de proveedores para su validación y pago.</p>
+      <div class="quick-links">
+        <a class="btn btn-primary" href="/pegs">Ir a PEGs</a>
+        <a class="btn btn-secondary" href="/ayuda/pegs">Leer guía de PEGs →</a>
+      </div>
+    </div>
+
+    <div class="ayuda-card">
+      <h3>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;color:var(--fgulem-blue)"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Solicitudes de autorización previa
+      </h3>
+      <p style="color:var(--ink-soft);font-size:0.91rem;margin:0 0 10px;">Solicita permiso antes de comprometerte con un proveedor. Obligatorio en algunos servicios.</p>
+      <div class="quick-links">
+        <a class="btn btn-primary" href="/solicitudes/">Ir a solicitudes</a>
+        <a class="btn btn-secondary" href="/ayuda/solicitudes">Leer guía de solicitudes →</a>
+      </div>
+    </div>
+
+    <div class="ayuda-card">
+      <h3>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;color:var(--fgulem-green-dark)"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Proveedores
+      </h3>
+      <p style="color:var(--ink-soft);font-size:0.91rem;margin:0 0 10px;">Catálogo compartido de proveedores. Busca, crea y mantén los datos bancarios correctos.</p>
+      <div class="quick-links">
+        <a class="btn btn-primary" href="/proveedores/">Ir a proveedores</a>
+        <a class="btn btn-secondary" href="/ayuda/proveedores">Leer guía de proveedores →</a>
+      </div>
+    </div>
+
+    <div class="ayuda-card">
+      <h3>Flujo general del sistema</h3>
+      <p style="color:var(--ink-soft);font-size:0.91rem;margin:0 0 10px;">Entiende el ciclo completo: desde la solicitud de autorización hasta el pago y la contabilización.</p>
+      <div class="quick-links">
+        <a class="btn btn-secondary" href="/ayuda/flujo-general">Ver flujo completo →</a>
+      </div>
+    </div>
+
+    {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+    <div class="ayuda-section-title">Herramientas de gestión económica</div>
+
+    <div class="ayuda-card">
+      <h3>Validación de PEGs</h3>
+      <p style="color:var(--ink-soft);font-size:0.91rem;margin:0 0 10px;">Revisa y valida las propuestas de gasto, asigna cuentas contables y líneas analíticas.</p>
+      <div class="quick-links">
+        <a class="btn btn-secondary" href="/ayuda/validacion">Leer guía de validación →</a>
+      </div>
+    </div>
+
+    <div class="ayuda-card">
+      <h3>Remesas de pago</h3>
+      <p style="color:var(--ink-soft);font-size:0.91rem;margin:0 0 10px;">Agrupa PEGs validados, genera el fichero Cuaderno 34 para el banco y exporta a A3Con.</p>
+      <div class="quick-links">
+        <a class="btn btn-primary" href="/remesas/">Ir a remesas</a>
+        <a class="btn btn-secondary" href="/ayuda/remesas">Leer guía de remesas →</a>
+      </div>
+    </div>
+
+    <div class="ayuda-card">
+      <h3>Remesas directas</h3>
+      <p style="color:var(--ink-soft);font-size:0.91rem;margin:0 0 10px;">Pagos bancarios no vinculados a PEGs: suministros, comisiones, nóminas, devoluciones.</p>
+      <div class="quick-links">
+        <a class="btn btn-primary" href="/remesas-directas/">Ir a remesas directas</a>
+        <a class="btn btn-secondary" href="/ayuda/remesas-directas">Leer guía →</a>
+      </div>
+    </div>
+
+    <div class="ayuda-card">
+      <h3>Movimientos bancarios</h3>
+      <p style="color:var(--ink-soft);font-size:0.91rem;margin:0 0 10px;">Importa extractos bancarios en Excel y cotéjalos con las remesas directas.</p>
+      <div class="quick-links">
+        <a class="btn btn-primary" href="/movimientos/">Ir a movimientos</a>
+        <a class="btn btn-secondary" href="/ayuda/movimientos">Leer guía →</a>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if usuario.rol == 'ADMIN' %}
+    <div class="ayuda-section-title">Administración del sistema</div>
+    <div class="ayuda-card">
+      <h3>Panel de administración</h3>
+      <p style="color:var(--ink-soft);font-size:0.91rem;margin:0 0 10px;">Gestiona usuarios, servicios, bancos, cuentas de gasto y plantillas de correo.</p>
+      <div class="quick-links">
+        <a class="btn btn-primary" href="/admin/">Ir al panel de administración</a>
+        <a class="btn btn-secondary" href="/ayuda/administracion">Leer guía de administración →</a>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="ayuda-section-title">Conceptos clave</div>
+    <div class="ayuda-card">
+      <dl class="glossary">
+        <dt>PEG — Propuesta Específica de Gasto</dt>
+        <dd>Registro de una factura o gasto a pagar a un proveedor. Es la unidad básica del sistema. Pasa por varios estados hasta que el banco ejecuta el pago.</dd>
+
+        <dt>Remesa de pago</dt>
+        <dd>Agrupación de PEGs validados para enviar al banco como un único lote de transferencias. Genera el fichero Cuaderno 34 (formato SEPA) que se sube al banco.</dd>
+
+        <dt>Solicitud de autorización</dt>
+        <dd>Solicitud previa a comprometerse con un proveedor. El Gestor Económico la revisa y la autoriza o deniega antes de que exista ninguna factura.</dd>
+
+        <dt>Cuaderno 34</dt>
+        <dd>Formato estándar español para órdenes de transferencia bancaria. SGPEG lo genera automáticamente al crear una remesa. Se sube directamente al banco.</dd>
+
+        <dt>A3Con / SUENLACE.DAT</dt>
+        <dd>Software de contabilidad utilizado por FGULEM. SGPEG exporta un fichero SUENLACE.DAT con los asientos contables de cada remesa para importarlo en A3Con.</dd>
+
+        <dt>IRPF en facturas</dt>
+        <dd>Retención aplicable a facturas de profesionales autónomos, arrendamientos y algunos servicios. Los tipos habituales son 7%, 15% y 19%. Se resta del importe a pagar.</dd>
+
+        <dt>IVA soportado</dt>
+        <dd>Impuesto sobre el Valor Añadido incluido en las facturas que la fundación recibe. Se registra por líneas con su base imponible y tipo (0%, 4%, 10%, 21%).</dd>
+
+        <dt>Cuenta analítica</dt>
+        <dd>Código de dos niveles (servicio + proyecto) que identifica a qué unidad organizativa y proyecto se imputa un gasto. Cada PEG tiene una o varias líneas analíticas que deben sumar el 100%.</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+{% endblock %}

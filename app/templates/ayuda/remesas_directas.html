@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Remesas directas — Ayuda SGPEG{% endblock %}
+{% block page_title %}Remesas directas{% endblock %}
+{% block page_subtitle %}Pagos bancarios no vinculados a PEGs: suministros, comisiones, nóminas y otros cargos{% endblock %}
+
+{% block content %}
+<div class="ayuda-wrap">
+  {% include "ayuda/_nav.html" %}
+
+  <div class="ayuda-content">
+    <h2>Remesas directas</h2>
+    <p class="lead">Las remesas directas permiten registrar y contabilizar pagos bancarios que no están vinculados a facturas de proveedor (PEGs). Son el puente entre los movimientos del extracto bancario y los asientos contables de A3Con para gastos recurrentes, cargos automáticos y otros conceptos.</p>
+
+    <div class="ayuda-section-title">1. ¿Qué son las remesas directas?</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Mientras que las remesas de PEGs agrupan facturas para <em>ordenar</em> pagos al banco, las remesas directas agrupan movimientos bancarios que <em>ya ocurrieron</em> (aparecen en el extracto bancario) para asignarles una cuenta contable y generar el asiento en A3Con.</p>
+    </div>
+
+    <div class="ayuda-section-title">2. Diferencia con remesas de PEGs</div>
+    <div class="ayuda-card">
+      <table class="field-table">
+        <thead>
+          <tr><th></th><th>Remesa de PEGs</th><th>Remesa directa</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Origen</td><td>Facturas de proveedor (PEGs)</td><td>Movimientos del extracto bancario</td></tr>
+          <tr><td>Genera Cuaderno 34</td><td style="color:var(--fgulem-green-dark);">Sí</td><td style="color:#c00;">No</td></tr>
+          <tr><td>Genera PDF de resumen</td><td style="color:var(--fgulem-green-dark);">Sí</td><td style="color:var(--fgulem-green-dark);">Sí</td></tr>
+          <tr><td>Exporta a A3Con</td><td style="color:var(--fgulem-green-dark);">Sí</td><td style="color:var(--fgulem-green-dark);">Sí</td></tr>
+          <tr><td>Requiere validación de PEG</td><td style="color:var(--fgulem-green-dark);">Sí</td><td style="color:#c00;">No</td></tr>
+          <tr><td>Vinculada a proveedor del catálogo</td><td style="color:var(--fgulem-green-dark);">Sí</td><td>Opcional</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ayuda-section-title">3. Casos de uso típicos</div>
+    <div class="ayuda-card">
+      <ul class="checklist">
+        <li><strong>Gastos de suministros:</strong> recibos de electricidad, agua, gas, telefonía e internet que se cargan automáticamente en la cuenta</li>
+        <li><strong>Cargos bancarios y comisiones:</strong> comisiones de mantenimiento, comisiones por transferencia, gastos de talonario</li>
+        <li><strong>Seguros:</strong> primas de seguros que se domicilian en la cuenta</li>
+        <li><strong>Devoluciones a beneficiarios:</strong> reintegros de subvenciones, devoluciones de formación</li>
+        <li><strong>Nóminas:</strong> si las nóminas se tramitan fuera del sistema de PEGs pero se quieren registrar como movimiento directo</li>
+        <li><strong>Impuestos y tasas:</strong> pagos a la Agencia Tributaria, Seguridad Social, etc.</li>
+        <li><strong>Gastos de caja:</strong> reintegro de caja chica o gastos menores en efectivo</li>
+      </ul>
+    </div>
+
+    <div class="ayuda-section-title">4. Proceso paso a paso</div>
+    <div class="ayuda-card">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Crea la remesa directa</strong>
+          <p>Ve a <strong>Remesas → RD – Directas → Nueva remesa directa</strong>. Indica:</p>
+          <ul>
+            <li><strong>Descripción:</strong> ej. «Suministros y cargos bancarios mayo 2026»</li>
+            <li><strong>Cuenta bancaria:</strong> la cuenta de la que proceden los movimientos</li>
+          </ul>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Añade movimientos bancarios</strong>
+          <p>Desde el módulo de movimientos bancarios, selecciona los movimientos del extracto que corresponden a esta remesa directa. Los movimientos en estado «SIN COTEJAR» pueden añadirse a una remesa directa abierta.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Asigna las cuentas contables</strong>
+          <p>Para cada movimiento, asigna la cuenta contable (grupo 6) que corresponde al tipo de gasto y las líneas analíticas (servicio + proyecto).</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Genera el PDF de resumen</strong>
+          <p>El PDF lista todos los movimientos incluidos, sus importes y las cuentas contables asignadas. Es el documento de control interno.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>Exporta a A3Con</strong>
+          <p>Genera el fichero SUENLACE.DAT con los asientos contables de todos los movimientos de la remesa directa. Importa en A3Con.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <strong>Cierra la remesa directa</strong>
+          <p>Una vez procesados todos los pasos, cierra la remesa. Los movimientos bancarios vinculados pasan a estado COTEJADO y quedan registrados.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ayuda-section-title">5. Vinculación con movimientos bancarios</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">La remesa directa es el mecanismo que conecta cada movimiento del extracto bancario con su asiento contable en A3Con. Un movimiento que no está vinculado a ninguna remesa directa queda en estado «SIN COTEJAR» en el módulo de movimientos.</p>
+      <div class="tip"><strong>Objetivo de conciliación:</strong> al final del período, todos los movimientos del extracto deben estar vinculados a una remesa de PEGs (si son transferencias a proveedores) o a una remesa directa (si son otros cargos). Los movimientos sin cotejar indican que falta contabilización.</div>
+    </div>
+
+    <div class="quick-links" style="margin-top:24px;">
+      <a class="btn btn-primary" href="/remesas-directas/">Ir a remesas directas</a>
+      <a class="btn btn-secondary" href="/ayuda/movimientos">Guía de movimientos →</a>
+      <a class="btn btn-secondary" href="/ayuda/remesas">Guía de remesas de PEGs →</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

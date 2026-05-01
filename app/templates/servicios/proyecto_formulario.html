@@ -4,6 +4,10 @@
 {% block page_subtitle %}{{ servicio.nombre }} · Analítica {{ servicio.analitica_nivel_1 }}{% endblock %}
 
 {% block content %}
+{% if usuario.rol == 'ADMIN' %}
+{% set admin_tab = 'servicios' %}
+{% include "admin/_tabs.html" %}
+{% endif %}
 <div class="card" style="max-width:620px;">
   <form method="post" action="{% if accion == 'crear' %}/servicios/{{ servicio.id_servicio }}/proyectos/nuevo{% else %}/servicios/{{ servicio.id_servicio }}/proyectos/{{ proyecto.id_proyecto }}/editar{% endif %}">
 

@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Movimientos bancarios — Ayuda SGPEG{% endblock %}
+{% block page_title %}Movimientos bancarios{% endblock %}
+{% block page_subtitle %}Importación de extractos y conciliación con remesas directas{% endblock %}
+
+{% block content %}
+<div class="ayuda-wrap">
+  {% include "ayuda/_nav.html" %}
+
+  <div class="ayuda-content">
+    <h2>Movimientos bancarios</h2>
+    <p class="lead">El módulo de movimientos permite importar el extracto bancario, cotejar cada cargo con su correspondiente asiento contable y detectar movimientos sin contabilizar. Es la base de la conciliación bancaria en SGPEG.</p>
+
+    <div class="ayuda-section-title">1. ¿Qué son los movimientos bancarios?</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Cada línea del extracto bancario es un movimiento: una transferencia enviada, un recibo domiciliado, una comisión bancaria, etc. SGPEG importa estos movimientos y permite clasificarlos y vincularlos a remesas directas para su contabilización en A3Con.</p>
+    </div>
+
+    <div class="ayuda-section-title">2. Importar un extracto bancario</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;"><strong>Formato aceptado:</strong> fichero Excel (.xlsx o .xls) descargado desde el portal web del banco. El sistema admite los formatos de extracto de Santander (xlsx) y Unicaja (xls).</p>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;margin-top:10px;"><strong>Cómo obtener el extracto del banco:</strong></p>
+      <ul class="checklist">
+        <li>Entra en el portal web de tu banco</li>
+        <li>Ve a «Cuentas» o «Movimientos de cuenta»</li>
+        <li>Selecciona la cuenta y el período (habitualmente el mes en curso o un rango de fechas)</li>
+        <li>Exporta en formato Excel (.xlsx o .xls)</li>
+        <li>Descarga el fichero a tu ordenador</li>
+      </ul>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;margin-top:10px;"><strong>Cómo importar en SGPEG:</strong></p>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Ve a Movimientos → Importar extracto</strong>
+          <p>Selecciona la cuenta bancaria y el fichero Excel descargado del banco.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Revisa la vista previa</strong>
+          <p>El sistema muestra los movimientos detectados antes de importarlos definitivamente. Verifica que las fechas, conceptos e importes son correctos.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Confirma la importación</strong>
+          <p>El sistema importa los movimientos nuevos y descarta automáticamente los duplicados (ver sección 3).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ayuda-section-title">3. Detección automática de duplicados</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">El sistema detecta automáticamente los movimientos que ya estaban importados y los descarta, aunque vuelvas a subir el mismo fichero. La detección usa un <strong>hash único</strong> basado en la combinación de fecha, importe y concepto. Puedes importar extractos solapados sin riesgo de duplicar movimientos.</p>
+      <div class="tip"><strong>Buena práctica:</strong> importa el extracto del mes completo cada vez, aunque algunos movimientos ya estuvieran importados. El sistema solo añade los nuevos.</div>
+    </div>
+
+    <div class="ayuda-section-title">4. Estados de un movimiento</div>
+    <div class="ayuda-card">
+      <table class="field-table">
+        <thead>
+          <tr><th>Estado</th><th>Significado</th><th>Qué hacer</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="sp sp-pending">SIN COTEJAR</span></td>
+            <td>El movimiento está importado pero no tiene asiento contable asignado</td>
+            <td>Añadirlo a una remesa directa o vincularlo a una remesa de PEGs si es una transferencia a proveedor</td>
+          </tr>
+          <tr>
+            <td><span class="sp sp-remesa">EN REMESA DIRECTA</span></td>
+            <td>El movimiento está vinculado a una remesa directa abierta o generada</td>
+            <td>Completar el proceso de la remesa directa</td>
+          </tr>
+          <tr>
+            <td><span class="sp sp-paid">COTEJADO</span></td>
+            <td>El movimiento está contabilizado (remesa directa cerrada o remesa de PEGs cerrada)</td>
+            <td>Ninguna. El movimiento está correctamente procesado.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ayuda-section-title">5. Revisar movimientos importados</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">En el listado de movimientos puedes filtrar por:</p>
+      <ul class="checklist">
+        <li>Cuenta bancaria</li>
+        <li>Estado (SIN COTEJAR / EN REMESA DIRECTA / COTEJADO)</li>
+        <li>Rango de fechas</li>
+        <li>Importe mínimo y máximo</li>
+        <li>Texto del concepto bancario</li>
+      </ul>
+      <div class="tip"><strong>Filtra siempre por «SIN COTEJAR»</strong> al inicio del período para identificar qué movimientos faltan por contabilizar.</div>
+    </div>
+
+    <div class="ayuda-section-title">6. Añadir movimientos a una remesa directa</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Selecciona uno o varios movimientos en estado SIN COTEJAR y usa el botón «Añadir a remesa directa». Puedes añadirlos a una remesa directa existente ABIERTA o crear una nueva remesa directa en el momento.</p>
+      <div class="warning"><strong>Un movimiento solo puede estar en una remesa directa a la vez.</strong> Si necesitas moverlo, primero quítalo de la remesa actual (solo posible si la remesa está ABIERTA).</div>
+    </div>
+
+    <div class="ayuda-section-title">7. Propuestas de cotejo automático</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">El sistema puede sugerir automáticamente qué PEG o remesa directa corresponde a cada movimiento, basándose en:</p>
+      <ul class="checklist">
+        <li>Coincidencia de importe</li>
+        <li>Coincidencia de fecha (±3 días hábiles)</li>
+        <li>Coincidencia del CIF del proveedor en el concepto bancario</li>
+        <li>Coincidencia del número de factura en el concepto</li>
+      </ul>
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;margin-top:10px;">Las propuestas de cotejo automático aparecen con un icono de sugerencia. Revísalas y confírmalas o recházalas.</p>
+    </div>
+
+    <div class="ayuda-section-title">8. Confirmar o rechazar propuestas de cotejo</div>
+    <div class="ayuda-card">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Revisa la propuesta</strong>
+          <p>El sistema te muestra el movimiento bancario y el PEG o remesa sugerida. Compara importes, fechas y concepto.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Confirma si es correcto</strong>
+          <p>El movimiento queda vinculado y su estado cambia según corresponda.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Rechaza si no es correcto</strong>
+          <p>El movimiento vuelve a SIN COTEJAR para asignación manual.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ayuda-section-title">9. Movimientos sin cotejar al final del período</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">Si quedan movimientos en SIN COTEJAR al finalizar el período, revisa cada uno:</p>
+      <ul class="checklist">
+        <li><strong>Transferencias a proveedores:</strong> ¿está el PEG creado y en una remesa cerrada? Si el movimiento es la transferencia de pago, debería cotejarse automáticamente al cerrar la remesa.</li>
+        <li><strong>Cargos automáticos (suministros, seguros):</strong> crea o añade a una remesa directa.</li>
+        <li><strong>Cargos desconocidos:</strong> contacta con el banco para identificarlos antes de contabilizarlos.</li>
+        <li><strong>Ingresos:</strong> los movimientos de entrada (cobros de subvenciones, etc.) pueden marcarse como «ocultos» si no se contabilizan por SGPEG.</li>
+      </ul>
+    </div>
+
+    <div class="ayuda-section-title">10. Control del extracto — conciliación bancaria</div>
+    <div class="ayuda-card">
+      <p style="color:var(--ink-soft);font-size:0.91rem;line-height:1.65;">El objetivo de la conciliación bancaria es que cada línea del extracto del banco tenga su correspondiente asiento en A3Con. SGPEG facilita este proceso:</p>
+      <ul class="checklist">
+        <li>Los pagos de remesas de PEGs generan automáticamente el cotejo cuando se cierra la remesa</li>
+        <li>Los otros cargos se cotejan manualmente mediante remesas directas</li>
+        <li>El filtro «SIN COTEJAR» muestra exactamente qué falta por procesar</li>
+        <li>El resumen de movimientos por banco y período permite comparar con el extracto oficial</li>
+      </ul>
+    </div>
+
+    <div class="quick-links" style="margin-top:24px;">
+      <a class="btn btn-primary" href="/movimientos/">Ir a movimientos</a>
+      <a class="btn btn-secondary" href="/ayuda/remesas-directas">Guía de remesas directas →</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
