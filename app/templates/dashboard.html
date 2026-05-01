@@ -41,11 +41,67 @@
     gap: 4px;
     transition: transform 0.15s, box-shadow 0.15s;
     border-top: 3px solid transparent;
+    position: relative;
   }
   .kpi-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 22px rgba(42,46,56,0.13);
   }
+
+  /* ── Tooltips ── */
+  .kpi-tooltip {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 230px;
+    background: #23262f;
+    color: #e8e8ec;
+    font-size: 0.82rem;
+    font-weight: 400;
+    line-height: 1.5;
+    padding: 11px 14px 12px;
+    border-radius: 11px;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.18s ease, visibility 0.18s ease, transform 0.18s ease;
+    transform: translateX(-50%) translateY(4px);
+    z-index: 200;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.28);
+    text-align: left;
+  }
+  .kpi-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 7px solid transparent;
+    border-top-color: #23262f;
+  }
+  .kpi-card:hover .kpi-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+  }
+  .kpi-tooltip strong {
+    display: block;
+    color: #fff;
+    font-size: 0.85rem;
+    margin-bottom: 5px;
+    font-weight: 700;
+  }
+  /* Evitar que el tooltip se corte en los extremos */
+  .kpi-tooltip-left  { left: 0;   transform: translateX(0)    translateY(4px); }
+  .kpi-tooltip-right { left: auto; right: 0; transform: translateX(0) translateY(4px); }
+  .kpi-tooltip-left::after  { left: 24px; }
+  .kpi-tooltip-right::after { left: auto; right: 24px; transform: none; }
+  .kpi-card:hover .kpi-tooltip-left  { transform: translateX(0) translateY(0); }
+  .kpi-card:hover .kpi-tooltip-right { transform: translateX(0) translateY(0); }
+
+  /* overflow visible en el grid para que el tooltip no se recorte */
+  .kpi-grid { overflow: visible; }
   .kpi-valor {
     font-size: 2rem;
     font-weight: 800;
@@ -170,15 +226,21 @@
 <div class="kpi-grid">
 
   <a class="kpi-card kpi-pendiente"
-     href="/solicitudes/?estado=PENDIENTE_AUTORIZACION{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
-     title="Solicitudes pendientes de autorizar">
+     href="/solicitudes/?estado=PENDIENTE_AUTORIZACION{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}">
+    <div class="kpi-tooltip kpi-tooltip-left">
+      <strong>Solicitudes pendientes de autorizar</strong>
+      Autorizaciones previas enviadas por los gestores de servicio que aún no han sido revisadas. Requieren tu atención para que el gasto pueda avanzar.
+    </div>
     <div class="kpi-valor">{{ kpis.sol_pendientes or 0 }}</div>
     <div class="kpi-label">Pendiente{% if (kpis.sol_pendientes or 0) != 1 %}s{% endif %} de autorizar</div>
   </a>
 
   <a class="kpi-card kpi-validado"
-     href="/solicitudes/?estado=AUTORIZADA{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
-     title="Solicitudes autorizadas sin PEG generada">
+     href="/solicitudes/?estado=AUTORIZADA{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}">
+    <div class="kpi-tooltip">
+      <strong>Autorizadas sin PEG generada</strong>
+      Solicitudes que ya has autorizado pero que todavía no se han convertido en una PEG. Puedes generar la PEG desde el detalle de cada solicitud.
+    </div>
     <div class="kpi-valor">{{ kpis.sol_autorizadas_sin_peg or 0 }}</div>
     <div class="kpi-label">Autorizada{% if (kpis.sol_autorizadas_sin_peg or 0) != 1 %}s{% endif %} sin PEG</div>
   </a>
@@ -192,24 +254,33 @@
 <div class="kpi-grid">
 
   <a class="kpi-card kpi-pendiente"
-     href="/pegs/?estado=PENDIENTE{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
-     title="Ver PEGs pendientes de validar">
+     href="/pegs/?estado=PENDIENTE{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}">
+    <div class="kpi-tooltip kpi-tooltip-left">
+      <strong>PEGs pendientes de validar</strong>
+      Propuestas de Gasto recibidas que esperan revisión contable. {% if usuario.rol == 'GESTOR_SERVICIO' %}El equipo económico las revisará y te notificará por correo.{% else %}Debes asignar la cuenta de gasto y las líneas analíticas para validarlas.{% endif %}
+    </div>
     <div class="kpi-valor">{{ kpis.pendiente }}</div>
     <div class="kpi-label">Pendiente{% if kpis.pendiente != 1 %}s{% endif %}</div>
     <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_pendiente) }} €</div>
   </a>
 
   <a class="kpi-card kpi-incidencia"
-     href="/pegs/?estado=INCIDENCIA{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
-     title="Ver PEGs con incidencia">
+     href="/pegs/?estado=INCIDENCIA{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}">
+    <div class="kpi-tooltip">
+      <strong>PEGs con incidencia</strong>
+      {% if usuario.rol == 'GESTOR_SERVICIO' %}PEGs devueltas porque el equipo económico ha detectado un problema. Revisa el motivo en el detalle de cada PEG y corrígelo.{% else %}PEGs devueltas al gestor del servicio por datos incorrectos o documentación incompleta. Esperan corrección.{% endif %}
+    </div>
     <div class="kpi-valor">{{ kpis.incidencia }}</div>
     <div class="kpi-label">Incidencia{% if kpis.incidencia != 1 %}s{% endif %}</div>
     <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_incidencia) }} €</div>
   </a>
 
   <a class="kpi-card kpi-validado"
-     href="/pegs/?estado=VALIDADO{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
-     title="Ver PEGs validadas">
+     href="/pegs/?estado=VALIDADO{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}">
+    <div class="kpi-tooltip">
+      <strong>PEGs validadas</strong>
+      {% if usuario.rol == 'GESTOR_SERVICIO' %}PEGs revisadas y aprobadas por el equipo económico. Están listas para ser incluidas en la próxima remesa de pago.{% else %}PEGs aprobadas contablemente, listas para incorporarse a una remesa de pago. Aún no se ha generado el fichero bancario.{% endif %}
+    </div>
     <div class="kpi-valor">{{ kpis.validado }}</div>
     <div class="kpi-label">Validada{% if kpis.validado != 1 %}s{% endif %}</div>
     <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_validado) }} €</div>
@@ -217,16 +288,22 @@
 
   {% if usuario.rol == 'GESTOR_SERVICIO' %}
   <button class="kpi-card kpi-remesa"
-          onclick="document.getElementById('modal-sin-acceso').classList.add('active'); document.body.style.overflow='hidden';"
-          title="PEGs en remesa de pago">
+          onclick="document.getElementById('modal-sin-acceso').classList.add('active'); document.body.style.overflow='hidden';">
+    <div class="kpi-tooltip">
+      <strong>PEGs en remesa de pago</strong>
+      Tus PEGs han sido agrupadas en un fichero bancario (Cuaderno 34) enviado al banco. El pago está siendo tramitado. Recibirás un correo cuando se confirme.
+    </div>
     <div class="kpi-valor">{{ kpis.en_remesa }}</div>
     <div class="kpi-label">En remesa</div>
     <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_en_remesa) }} €</div>
   </button>
   {% else %}
   <a class="kpi-card kpi-remesa"
-     href="/pegs/?estado=EN_REMESA{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
-     title="Ver PEGs en remesa">
+     href="/pegs/?estado=EN_REMESA{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}">
+    <div class="kpi-tooltip">
+      <strong>PEGs en remesa</strong>
+      PEGs incluidas en una remesa cuyo fichero bancario ya ha sido generado. El banco está tramitando las transferencias. Puedes ver el detalle en cada remesa.
+    </div>
     <div class="kpi-valor">{{ kpis.en_remesa }}</div>
     <div class="kpi-label">En remesa</div>
     <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_en_remesa) }} €</div>
@@ -234,8 +311,11 @@
   {% endif %}
 
   <a class="kpi-card kpi-pagado"
-     href="/pegs/?estado=PAGADO{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}"
-     title="Ver PEGs pagadas">
+     href="/pegs/?estado=PAGADO{% if filtro_servicio %}&servicio={{ filtro_servicio }}{% endif %}">
+    <div class="kpi-tooltip">
+      <strong>PEGs pagadas</strong>
+      {% if usuario.rol == 'GESTOR_SERVICIO' %}El pago al proveedor ha sido ejecutado. Cuando recibas la factura física, confírmalo desde el detalle de la PEG.{% else %}Pagos ejecutados y confirmados. El proveedor ha recibido la transferencia. Comprueba que los gestores han confirmado la recepción de las facturas físicas.{% endif %}
+    </div>
     <div class="kpi-valor">{{ kpis.pagado }}</div>
     <div class="kpi-label">Pagada{% if kpis.pagado != 1 %}s{% endif %}</div>
     <div class="kpi-sub">{{ "%.2f"|format(kpis.importe_pagado) }} €</div>
@@ -244,8 +324,11 @@
   {% if usuario.rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
   {% if kpis.pagados_sin_factura > 0 %}
   <a class="kpi-card kpi-alerta"
-     href="/pegs/?estado=PAGADO&factura_recibida=0"
-     title="PEGs pagadas sin factura recibida">
+     href="/pegs/?estado=PAGADO&factura_recibida=0">
+    <div class="kpi-tooltip kpi-tooltip-right">
+      <strong>Pagadas sin factura recibida</strong>
+      PEGs cuyo pago ya se ha ejecutado pero el gestor del servicio aún no ha confirmado que ha recibido la factura física. Importante para el control documental.
+    </div>
     <div class="kpi-valor">{{ kpis.pagados_sin_factura }}</div>
     <div class="kpi-label">Sin factura</div>
   </a>
@@ -262,8 +345,11 @@
 <div class="kpi-grid">
 
   <a class="kpi-card kpi-pendiente"
-     href="/movimientos/?estado=PENDIENTE"
-     title="Movimientos de gasto pendientes de cotejar">
+     href="/movimientos/?estado=PENDIENTE">
+    <div class="kpi-tooltip kpi-tooltip-left">
+      <strong>Gastos bancarios sin cotejar</strong>
+      Apuntes de gasto importados del extracto bancario que aún no se han asociado a ninguna remesa directa. Deben vincularse para completar la conciliación bancaria.
+    </div>
     <div class="kpi-valor">{{ kpis.mov_pendientes or 0 }}</div>
     <div class="kpi-label">Gasto{% if (kpis.mov_pendientes or 0) != 1 %}s{% endif %} pendiente{% if (kpis.mov_pendientes or 0) != 1 %}s{% endif %}</div>
     <div class="kpi-sub">Por cotejar</div>
@@ -278,8 +364,11 @@
 <div class="kpi-grid">
 
   <a class="kpi-card kpi-abierta"
-     href="/remesas-directas/"
-     title="Remesas directas abiertas">
+     href="/remesas-directas/">
+    <div class="kpi-tooltip kpi-tooltip-left">
+      <strong>Remesas directas abiertas</strong>
+      Remesas de pagos bancarios directos (no vinculados a PEGs) en curso. Aún puedes añadir movimientos del extracto antes de cerrarlas y exportar el asiento a A3Con.
+    </div>
     <div class="kpi-valor">{{ kpis.rd_abiertas or 0 }}</div>
     <div class="kpi-label">Abierta{% if (kpis.rd_abiertas or 0) != 1 %}s{% endif %}</div>
     <div class="kpi-sub">Pendientes de cerrar</div>
@@ -287,8 +376,11 @@
 
   {% if kpis.remesas_abiertas > 0 %}
   <a class="kpi-card kpi-neutro"
-     href="/remesas/?estado=ABIERTA"
-     title="Remesas de transferencia abiertas">
+     href="/remesas/?estado=ABIERTA">
+    <div class="kpi-tooltip">
+      <strong>Remesas de transferencias abiertas</strong>
+      Remesas de PEGs en estado ABIERTA a las que todavía puedes añadir PEGs validadas antes de generar el Cuaderno 34 y enviarlas al banco.
+    </div>
     <div class="kpi-valor">{{ kpis.remesas_abiertas }}</div>
     <div class="kpi-label">RT abierta{% if kpis.remesas_abiertas != 1 %}s{% endif %}</div>
     <div class="kpi-sub">Transferencias</div>

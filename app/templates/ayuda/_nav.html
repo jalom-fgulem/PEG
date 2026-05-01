@@ -1,222 +1,616 @@
 <style>
+/* ═══════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════ */
 .ayuda-wrap {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 224px 1fr;
   gap: 28px;
   align-items: start;
 }
+
+/* ═══════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════ */
 .ayuda-sidebar {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 18px 14px;
+  background: rgba(255,255,255,0.96);
+  border: 1px solid rgba(229,231,235,0.9);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(42,46,56,0.07);
   position: sticky;
   top: 24px;
 }
+
+.ayuda-sidebar-header {
+  background: linear-gradient(135deg,
+    rgba(194,27,132,0.07) 0%,
+    rgba(95,159,211,0.05) 100%);
+  border-bottom: 1px solid rgba(229,231,235,0.8);
+  padding: 16px 18px 14px;
+}
+
+.ayuda-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ayuda-sidebar-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--fgulem-magenta);
+  flex-shrink: 0;
+}
+
 .ayuda-sidebar-title {
-  font-size: 0.82rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ink-soft);
-  padding: 0 6px 10px;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 10px;
-}
-.ayuda-sidebar-role {
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: 0;
-  color: #aaa;
-  display: block;
-  margin-top: 3px;
-}
-.ayuda-nav-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: #aaa;
-  padding: 12px 6px 4px;
-}
-.ayuda-nav-link {
-  display: block;
-  padding: 8px 10px;
-  border-radius: 8px;
-  text-decoration: none;
   font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.ayuda-sidebar-role {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.role-gs-badge  { background: rgba(95,159,211,0.13); color: #185fa5; }
+.role-ge-badge  { background: rgba(194,27,132,0.10); color: #c21b84; }
+.role-adm-badge { background: rgba(42,46,56,0.10);   color: #374151; }
+
+.ayuda-sidebar-nav { padding: 10px 10px 14px; }
+
+.ayuda-nav-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: #c0bcc8;
+  padding: 14px 8px 5px;
+}
+
+.ayuda-nav-link {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px 8px 12px;
+  border-radius: 9px;
+  text-decoration: none;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--ink);
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s, transform 0.1s;
   margin-bottom: 2px;
+  border-left: 3px solid transparent;
 }
-.ayuda-nav-link:hover { background: rgba(95,159,211,0.08); color: var(--fgulem-magenta); }
-.ayuda-nav-link.active { background: rgba(194,27,132,0.08); color: var(--fgulem-magenta); }
+
+.ayuda-nav-link:hover {
+  background: rgba(95,159,211,0.08);
+  color: var(--fgulem-magenta);
+  transform: translateX(1px);
+}
+
+.ayuda-nav-link.active {
+  background: rgba(194,27,132,0.07);
+  color: var(--fgulem-magenta);
+  border-left-color: var(--fgulem-magenta);
+  font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════
+   CONTENT AREA
+═══════════════════════════════════════════════ */
 .ayuda-content { min-width: 0; }
 
-/* Content typography */
-.ayuda-content h2 {
-  font-size: 1.35rem;
-  color: var(--ink);
-  margin: 0 0 6px;
+/* Page title */
+.ayuda-content > h2 {
+  font-size: 1.5rem;
   font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 10px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
-.ayuda-content .lead {
-  font-size: 0.97rem;
+
+.ayuda-content > .lead {
+  font-size: 0.96rem;
+  color: var(--ink-soft);
+  line-height: 1.7;
+  margin: 0 0 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Hero block (inicio.html) */
+.ayuda-hero {
+  background: linear-gradient(135deg,
+    rgba(194,27,132,0.05) 0%,
+    rgba(95,159,211,0.04) 60%,
+    transparent 100%);
+  border: 1px solid rgba(194,27,132,0.1);
+  border-radius: 16px;
+  padding: 24px 26px 20px;
+  margin-bottom: 28px;
+}
+.ayuda-hero h2 {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 10px;
+  letter-spacing: -0.02em;
+}
+.ayuda-hero .lead {
+  font-size: 0.94rem;
   color: var(--ink-soft);
   line-height: 1.65;
-  margin: 0 0 28px;
+  margin: 0;
 }
+
+/* Section titles — matches dashboard .kpi-section-title */
 .ayuda-section-title {
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: #8a8691;
-  margin: 28px 0 12px;
+  letter-spacing: 0.14em;
+  color: var(--fgulem-magenta);
+  margin: 32px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
+.ayuda-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, rgba(194,27,132,0.18), transparent);
+}
+
+/* Cards */
 .ayuda-card {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  background: rgba(255,255,255,0.97);
+  border: 1px solid rgba(229,231,235,0.85);
+  border-radius: 16px;
   padding: 20px 22px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 10px rgba(42,46,56,0.05);
+  transition: box-shadow 0.18s, border-color 0.18s;
+}
+.ayuda-card:hover {
+  box-shadow: 0 6px 22px rgba(42,46,56,0.09);
+  border-color: rgba(194,27,132,0.15);
 }
 .ayuda-card h3 {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   font-size: 1rem;
   font-weight: 700;
   color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
-/* Steps */
-.step { display: flex; gap: 14px; margin-bottom: 18px; align-items: flex-start; }
+.ayuda-card p { font-size: 0.91rem; color: var(--ink-soft); line-height: 1.6; margin: 0 0 10px; }
+.ayuda-card p:last-child { margin-bottom: 0; }
+
+/* ═══════════════════════════════════════════════
+   STEPS — vertical timeline
+═══════════════════════════════════════════════ */
+.step {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 22px;
+  align-items: flex-start;
+  position: relative;
+}
+.step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 32px;
+  bottom: -22px;
+  width: 2px;
+  background: linear-gradient(to bottom,
+    rgba(194,27,132,0.22) 0%,
+    rgba(194,27,132,0.0) 100%);
+  border-radius: 2px;
+}
 .step-num {
-  flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--fgulem-magenta), var(--fgulem-magenta-soft));
-  color: #fff; font-weight: 700; font-size: 0.82rem;
-  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--fgulem-magenta);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(194,27,132,0.35);
+  position: relative;
+  z-index: 1;
 }
-.step-body strong { display: block; margin-bottom: 3px; font-size: 0.95rem; }
-.step-body p { margin: 0; color: var(--ink-soft); font-size: 0.91rem; line-height: 1.55; }
-.step-body ul { margin: 6px 0 0 0; padding-left: 18px; color: var(--ink-soft); font-size: 0.91rem; line-height: 1.7; }
-/* Tips and warnings */
+.step-body { flex: 1; min-width: 0; padding-top: 4px; }
+.step-body strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.94rem;
+  color: var(--ink);
+  font-weight: 700;
+}
+.step-body p {
+  margin: 0 0 6px;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.58;
+}
+.step-body p:last-child { margin-bottom: 0; }
+.step-body ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.72;
+}
+
+/* ═══════════════════════════════════════════════
+   CALLOUTS — tip & warning
+═══════════════════════════════════════════════ */
 .tip {
-  background: rgba(95,159,211,0.07);
-  border-left: 3px solid var(--fgulem-blue);
-  border-radius: 0 10px 10px 0;
-  padding: 12px 16px;
+  position: relative;
+  background: rgba(95,159,211,0.06);
+  border: 1px solid rgba(95,159,211,0.22);
+  border-radius: 12px;
+  padding: 12px 14px 12px 44px;
   font-size: 0.9rem;
   color: var(--ink-soft);
-  line-height: 1.55;
-  margin: 14px 0;
+  line-height: 1.58;
+  margin: 16px 0;
 }
+.tip::before {
+  content: 'ℹ';
+  position: absolute;
+  left: 15px;
+  top: 12px;
+  color: var(--fgulem-blue);
+  font-weight: 900;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+.tip strong { color: var(--ink); }
+
 .warning {
+  position: relative;
   background: rgba(194,27,132,0.05);
-  border-left: 3px solid var(--fgulem-magenta);
-  border-radius: 0 10px 10px 0;
-  padding: 12px 16px;
+  border: 1px solid rgba(194,27,132,0.16);
+  border-radius: 12px;
+  padding: 12px 14px 12px 44px;
   font-size: 0.9rem;
   color: var(--ink-soft);
-  line-height: 1.55;
-  margin: 14px 0;
+  line-height: 1.58;
+  margin: 16px 0;
 }
-.warning strong, .tip strong { color: var(--ink); }
-/* State pills */
-.sp { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
-.sp-pending   { background:#fff3cd; color:#856404; }
-.sp-validated { background:#d1ecf1; color:#0c5460; }
-.sp-remesa    { background:#cce5ff; color:#004085; }
-.sp-paid      { background:#d4edda; color:#155724; }
-.sp-incident  { background:#f8d7da; color:#721c24; }
-.sp-auth      { background:#d4edda; color:#155724; }
-.sp-denied    { background:#f8d7da; color:#721c24; }
-.sp-open      { background:#fff3cd; color:#856404; }
-.sp-generated { background:#cce5ff; color:#004085; }
-.sp-closed    { background:#d4edda; color:#155724; }
-/* Flow chain */
-.flow-chain { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 10px 0 18px; }
-.flow-arrow { color: #bbb; font-size: 1rem; }
-/* Permission grid */
-.perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-.perm { padding: 8px 12px; border-radius: 9px; font-size: 0.87rem; font-weight: 600; }
-.perm-yes { background: #f0faf4; color: #155724; }
-.perm-no  { background: #fdf3f4; color: #721c24; }
-/* Branch decisions */
-.branch { margin: -6px 0 16px 44px; display: flex; flex-direction: column; gap: 10px; }
-.branch-row { display: flex; gap: 12px; align-items: flex-start; }
-.branch-tag { flex-shrink:0; padding: 3px 10px; border-radius: 999px; font-size: 0.74rem; font-weight: 700; white-space:nowrap; margin-top: 2px; }
-.branch-ok   { background:#d4edda; color:#155724; }
-.branch-warn { background:#f8d7da; color:#721c24; }
-.branch-row p { margin: 2px 0 0; color: var(--ink-soft); font-size: 0.89rem; line-height: 1.5; }
-/* Field reference table */
-.field-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 10px; }
-.field-table th { text-align: left; padding: 8px 12px; background: #f7f7f8; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
-.field-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-.field-table td:first-child { font-weight: 700; white-space: nowrap; }
+.warning::before {
+  content: '⚠';
+  position: absolute;
+  left: 14px;
+  top: 11px;
+  color: var(--fgulem-magenta);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+.warning strong { color: var(--ink); }
+
+/* ═══════════════════════════════════════════════
+   STATE PILLS
+═══════════════════════════════════════════════ */
+.sp {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.79rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+}
+.sp-pending   { background: #fff3cd; color: #854f0b; }
+.sp-validated { background: #d1ecf1; color: #0c5460; }
+.sp-remesa    { background: #dde9ff; color: #1e3a8a; }
+.sp-paid      { background: #dcfce7; color: #15803d; }
+.sp-incident  { background: #fee2e2; color: #991b1b; }
+.sp-auth      { background: #dcfce7; color: #15803d; }
+.sp-denied    { background: #fee2e2; color: #991b1b; }
+.sp-open      { background: #fff3cd; color: #854f0b; }
+.sp-generated { background: #dde9ff; color: #1e3a8a; }
+.sp-closed    { background: #dcfce7; color: #15803d; }
+
+/* ═══════════════════════════════════════════════
+   FLOW CHAIN
+═══════════════════════════════════════════════ */
+.flow-chain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0 20px;
+}
+.flow-arrow {
+  color: #d1d5db;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════
+   PERMISSION GRID
+═══════════════════════════════════════════════ */
+.perm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+.perm {
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.perm-yes {
+  background: rgba(47,122,85,0.07);
+  border: 1px solid rgba(47,122,85,0.2);
+  color: #166534;
+}
+.perm-no {
+  background: rgba(153,27,27,0.05);
+  border: 1px solid rgba(153,27,27,0.15);
+  color: #991b1b;
+}
+
+/* ═══════════════════════════════════════════════
+   BRANCH DECISIONS
+═══════════════════════════════════════════════ */
+.branch {
+  margin: -4px 0 18px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.branch-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.branch-tag {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+.branch-ok   { background: rgba(47,122,85,0.12);  color: #166534; }
+.branch-warn { background: rgba(153,27,27,0.10);   color: #991b1b; }
+.branch-row p {
+  margin: 3px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.89rem;
+  line-height: 1.52;
+}
+.branch-row strong { display: block; font-size: 0.91rem; color: var(--ink); }
+
+/* ═══════════════════════════════════════════════
+   FIELD REFERENCE TABLE
+═══════════════════════════════════════════════ */
+.field-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin-top: 12px;
+}
+.field-table thead tr {
+  background: linear-gradient(135deg,
+    rgba(194,27,132,0.05),
+    rgba(95,159,211,0.04));
+}
+.field-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--line);
+  font-weight: 700;
+}
+.field-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(229,231,235,0.7);
+  vertical-align: top;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.field-table td:first-child {
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  font-size: 0.89rem;
+}
+.field-table tbody tr:nth-child(even) td {
+  background: rgba(249,250,251,0.6);
+}
 .field-table tr:last-child td { border-bottom: none; }
-.req { color: #a32d2d; font-size: 0.75rem; font-weight: 700; vertical-align: super; }
-/* Role badge */
-.role-badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
-.role-gs  { background: rgba(95,159,211,0.12); color: #185fa5; }
-.role-ge  { background: rgba(194,27,132,0.10); color: #a01070; }
-.role-adm { background: rgba(42,46,56,0.10); color: #2a2e38; }
-/* Quick links */
-.quick-links { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
-/* Checklist */
-.checklist { list-style: none; padding: 0; margin: 10px 0; }
-.checklist li { padding: 6px 0; font-size: 0.91rem; color: var(--ink-soft); display: flex; gap: 8px; }
-.checklist li::before { content: '✓'; color: var(--fgulem-green-dark); font-weight: 700; flex-shrink: 0; }
-/* Role matrix */
-.role-matrix { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 10px; }
-.role-matrix th { text-align: center; padding: 8px 12px; background: #f7f7f8; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
+.req {
+  color: #dc2626;
+  font-size: 0.72rem;
+  font-weight: 700;
+  vertical-align: super;
+}
+
+/* ═══════════════════════════════════════════════
+   ROLE MATRIX TABLE
+═══════════════════════════════════════════════ */
+.role-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin-top: 12px;
+}
+.role-matrix th {
+  text-align: center;
+  padding: 10px 12px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-soft);
+  border-bottom: 2px solid var(--line);
+  font-weight: 700;
+}
 .role-matrix th:first-child { text-align: left; }
-.role-matrix td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: center; }
-.role-matrix td:first-child { text-align: left; font-weight: 600; }
-.role-matrix .yes { color: var(--fgulem-green-dark); font-weight: 700; }
-.role-matrix .no  { color: #ccc; }
-/* Glossary */
-.glossary dt { font-weight: 700; color: var(--ink); margin-top: 12px; font-size: 0.95rem; }
-.glossary dd { margin: 3px 0 0 0; color: var(--ink-soft); font-size: 0.9rem; line-height: 1.55; }
-/* Responsive */
-@media (max-width: 780px) {
-  .ayuda-wrap { grid-template-columns: 1fr; }
-  .ayuda-sidebar { position: static; }
+.role-matrix td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(229,231,235,0.7);
+  text-align: center;
+  font-size: 1rem;
+}
+.role-matrix td:first-child {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+.role-matrix tbody tr:hover td { background: rgba(249,250,251,0.6); }
+.role-matrix .yes { color: var(--fgulem-green-dark); }
+.role-matrix .no  { color: #e5e7eb; }
+
+/* ═══════════════════════════════════════════════
+   ROLE BADGES (inline)
+═══════════════════════════════════════════════ */
+.role-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.role-gs  { background: rgba(95,159,211,0.12);  color: #185fa5; }
+.role-ge  { background: rgba(194,27,132,0.10);  color: #c21b84; }
+.role-adm { background: rgba(42,46,56,0.10);    color: #374151; }
+
+/* ═══════════════════════════════════════════════
+   GLOSSARY
+═══════════════════════════════════════════════ */
+.glossary dt {
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 14px;
+  font-size: 0.94rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.glossary dt::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--fgulem-magenta);
+  flex-shrink: 0;
+}
+.glossary dd {
+  margin: 4px 0 0 14px;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════════════
+   CHECKLIST
+═══════════════════════════════════════════════ */
+.checklist { list-style: none; padding: 0; margin: 10px 0; }
+.checklist li {
+  padding: 6px 0;
+  font-size: 0.91rem;
+  color: var(--ink-soft);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  line-height: 1.55;
+}
+.checklist li::before {
+  content: '✓';
+  color: var(--fgulem-green-dark);
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ═══════════════════════════════════════════════
+   QUICK LINKS
+═══════════════════════════════════════════════ */
+.quick-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
+@media (max-width: 820px) {
+  .ayuda-wrap {
+    grid-template-columns: 1fr;
+  }
+  .ayuda-sidebar {
+    position: static;
+  }
+  .perm-grid { grid-template-columns: 1fr; }
 }
 </style>
 
 {% set rol = usuario.rol if usuario else '' %}
 
 <nav class="ayuda-sidebar">
-  <div class="ayuda-sidebar-title">
-    Guía SGPEG
-    <span class="ayuda-sidebar-role">
-      {% if rol == 'GESTOR_SERVICIO' %}Gestor de Servicio
-      {% elif rol == 'GESTOR_ECONOMICO' %}Gestor Económico
-      {% elif rol == 'ADMIN' %}Administrador
-      {% else %}Visitante{% endif %}
-    </span>
+  <div class="ayuda-sidebar-header">
+    <div class="ayuda-sidebar-brand">
+      <div class="ayuda-sidebar-dot"></div>
+      <span class="ayuda-sidebar-title">Guía SGPEG</span>
+    </div>
+    {% if rol == 'GESTOR_SERVICIO' %}
+      <span class="ayuda-sidebar-role role-gs-badge">Gestor de Servicio</span>
+    {% elif rol == 'GESTOR_ECONOMICO' %}
+      <span class="ayuda-sidebar-role role-ge-badge">Gestor Económico</span>
+    {% elif rol == 'ADMIN' %}
+      <span class="ayuda-sidebar-role role-adm-badge">Administrador</span>
+    {% endif %}
   </div>
 
-  <div class="ayuda-nav-label">General</div>
-  <a class="ayuda-nav-link {% if ayuda_section == 'inicio' %}active{% endif %}" href="/ayuda/">Inicio</a>
-  <a class="ayuda-nav-link {% if ayuda_section == 'flujo_general' %}active{% endif %}" href="/ayuda/flujo-general">Flujo general</a>
+  <div class="ayuda-sidebar-nav">
+    <span class="ayuda-nav-label">General</span>
+    <a class="ayuda-nav-link {% if ayuda_section == 'inicio' %}active{% endif %}" href="/ayuda/">Inicio</a>
+    <a class="ayuda-nav-link {% if ayuda_section == 'flujo_general' %}active{% endif %}" href="/ayuda/flujo-general">Flujo general</a>
 
-  <div class="ayuda-nav-label">Tu trabajo</div>
-  <a class="ayuda-nav-link {% if ayuda_section == 'pegs' %}active{% endif %}" href="/ayuda/pegs">Crear y gestionar PEGs</a>
-  <a class="ayuda-nav-link {% if ayuda_section == 'solicitudes' %}active{% endif %}" href="/ayuda/solicitudes">Solicitudes de autorización</a>
-  <a class="ayuda-nav-link {% if ayuda_section == 'proveedores' %}active{% endif %}" href="/ayuda/proveedores">Proveedores</a>
+    <span class="ayuda-nav-label">Tu trabajo</span>
+    <a class="ayuda-nav-link {% if ayuda_section == 'pegs' %}active{% endif %}" href="/ayuda/pegs">PEGs — Propuestas de gasto</a>
+    <a class="ayuda-nav-link {% if ayuda_section == 'solicitudes' %}active{% endif %}" href="/ayuda/solicitudes">Solicitudes de autorización</a>
+    <a class="ayuda-nav-link {% if ayuda_section == 'proveedores' %}active{% endif %}" href="/ayuda/proveedores">Proveedores</a>
 
-  {% if rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
-  <div class="ayuda-nav-label">Gestión económica</div>
-  <a class="ayuda-nav-link {% if ayuda_section == 'validacion' %}active{% endif %}" href="/ayuda/validacion">Validación de PEGs</a>
-  <a class="ayuda-nav-link {% if ayuda_section == 'remesas' %}active{% endif %}" href="/ayuda/remesas">Remesas de pago</a>
-  <a class="ayuda-nav-link {% if ayuda_section == 'remesas_directas' %}active{% endif %}" href="/ayuda/remesas-directas">Remesas directas</a>
-  <a class="ayuda-nav-link {% if ayuda_section == 'movimientos' %}active{% endif %}" href="/ayuda/movimientos">Movimientos bancarios</a>
-  {% endif %}
+    {% if rol in ['GESTOR_ECONOMICO', 'ADMIN'] %}
+    <span class="ayuda-nav-label">Gestión económica</span>
+    <a class="ayuda-nav-link {% if ayuda_section == 'validacion' %}active{% endif %}" href="/ayuda/validacion">Validación de PEGs</a>
+    <a class="ayuda-nav-link {% if ayuda_section == 'remesas' %}active{% endif %}" href="/ayuda/remesas">Remesas de pago</a>
+    <a class="ayuda-nav-link {% if ayuda_section == 'remesas_directas' %}active{% endif %}" href="/ayuda/remesas-directas">Remesas directas</a>
+    <a class="ayuda-nav-link {% if ayuda_section == 'movimientos' %}active{% endif %}" href="/ayuda/movimientos">Movimientos bancarios</a>
+    {% endif %}
 
-  {% if rol == 'ADMIN' %}
-  <div class="ayuda-nav-label">Sistema</div>
-  <a class="ayuda-nav-link {% if ayuda_section == 'administracion' %}active{% endif %}" href="/ayuda/administracion">Administración del sistema</a>
-  {% endif %}
+    {% if rol == 'ADMIN' %}
+    <span class="ayuda-nav-label">Sistema</span>
+    <a class="ayuda-nav-link {% if ayuda_section == 'administracion' %}active{% endif %}" href="/ayuda/administracion">Administración</a>
+    {% endif %}
+  </div>
 </nav>

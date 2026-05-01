@@ -8,19 +8,21 @@
   {% include "ayuda/_nav.html" %}
 
   <div class="ayuda-content">
-    <h2>Bienvenido/a, {{ usuario.nombre_completo }}</h2>
-    <p class="lead">
-      {% if usuario.rol == 'GESTOR_SERVICIO' %}
-      <span class="role-badge role-gs">Gestor de Servicio</span>
-      &nbsp;Desde aquí puedes crear propuestas de gasto (PEGs), solicitar autorizaciones previas, gestionar tu catálogo de proveedores y hacer seguimiento del estado de tus pagos.
-      {% elif usuario.rol == 'GESTOR_ECONOMICO' %}
-      <span class="role-badge role-ge">Gestor Económico</span>
-      &nbsp;Tienes acceso completo a la validación de PEGs, la gestión de remesas de pago, la importación de movimientos bancarios y la conciliación contable.
-      {% elif usuario.rol == 'ADMIN' %}
-      <span class="role-badge role-adm">Administrador</span>
-      &nbsp;Tienes acceso total al sistema: usuarios, servicios, bancos, cuentas de gasto y plantillas de correo, además de todas las funciones económicas.
-      {% endif %}
-    </p>
+    <div class="ayuda-hero">
+      <h2>Bienvenido/a, {{ usuario.nombre_completo }}</h2>
+      <p class="lead">
+        {% if usuario.rol == 'GESTOR_SERVICIO' %}
+        <span class="role-badge role-gs">Gestor de Servicio</span>
+        &nbsp;Desde aquí puedes crear propuestas de gasto (PEGs), solicitar autorizaciones previas, gestionar tu catálogo de proveedores y hacer seguimiento del estado de tus pagos.
+        {% elif usuario.rol == 'GESTOR_ECONOMICO' %}
+        <span class="role-badge role-ge">Gestor Económico</span>
+        &nbsp;Tienes acceso completo a la validación de PEGs, la gestión de remesas de pago, la importación de movimientos bancarios y la conciliación contable.
+        {% elif usuario.rol == 'ADMIN' %}
+        <span class="role-badge role-adm">Administrador</span>
+        &nbsp;Tienes acceso total al sistema: usuarios, servicios, bancos, cuentas de gasto y plantillas de correo, además de todas las funciones económicas.
+        {% endif %}
+      </p>
+    </div>
 
     <div class="ayuda-section-title">Inicio rápido — secciones disponibles para tu rol</div>
 
