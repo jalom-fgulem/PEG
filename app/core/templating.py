@@ -53,6 +53,9 @@ def _menu_counts(usuario):
     }
 
 
+from app.services.modulos_service import es_visible as _modulo_visible  # noqa: E402
+
 templates.env.globals["get_usuario_actual"] = get_usuario_actual
 templates.env.globals["obtener_servicio"]    = obtener_servicio
 templates.env.globals["menu_counts"]         = _menu_counts
+templates.env.globals["modulo_visible"]      = _modulo_visible

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Módulos — Administración{% endblock %}
+{% block page_title %}Módulos del sistema{% endblock %}
+{% block page_subtitle %}Activa o desactiva módulos para el rol Gestor Económico{% endblock %}
+
+{% block extra_head %}
+<style>
+  .modulo-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 22px 24px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0 20px;
+    align-items: center;
+    transition: box-shadow 0.15s, border-color 0.15s;
+  }
+  .modulo-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,0.07); }
+  .modulo-card.activo  { border-left: 4px solid var(--fgulem-green-dark); }
+  .modulo-card.inactivo { border-left: 4px solid #ccc; }
+
+  .modulo-icono {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem;
+  }
+  .modulo-icono.activo   { background: rgba(47,122,85,0.10); }
+  .modulo-icono.inactivo { background: rgba(150,150,150,0.10); filter: grayscale(0.6); }
+
+  .modulo-info h4  { margin: 0 0 4px; font-size: 1.05rem; font-weight: 700; color: var(--ink); }
+  .modulo-info p   { margin: 0; font-size: 0.87rem; color: var(--ink-soft); line-height: 1.45; }
+
+  .modulo-meta { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+  .badge-beta  { background: rgba(90,159,211,0.14); color: var(--fgulem-blue); padding: 2px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; }
+  .badge-prod  { background: rgba(47,122,85,0.12); color: var(--fgulem-green-dark); padding: 2px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; }
+  .badge-url   { background: rgba(79,76,85,0.07); color: var(--ink-soft); padding: 2px 8px; border-radius: 8px; font-size: 0.75rem; font-family: monospace; }
+
+  /* Toggle switch */
+  .toggle-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 110px; }
+  .toggle-label { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .toggle-label.on  { color: var(--fgulem-green-dark); }
+  .toggle-label.off { color: #aaa; }
+
+  .toggle-switch {
+    position: relative;
+    width: 54px; height: 28px;
+    cursor: pointer;
+  }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .toggle-slider {
+    position: absolute; inset: 0;
+    border-radius: 28px;
+    background: #ddd;
+    transition: background 0.2s;
+  }
+  .toggle-switch input:checked + .toggle-slider { background: var(--fgulem-green-dark); }
+  .toggle-slider::before {
+    content: "";
+    position: absolute;
+    width: 22px; height: 22px;
+    left: 3px; top: 3px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    transition: transform 0.2s;
+  }
+  .toggle-switch input:checked + .toggle-slider::before { transform: translateX(26px); }
+
+  .admin-note {
+    background: rgba(90,159,211,0.07);
+    border: 1px solid rgba(90,159,211,0.25);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 0.87rem;
+    color: var(--ink-soft);
+    margin-bottom: 20px;
+  }
+  .admin-note strong { color: var(--fgulem-blue); }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set admin_tab = 'modulos' %}
+{% include "admin/_tabs.html" %}
+
+{% if msg %}
+<div class="card" style="margin-bottom:16px;background:{% if msg_type=='success' %}rgba(47,122,85,0.08){% else %}rgba(194,27,132,0.08){% endif %};border-color:{% if msg_type=='success' %}rgba(47,122,85,0.3){% else %}rgba(194,27,132,0.3){% endif %};">
+  <p style="margin:0;font-weight:700;color:{% if msg_type=='success' %}var(--fgulem-green-dark){% else %}var(--fgulem-magenta){% endif %};">{{ msg }}</p>
+</div>
+{% endif %}
+
+<div class="admin-note">
+  <strong>Nota:</strong> El rol <strong>Administrador</strong> siempre tiene acceso a todos los módulos,
+  independientemente de esta configuración. Los cambios afectan únicamente al rol
+  <strong>Gestor Económico</strong>.
+</div>
+
+<div style="display:flex;flex-direction:column;gap:14px;">
+  {% for mod in modulos %}
+  {% set activo = mod.visible_ge %}
+  <div class="modulo-card {% if activo %}activo{% else %}inactivo{% endif %}">
+
+    {# Icono #}
+    <div class="modulo-icono {% if activo %}activo{% else %}inactivo{% endif %}">
+      {{ mod.icono }}
+    </div>
+
+    {# Información #}
+    <div class="modulo-info">
+      <h4>{{ mod.label }}</h4>
+      <p>{{ mod.descripcion }}</p>
+      <div class="modulo-meta">
+        {% if mod.etiqueta == 'BETA' %}
+        <span class="badge-beta">BETA</span>
+        {% elif mod.etiqueta == 'PRODUCCION' %}
+        <span class="badge-prod">PRODUCCIÓN</span>
+        {% endif %}
+        <span class="badge-url">{{ mod.url }}</span>
+        {% if not activo %}
+        <span style="font-size:0.78rem;color:#aaa;">— Oculto para Gestor Económico</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Toggle #}
+    <div class="toggle-wrap">
+      <span class="toggle-label {% if activo %}on{% else %}off{% endif %}">
+        {% if activo %}Activo{% else %}Inactivo{% endif %}
+      </span>
+      <form method="post" action="/admin/modulos/{{ mod.key }}/toggle" id="form-{{ mod.key }}">
+        <label class="toggle-switch" title="{% if activo %}Desactivar para Gestor Económico{% else %}Activar para Gestor Económico{% endif %}">
+          <input type="checkbox" {% if activo %}checked{% endif %}
+                 onchange="document.getElementById('form-{{ mod.key }}').submit()">
+          <span class="toggle-slider"></span>
+        </label>
+      </form>
+      <span style="font-size:0.72rem;color:var(--ink-soft);text-align:center;line-height:1.3;">
+        para<br>Gestor Económico
+      </span>
+    </div>
+
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="empty-state">No hay módulos registrados en el sistema.</div>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

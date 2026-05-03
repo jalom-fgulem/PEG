@@ -1,12 +1,20 @@
 import urllib.parse
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from app.core.auth import require_rol
 from app.core.templating import templates
 from app.services import ingresos_service as svc
+from app.services.modulos_service import es_visible
 
 router = APIRouter(prefix="/ingresos", tags=["Ingresos"])
+
+
+def _require_ingresos(usuario: dict = Depends(require_rol("GESTOR_ECONOMICO", "ADMIN"))) -> dict:
+    """Bloquea el acceso de GESTOR_ECONOMICO si el módulo está desactivado."""
+    if not es_visible("ingresos", usuario["rol"]):
+        raise HTTPException(status_code=403, detail="El módulo de Ingresos no está disponible.")
+    return usuario
 
 AREAS_LABELS   = svc.LABELS_AREA
 PROCESO_LABELS = svc.LABELS_PROCESO
@@ -21,7 +29,7 @@ def ingresos_listado(
     estado: str | None = None,
     msg: str | None = None,
     msg_type: str = "success",
-    usuario: dict = Depends(require_rol("GESTOR_ECONOMICO", "ADMIN")),
+    usuario: dict = Depends(_require_ingresos),
 ):
     lotes = svc.listar_lotes(area=area, estado=estado)
     return templates.TemplateResponse(
@@ -45,7 +53,7 @@ def ingresos_listado(
 @router.get("/importar", response_class=HTMLResponse)
 def ingresos_importar_form(
     request: Request,
-    usuario: dict = Depends(require_rol("GESTOR_ECONOMICO", "ADMIN")),
+    usuario: dict = Depends(_require_ingresos),
 ):
     return templates.TemplateResponse(
         request=request,
@@ -68,7 +76,7 @@ async def ingresos_importar_post(
     tipo_proceso:  str = Form(...),
     destino_a3:    str = Form(...),
     fichero:       UploadFile = File(...),
-    usuario: dict = Depends(require_rol("GESTOR_ECONOMICO", "ADMIN")),
+    usuario: dict = Depends(_require_ingresos),
 ):
     if not fichero.filename or not fichero.filename.lower().endswith((".xlsx", ".xls")):
         error = urllib.parse.quote("El archivo debe ser .xlsx o .xls")
@@ -113,7 +121,7 @@ def ingresos_detalle(
     id_lote: int,
     msg: str | None = None,
     msg_type: str = "success",
-    usuario: dict = Depends(require_rol("GESTOR_ECONOMICO", "ADMIN")),
+    usuario: dict = Depends(_require_ingresos),
 ):
     lote = svc.obtener_lote(id_lote)
     if not lote:
@@ -139,7 +147,7 @@ def ingresos_detalle(
 @router.get("/{id_lote}/descargar")
 def ingresos_descargar(
     id_lote: int,
-    usuario: dict = Depends(require_rol("GESTOR_ECONOMICO", "ADMIN")),
+    usuario: dict = Depends(_require_ingresos),
 ):
     lote = svc.obtener_lote(id_lote)
     if not lote:

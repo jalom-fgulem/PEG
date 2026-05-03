@@ -7,6 +7,7 @@ from app.core.auth import get_usuario_actual, require_rol
 from app.core.config import settings
 from app.core.templating import templates
 from app.services import pegs_service
+from app.services import modulos_service
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -132,3 +133,41 @@ def cuentas_gasto_toggle(request: Request, id_cuenta: int):
     require_rol(usuario, ["ADMIN"])
     pegs_service.toggle_cuenta_gasto(id_cuenta)
     return RedirectResponse(url="/admin/cuentas-gasto", status_code=303)
+
+
+# ── GESTIÓN DE MÓDULOS ─────────────────────────────────────────────────────────
+
+@router.get("/modulos", response_class=HTMLResponse)
+def admin_modulos(
+    request: Request,
+    msg: str | None = None,
+    msg_type: str = "success",
+):
+    usuario = get_usuario_actual(request)
+    require_rol(usuario, ["ADMIN"])
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/modulos.html",
+        context={
+            "usuario":   usuario,
+            "modulos":   modulos_service.listar_modulos(),
+            "tab":       "modulos",
+            "msg":       msg,
+            "msg_type":  msg_type,
+        },
+    )
+
+
+@router.post("/modulos/{key}/toggle")
+def admin_modulos_toggle(request: Request, key: str):
+    usuario = get_usuario_actual(request)
+    require_rol(usuario, ["ADMIN"])
+    try:
+        nuevo_estado = modulos_service.toggle_visibilidad_ge(key)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Módulo '{key}' no existe")
+    etiqueta = modulos_service.obtener_modulo(key)["label"]
+    estado_txt = "activado" if nuevo_estado else "desactivado"
+    import urllib.parse
+    msg = urllib.parse.quote(f"Módulo «{etiqueta}» {estado_txt} para Gestor Económico.")
+    return RedirectResponse(url=f"/admin/modulos?msg={msg}&msg_type=success", status_code=303)
