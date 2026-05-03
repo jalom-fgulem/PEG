@@ -80,3 +80,14 @@ def ayuda_admin(request: Request):
     if usuario and usuario.get("rol") != "ADMIN":
         return RedirectResponse(url="/ayuda/", status_code=302)
     return _render(request, "administracion.html", "administracion")
+
+
+@router.get("/diagrama", response_class=HTMLResponse)
+def ayuda_diagrama(request: Request):
+    usuario = get_usuario_actual(request)
+    from app.core.templating import templates as _tpl
+    return _tpl.TemplateResponse(
+        request=request,
+        name="ayuda/diagrama.html",
+        context={"usuario": usuario},
+    )

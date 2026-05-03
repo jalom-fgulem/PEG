@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagrama de proceso — SGPEG · FGULEM</title>
+  <style>
+    /* ─── Variables ─────────────────────────────────────────── */
+    :root {
+      --gs:   #2f6fab;   /* Gestor de Servicio — azul */
+      --gs-bg:#e8f1fb;
+      --ge:   #c21b84;   /* Gestor Económico — magenta */
+      --ge-bg:#fce8f5;
+      --sys:  #2f7a55;   /* Sistema / estado — verde */
+      --sys-bg:#e6f4ec;
+      --bnk:  #5a5e6e;   /* Banco — gris */
+      --bnk-bg:#eeeef2;
+      --dec:  #b45309;   /* Decisión — ámbar */
+      --dec-bg:#fef3c7;
+      --line: #d1d5db;
+      --ink:  #1f2937;
+      --ink-soft: #6b7280;
+    }
+
+    /* ─── Reset & base ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    /* ─── Print ─────────────────────────────────────────────── */
+    @page { size: A4 landscape; margin: 10mm 12mm; }
+    @media print {
+      .no-print { display: none !important; }
+      body { font-size: 10.5px; }
+      .page { padding: 0; }
+      .flow-page { page-break-inside: avoid; }
+    }
+
+    /* ─── Page wrapper ──────────────────────────────────────── */
+    .page {
+      max-width: 270mm;
+      margin: 0 auto;
+      padding: 16px 20px 32px;
+    }
+
+    /* ─── Header ────────────────────────────────────────────── */
+    .doc-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      border-bottom: 2.5px solid var(--ge);
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+    .doc-header-left { display: flex; align-items: center; gap: 14px; }
+    .doc-logo {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--ge) 0%, #8b1260 100%);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 18px; font-weight: 900; letter-spacing: -1px;
+    }
+    .doc-title { font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: -0.3px; }
+    .doc-subtitle { font-size: 10px; color: var(--ink-soft); margin-top: 1px; }
+    .doc-meta { text-align: right; font-size: 10px; color: var(--ink-soft); line-height: 1.6; }
+    .doc-meta strong { color: var(--ink); }
+
+    /* ─── Legend ────────────────────────────────────────────── */
+    .legend {
+      display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+      margin-bottom: 18px;
+      padding: 8px 14px;
+      background: #f9fafb;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+    }
+    .legend-title { font-weight: 700; font-size: 10px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .6px; }
+    .leg { display: flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; }
+    .leg-dot {
+      width: 11px; height: 11px; border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .leg-gs   { background: var(--gs);  }
+    .leg-ge   { background: var(--ge);  }
+    .leg-sys  { background: var(--sys); }
+    .leg-bnk  { background: var(--bnk); }
+    .leg-dec  { background: var(--dec); transform: rotate(45deg); }
+    .legend-sep { width: 1px; height: 20px; background: var(--line); }
+
+    /* ─── Flow layout ───────────────────────────────────────── */
+    .flow-grid {
+      display: grid;
+      grid-template-columns: 1fr 36px 1fr 36px 1fr;
+      grid-template-rows: auto;
+      gap: 0;
+      align-items: center;
+    }
+
+    /* Swim-lane headers */
+    .lane-header {
+      text-align: center;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      padding: 6px 4px 10px;
+      border-bottom: 2px solid;
+      margin-bottom: 10px;
+    }
+    .lane-header.gs  { color: var(--gs);  border-color: var(--gs);  }
+    .lane-header.ge  { color: var(--ge);  border-color: var(--ge);  }
+    .lane-header.sys { color: var(--sys); border-color: var(--sys); }
+
+    /* Connector columns */
+    .conn { display: flex; align-items: center; justify-content: center; }
+
+    /* ─── Box types ─────────────────────────────────────────── */
+    .box {
+      border-radius: 8px;
+      padding: 7px 10px;
+      border: 1.5px solid;
+      font-size: 10.5px;
+      position: relative;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .box-gs  { background: var(--gs-bg);  border-color: var(--gs);  color: var(--ink); }
+    .box-ge  { background: var(--ge-bg);  border-color: var(--ge);  color: var(--ink); }
+    .box-sys { background: var(--sys-bg); border-color: var(--sys); color: var(--ink); }
+    .box-bnk { background: var(--bnk-bg); border-color: var(--bnk); color: var(--ink); }
+    .box strong { display: block; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+    .box strong.gs-label  { color: var(--gs);  }
+    .box strong.ge-label  { color: var(--ge);  }
+    .box strong.sys-label { color: var(--sys); }
+    .box strong.bnk-label { color: var(--bnk); }
+
+    /* State badge */
+    .state-badge {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .5px;
+      padding: 2px 7px;
+      border-radius: 20px;
+      margin-top: 3px;
+    }
+    .st-pending { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+    .st-valid   { background: #cffafe; color: #155e75; border: 1px solid #67e8f9; }
+    .st-remesa  { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+    .st-paid    { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .st-incid   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+    /* Diamond decision */
+    .diamond-wrap {
+      display: flex; align-items: center; justify-content: center;
+      padding: 4px 0;
+    }
+    .diamond {
+      width: 90px; height: 90px;
+      background: var(--dec-bg);
+      border: 2px solid var(--dec);
+      transform: rotate(45deg);
+      flex-shrink: 0;
+      position: relative;
+    }
+    .diamond-text {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      width: 110px;
+      text-align: center;
+      font-size: 9.5px;
+      font-weight: 700;
+      color: var(--dec);
+      line-height: 1.3;
+    }
+    .diamond-wrap-sm .diamond { width: 72px; height: 72px; }
+    .diamond-wrap-sm .diamond-text { width: 90px; }
+
+    /* Start / End pills */
+    .terminus {
+      display: flex; justify-content: center; align-items: center;
+      padding: 4px 0;
+    }
+    .terminus-pill {
+      background: var(--ink);
+      color: #fff;
+      border-radius: 20px;
+      padding: 5px 22px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .terminus-pill.end { background: var(--sys); }
+
+    /* ─── Arrows ────────────────────────────────────────────── */
+    .arr-down {
+      display: flex; justify-content: center; align-items: center;
+      height: 22px; color: var(--ink-soft); font-size: 16px;
+    }
+    .arr-right {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: var(--ink-soft);
+    }
+
+    /* Horizontal connector line */
+    .h-line {
+      height: 2px;
+      background: var(--line);
+      width: 100%;
+    }
+    .h-line-gs  { background: var(--gs); }
+    .h-line-ge  { background: var(--ge); }
+
+    /* ─── Incidence aside ───────────────────────────────────── */
+    .incid-box {
+      border: 1.5px dashed var(--ge);
+      border-radius: 8px;
+      background: var(--ge-bg);
+      padding: 7px 10px;
+      font-size: 10px;
+      text-align: center;
+      position: relative;
+    }
+    .incid-box strong { display: block; color: var(--ge); font-size: 9.5px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+
+    /* ─── Section divider ───────────────────────────────────── */
+    .phase-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--ink-soft);
+      text-align: center;
+      padding: 5px 0 2px;
+      grid-column: 1 / -1;
+    }
+    .phase-rule {
+      grid-column: 1 / -1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line) 15%, var(--line) 85%, transparent);
+      margin: 2px 0 6px;
+    }
+
+    /* ─── Print button ──────────────────────────────────────── */
+    .print-bar {
+      position: fixed; top: 0; left: 0; right: 0;
+      background: #1f2937;
+      color: #fff;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 24px;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    .print-bar-left { display: flex; align-items: center; gap: 14px; }
+    .print-bar-title { font-weight: 700; font-size: 13px; }
+    .print-bar-hint { font-size: 11px; color: #9ca3af; }
+    .btn-print {
+      background: var(--ge); color: #fff;
+      border: none; border-radius: 8px;
+      padding: 8px 20px; font-size: 12px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+    }
+    .btn-print:hover { opacity: .88; }
+    .btn-back {
+      color: #9ca3af; font-size: 12px; text-decoration: none;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .btn-back:hover { color: #fff; }
+    body.has-bar .page { padding-top: 64px; }
+    @media print {
+      .print-bar { display: none; }
+      body.has-bar .page { padding-top: 0; }
+    }
+
+    /* ─── Footer ────────────────────────────────────────────── */
+    .doc-footer {
+      margin-top: 18px;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between;
+      font-size: 9px; color: var(--ink-soft);
+    }
+    .note-box {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 9.5px;
+      color: var(--ink-soft);
+      grid-column: 1 / -1;
+      margin-top: 4px;
+    }
+    .note-box strong { color: var(--ink); }
+  </style>
+</head>
+<body class="has-bar">
+
+  <!-- ── Print toolbar (hidden on print) ─────────────────────── -->
+  <div class="print-bar no-print">
+    <div class="print-bar-left">
+      <a class="btn-back" href="/ayuda/flujo-general">← Volver a la guía</a>
+      <div>
+        <div class="print-bar-title">Diagrama de proceso · SGPEG</div>
+        <div class="print-bar-hint">Usa Ctrl+P / Cmd+P → Guardar como PDF · Orientación horizontal recomendada</div>
+      </div>
+    </div>
+    <button class="btn-print" onclick="window.print()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Imprimir / Exportar PDF
+    </button>
+  </div>
+
+  <div class="page">
+
+    <!-- ── Header ──────────────────────────────────────────────── -->
+    <div class="doc-header">
+      <div class="doc-header-left">
+        <div class="doc-logo">SG</div>
+        <div>
+          <div class="doc-title">Flujo de proceso — SGPEG</div>
+          <div class="doc-subtitle">Fundación General de la Universidad de León · Sistema de Gestión de Propuestas Específicas de Gasto</div>
+        </div>
+      </div>
+      <div class="doc-meta">
+        <div><strong>Versión</strong> 2026</div>
+        <div><strong>Clasificación</strong> Uso interno</div>
+        <div>sgpeg.fgulem.es</div>
+      </div>
+    </div>
+
+    <!-- ── Legend ──────────────────────────────────────────────── -->
+    <div class="legend">
+      <div class="legend-title">Leyenda</div>
+      <div class="leg"><div class="leg-dot leg-gs"></div> Gestor de Servicio (GS)</div>
+      <div class="leg"><div class="leg-dot leg-ge"></div> Gestor Económico (GE)</div>
+      <div class="leg"><div class="leg-dot leg-sys"></div> Sistema / Estado PEG</div>
+      <div class="leg"><div class="leg-dot leg-bnk"></div> Entidad bancaria</div>
+      <div class="legend-sep"></div>
+      <div class="leg"><div class="leg-dot leg-dec"></div> Punto de decisión</div>
+      <div class="legend-sep"></div>
+      <div class="leg"><span class="state-badge st-pending">PENDIENTE</span></div>
+      <div class="leg"><span class="state-badge st-valid">VALIDADO</span></div>
+      <div class="leg"><span class="state-badge st-remesa">EN_REMESA</span></div>
+      <div class="leg"><span class="state-badge st-paid">PAGADO</span></div>
+      <div class="leg"><span class="state-badge st-incid">INCIDENCIA</span></div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════
+         MAIN FLOWCHART — 5-column grid:
+         col 1 = GS lane  |  col 2 = arrow conn  |  col 3 = Sistema/center  |  col 4 = arrow conn  |  col 5 = GE+Banco lane
+         ════════════════════════════════════════════════════════ -->
+    <div class="flow-grid">
+
+      <!-- ── Lane headers ── -->
+      <div class="lane-header gs">Gestor de Servicio</div>
+      <div></div>
+      <div class="lane-header sys">Sistema · Estado del PEG</div>
+      <div></div>
+      <div class="lane-header ge">Gestor Económico · Banco</div>
+
+      <!-- ── START ── -->
+      <div></div><div></div>
+      <div class="terminus"><div class="terminus-pill">Inicio</div></div>
+      <div></div><div></div>
+
+      <!-- arrow down -->
+      <div></div><div></div><div class="arr-down">↓</div><div></div><div></div>
+
+      <!-- FASE 1: AUTORIZACIÓN PREVIA (opcional) -->
+      <div class="phase-label">① Autorización previa (si aplica al servicio)</div>
+      <div class="phase-rule"></div>
+
+      <!-- Decision: ¿Requiere autorización? -->
+      <div></div><div></div>
+      <div class="diamond-wrap">
+        <div class="diamond">
+          <div class="diamond-text">¿Requiere<br>autorización<br>previa?</div>
+        </div>
+      </div>
+      <div></div><div></div>
+
+      <!-- Branch row: NO (left/GS), SÍ (right/GE) -->
+      <div style="text-align:right; font-size:9px; color:var(--gs); font-weight:700; padding-right:4px;">
+        ← NO (va directo a crear PEG)
+      </div>
+      <div class="conn"><div class="h-line h-line-gs" style="width:100%;height:1.5px;"></div></div>
+      <div style="display:flex; justify-content:space-between; font-size:9px; padding: 0 4px;">
+        <span style="color:var(--gs); font-weight:700;">← NO</span>
+        <span style="color:var(--dec); font-weight:700;">SÍ →</span>
+      </div>
+      <div class="conn"><div class="h-line" style="width:100%;height:1.5px;background:var(--dec);"></div></div>
+      <div>
+        <div class="box box-gs" style="margin-bottom:6px;">
+          <strong class="gs-label">GS</strong>
+          Crea Solicitud de autorización previa<br>
+          <small style="color:var(--ink-soft);">Adjunta presupuesto o justificación</small>
+        </div>
+        <div class="arr-down" style="height:14px;">↓</div>
+        <div class="box box-ge">
+          <strong class="ge-label">GE</strong>
+          Revisa la solicitud<br>
+          <small style="color:var(--ink-soft);">Puede AUTORIZAR o DENEGAR</small>
+        </div>
+        <div style="font-size:9px; color:var(--ge); text-align:center; margin-top:4px; font-weight:600;">
+          ↙ Si AUTORIZA → crea PEG &nbsp;|&nbsp; Si DENIEGA → proceso finaliza
+        </div>
+      </div>
+
+      <!-- arrow down (center) -->
+      <div></div><div></div><div class="arr-down">↓</div><div></div><div></div>
+
+      <!-- FASE 2: CREACIÓN DEL PEG -->
+      <div class="phase-label">② Creación del PEG</div>
+      <div class="phase-rule"></div>
+
+      <!-- GS crea PEG -->
+      <div class="box box-gs">
+        <strong class="gs-label">Gestor de Servicio</strong>
+        Crea el PEG en SGPEG<br>
+        <small style="color:var(--ink-soft);">Proveedor · Nº documento · Fecha · Descripción<br>Líneas de IVA · IRPF (si aplica) · Adjunta factura</small>
+      </div>
+      <div class="arr-right">→</div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+        <div class="box box-sys" style="width:100%;">
+          <strong class="sys-label">Sistema</strong>
+          PEG registrado<br>
+          <span class="state-badge st-pending">PENDIENTE</span>
+        </div>
+        <div class="arr-down" style="height:10px;">↓</div>
+        <div style="font-size:9px; color:var(--sys); text-align:center;">Notificación automática al GE</div>
+      </div>
+      <div></div><div></div>
+
+      <!-- arrow down -->
+      <div></div><div></div><div class="arr-down">↓</div><div></div><div></div>
+
+      <!-- FASE 3: VALIDACIÓN -->
+      <div class="phase-label">③ Validación por el Gestor Económico</div>
+      <div class="phase-rule"></div>
+
+      <!-- GE revisa -->
+      <div></div><div></div><div></div>
+      <div class="arr-right">←</div>
+      <div class="box box-ge">
+        <strong class="ge-label">Gestor Económico</strong>
+        Revisa documentación<br>
+        <small style="color:var(--ink-soft);">Factura · CIF · Importes · IVA · IRPF · IBAN</small>
+      </div>
+
+      <!-- Decision: ¿OK? -->
+      <div style="font-size:9px; text-align:right; color:var(--ink-soft); padding-right:6px; padding-top:4px;">
+        ← Si hay incidencia
+      </div>
+      <div class="conn"><div class="h-line" style="width:100%;height:1.5px;background:var(--ge);opacity:.4;"></div></div>
+      <div class="diamond-wrap diamond-wrap-sm" style="padding: 6px 0;">
+        <div class="diamond">
+          <div class="diamond-text">¿Docu-<br>mentación<br>correcta?</div>
+        </div>
+      </div>
+      <div class="conn"><div class="h-line h-line-ge" style="width:100%;height:1.5px;"></div></div>
+      <div class="box box-ge">
+        <strong class="ge-label">GE → INCIDENCIA</strong>
+        Marca incidencia con descripción detallada<br>
+        <span class="state-badge st-incid">INCIDENCIA</span><br>
+        <small style="color:var(--ink-soft);">GS recibe email de notificación<br>GS corrige → vuelve a PENDIENTE</small>
+      </div>
+
+      <!-- Branch OK: center proceeds down -->
+      <div></div><div></div>
+      <div style="font-size:9px; color:var(--sys); text-align:center; padding: 2px 0;">↓ &nbsp; Si documentación correcta</div>
+      <div></div><div></div>
+
+      <!-- GE valida -->
+      <div></div>
+      <div class="arr-right" style="justify-content:flex-end; font-size:12px;">←</div>
+      <div></div>
+      <div></div>
+      <div class="box box-ge" style="margin-bottom:6px;">
+        <strong class="ge-label">GE — VALIDA el PEG</strong>
+        Asigna cuenta contable (grupo 6)<br>
+        Asigna líneas analíticas (servicio + proyecto)<br>
+        <small style="color:var(--ink-soft);">La suma de % analíticos debe ser exactamente 100 %</small>
+      </div>
+
+      <div></div><div></div><div class="arr-down">↓</div><div></div><div></div>
+
+      <!-- Estado VALIDADO -->
+      <div></div><div></div>
+      <div class="box box-sys" style="text-align:center;">
+        <strong class="sys-label">Sistema</strong>
+        <span class="state-badge st-valid">VALIDADO</span><br>
+        <small style="color:var(--ink-soft);">GS notificado por correo · PEG listo para remesa</small>
+      </div>
+      <div></div><div></div>
+
+      <div></div><div></div><div class="arr-down">↓</div><div></div><div></div>
+
+      <!-- FASE 4: REMESA -->
+      <div class="phase-label">④ Inclusión en remesa de pago</div>
+      <div class="phase-rule"></div>
+
+      <div></div><div></div><div></div>
+      <div class="arr-right">←</div>
+      <div class="box box-ge">
+        <strong class="ge-label">Gestor Económico</strong>
+        Añade PEG a Remesa de pago<br>
+        <small style="color:var(--ink-soft);">Una remesa agrupa varios PEGs del mismo banco ordenante</small>
+      </div>
+
+      <div></div><div></div>
+      <div class="box box-sys" style="text-align:center;">
+        <strong class="sys-label">Sistema</strong>
+        <span class="state-badge st-remesa">EN_REMESA</span>
+      </div>
+      <div></div><div></div>
+
+      <div></div><div></div><div class="arr-down">↓</div><div></div><div></div>
+
+      <div></div><div></div><div></div>
+      <div class="arr-right">←</div>
+      <div class="box box-ge">
+        <strong class="ge-label">GE — Genera ficheros</strong>
+        <strong style="font-size:10px; color:var(--ge);">Cuaderno 34 (SEPA)</strong> → para el banco<br>
+        <strong style="font-size:10px; color:var(--ge);">SUENLACE.DAT</strong> → para A3Con<br>
+        <small style="color:var(--ink-soft);">Exporta y envía el fichero a la entidad bancaria</small>
+      </div>
+
+      <div></div><div></div><div class="arr-down">↓</div><div></div><div></div>
+
+      <!-- FASE 5: BANCO -->
+      <div class="phase-label">⑤ Procesamiento bancario y cierre</div>
+      <div class="phase-rule"></div>
+
+      <div></div><div></div><div></div>
+      <div class="arr-right">←</div>
+      <div class="box box-bnk">
+        <strong class="bnk-label">Entidad bancaria</strong>
+        Procesa las transferencias<br>
+        <small style="color:var(--ink-soft);">Cargo en la cuenta de FGULEM · Abonos a proveedores</small>
+      </div>
+
+      <div></div><div></div><div class="arr-down">↓</div><div></div><div></div>
+
+      <div></div>
+      <div class="arr-right" style="justify-content:flex-end;">←</div>
+      <div></div>
+      <div></div>
+      <div class="box box-ge">
+        <strong class="ge-label">GE — Cierra la remesa</strong>
+        Asigna número de factura interno correlativo<br>
+        Registra fecha de pago efectivo<br>
+        <small style="color:var(--ink-soft);">Importa SUENLACE.DAT en A3Con</small>
+      </div>
+
+      <div></div><div></div><div class="arr-down">↓</div><div></div><div></div>
+
+      <!-- Estado PAGADO -->
+      <div></div><div></div>
+      <div class="box box-sys" style="text-align:center;">
+        <strong class="sys-label">Sistema</strong>
+        <span class="state-badge st-paid">PAGADO</span><br>
+        <small style="color:var(--ink-soft);">Nº factura interno asignado · Fecha de pago registrada<br>Todos los GS afectados reciben email de confirmación</small>
+      </div>
+      <div></div><div></div>
+
+      <div></div><div></div><div class="arr-down">↓</div><div></div><div></div>
+
+      <!-- FASE 6: CONFIRMACIÓN -->
+      <div class="phase-label">⑥ Confirmación y archivo</div>
+      <div class="phase-rule"></div>
+
+      <div class="box box-gs">
+        <strong class="gs-label">Gestor de Servicio</strong>
+        Confirma recepción de factura física<br>
+        <small style="color:var(--ink-soft);">Registra que la factura original en papel está archivada<br>Cumplimiento normativa fiscal de conservación</small>
+      </div>
+      <div class="arr-right">→</div>
+      <div class="box box-sys" style="text-align:center;">
+        <strong class="sys-label">Sistema</strong>
+        Fecha y usuario de confirmación registrados<br>
+        <small style="color:var(--ink-soft);">Evidencia de archivo físico</small>
+      </div>
+      <div></div><div></div>
+
+      <div></div><div></div><div class="arr-down">↓</div><div></div><div></div>
+
+      <!-- END -->
+      <div></div><div></div>
+      <div class="terminus"><div class="terminus-pill end">Proceso completado</div></div>
+      <div></div><div></div>
+
+      <!-- Notes -->
+      <div class="note-box">
+        <strong>Notas:</strong>
+        (1) El <strong>número de factura interno</strong> (correlativo FGULEM) se asigna al cerrar la remesa, no al validar el PEG.
+        &nbsp;·&nbsp;
+        (2) Un PEG en estado <strong>PAGADO no puede revertirse</strong>; cualquier corrección requiere un nuevo PEG.
+        &nbsp;·&nbsp;
+        (3) La <strong>retención de IRPF</strong> se descuenta del importe transferido al proveedor; FGULEM la ingresa directamente a Hacienda.
+        &nbsp;·&nbsp;
+        (4) Si el servicio tiene <strong>autorización obligatoria</strong> activada, el sistema bloquea la creación de PEG sin solicitud AUTORIZADA previa.
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="doc-footer">
+      <span>SGPEG · Fundación General de la Universidad de León (FGULEM)</span>
+      <span>Documento de uso interno · Proceso de gestión de propuestas de gasto</span>
+      <span>sgpeg.fgulem.es</span>
+    </div>
+  </div>
+
+</body>
+</html>
