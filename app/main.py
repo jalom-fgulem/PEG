@@ -22,6 +22,7 @@ from app.routers import adjuntos as adjuntos_router
 from app.routers import admin as admin_router
 from app.routers import mensajes as mensajes_router
 from app.routers import ayuda as ayuda_router
+from app.routers import ingresos as ingresos_router
 
 os.makedirs("uploads/pegs", exist_ok=True)
 
@@ -49,6 +50,7 @@ app.include_router(gastos_router.router)
 app.include_router(remesas_directas_router.router)
 app.include_router(mensajes_router.router)
 app.include_router(ayuda_router.router)
+app.include_router(ingresos_router.router)
 
 
 @app.exception_handler(NoAutenticado)

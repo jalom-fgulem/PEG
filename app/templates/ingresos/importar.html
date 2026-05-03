@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Importar Ingresos — SGPEG{% endblock %}
+{% block page_title %}Importar Ingresos{% endblock %}
+{% block page_subtitle %}Generación de SUENLACE.DAT desde Excel{% endblock %}
+
+{% block extra_head %}
+<style>
+  .area-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 860px) {
+    .area-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .area-btn {
+    padding: 14px 10px;
+    border-radius: 14px;
+    border: 2px solid var(--line);
+    background: white;
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+    line-height: 1.3;
+  }
+  .area-btn:hover {
+    border-color: var(--fgulem-blue);
+    background: rgba(90,159,211,0.07);
+  }
+  .area-btn.selected {
+    border-color: var(--fgulem-magenta);
+    background: linear-gradient(135deg, rgba(194,27,132,0.10) 0%, rgba(90,159,211,0.10) 100%);
+    color: var(--fgulem-magenta);
+    box-shadow: 0 4px 14px rgba(194,27,132,0.15);
+  }
+  .config-info {
+    background: linear-gradient(90deg, rgba(90,159,211,0.07) 0%, rgba(194,27,132,0.05) 100%);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 20px;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 24px;
+  }
+  .config-info span { color: var(--ink); font-weight: 600; }
+  .not-impl-banner {
+    background: rgba(231,76,60,0.08);
+    border: 1px solid rgba(231,76,60,0.25);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: #c0392b;
+    font-weight: 700;
+    font-size: 0.92rem;
+    text-align: center;
+    display: none;
+  }
+  .upload-zone {
+    border: 2px dashed var(--fgulem-blue);
+    border-radius: 14px;
+    padding: 28px 20px;
+    text-align: center;
+    background: rgba(90,159,211,0.04);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    position: relative;
+  }
+  .upload-zone:hover { background: rgba(90,159,211,0.09); border-color: var(--fgulem-magenta); }
+  .upload-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-zone .filename { margin-top: 8px; font-weight: 700; color: var(--fgulem-magenta); font-size: 0.92rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if msg %}
+<div class="card" style="background:{% if msg_type=='success' %}rgba(47,122,85,0.08){% else %}rgba(194,27,132,0.08){% endif %};border-color:{% if msg_type=='success' %}rgba(47,122,85,0.3){% else %}rgba(194,27,132,0.3){% endif %};">
+  <p style="margin:0;font-weight:700;color:{% if msg_type=='success' %}var(--fgulem-green-dark){% else %}var(--fgulem-magenta){% endif %};">{{ msg }}</p>
+</div>
+{% endif %}
+
+<div class="card">
+  <form method="post" enctype="multipart/form-data" id="importar-form">
+
+    {# — Área — #}
+    <div class="field">
+      <label>Área de servicio</label>
+      <div class="area-grid">
+        {% for key, label in areas_labels.items() %}
+        <button type="button" class="area-btn {% if loop.first %}selected{% endif %}"
+                data-area="{{ key }}" onclick="selectArea('{{ key }}')">
+          {{ label }}
+        </button>
+        {% endfor %}
+      </div>
+      <input type="hidden" name="area" id="area-input" value="{{ areas_labels.keys()|list|first }}">
+    </div>
+
+    {# — Tipo de operación y destino A3 — #}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;">
+      <div class="field" style="margin:0;">
+        <label for="tipo_proceso">Tipo de operación</label>
+        <select name="tipo_proceso" id="tipo_proceso" onchange="updateConfig()">
+          {% for key, label in proceso_labels.items() %}
+          <option value="{{ key }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field" style="margin:0;">
+        <label for="destino_a3">Empresa A3 de destino</label>
+        <select name="destino_a3" id="destino_a3">
+          <option value="pruebas">PRUEBAS — 00006</option>
+          <option value="oficial">OFICIAL — 00005</option>
+        </select>
+      </div>
+    </div>
+
+    {# — Información de configuración — #}
+    <div id="config-info" class="config-info" style="margin-bottom:16px;">
+      <div>Cargando configuración…</div>
+    </div>
+    <div id="not-impl-banner" class="not-impl-banner">
+      Esta combinación de área y operación no está implementada.
+    </div>
+
+    {# — Subida de fichero — #}
+    <div class="field" style="margin-top:20px;">
+      <label>Archivo Excel (.xlsx / .xls)</label>
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" name="fichero" id="fichero" accept=".xlsx,.xls"
+               onchange="showFilename(this)" required>
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+             fill="none" stroke="var(--fgulem-blue)" stroke-width="1.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <div style="margin-top:8px;color:var(--ink-soft);font-size:0.9rem;">
+          Haz clic o arrastra el Excel aquí
+        </div>
+        <div class="filename" id="filename-display"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:center;margin-top:24px;gap:12px;">
+      <a href="/ingresos/" class="btn btn-secondary">← Cancelar</a>
+      <button type="submit" id="submit-btn" class="btn btn-primary" style="min-width:200px;">
+        Generar SUENLACE.DAT
+      </button>
+    </div>
+
+  </form>
+</div>
+
+{# Panel informativo sobre columnas esperadas #}
+<div class="card">
+  <h3 style="margin-top:0;color:var(--ink);">Columnas esperadas en el Excel</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Área</th>
+        <th>Operación</th>
+        <th>Columnas obligatorias</th>
+        <th>Modo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Hospital Veterinario</td><td>Facturas</td><td>Número de Factura, Cliente, Fecha, Base imponible, Tipo Impuesto, Total</td><td>Factura con IVA</td></tr>
+      <tr><td>Hospital Veterinario</td><td>Cobros</td><td>Factura, Cliente, Fecha cobro, Cobrado <em>(hoja "Informe de Cobros (2)")</em></td><td>Cobro simple</td></tr>
+      <tr><td>Colegio Mayor</td><td>Facturas</td><td>Nº DOC, RESIDENTE, FECHA EMISIÓN, IMPORTE BASE (€), IMPORTE IVA (€), IMPORTE (€)</td><td>Factura con IVA (10% fijo)</td></tr>
+      <tr><td>Colegio Mayor</td><td>Cobros</td><td>Nº DOC, RESIDENTE, FECHA VENCIMIENTO, IMPORTE (€)</td><td>Cobro simple</td></tr>
+      <tr><td>MULE</td><td>Facturas</td><td>Número de Factura, Cliente, Fecha, Total / Importe</td><td>Factura sin IVA</td></tr>
+      <tr><td>MULE</td><td>Cobros</td><td>Número de Factura, Cliente, Fecha, Total / Importe</td><td>Cobro simple</td></tr>
+      <tr><td>Clínica de Podología</td><td>Facturas</td><td>N. Factura, Cliente, Fecha, Total / Importe</td><td>Factura sin IVA</td></tr>
+      <tr><td>Clínica de Podología</td><td>Cobros</td><td>Factura, Cliente, Fecha cobro, Cobrado</td><td>Cobro simple</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+const CONFIG = {{ config | tojson }};
+
+function selectArea(key) {
+  document.querySelectorAll('.area-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelector(`.area-btn[data-area="${key}"]`).classList.add('selected');
+  document.getElementById('area-input').value = key;
+  updateConfig();
+}
+
+function updateConfig() {
+  const area    = document.getElementById('area-input').value;
+  const proceso = document.getElementById('tipo_proceso').value;
+  const cfg     = CONFIG?.[area]?.[proceso] || {};
+  const info    = document.getElementById('config-info');
+  const banner  = document.getElementById('not-impl-banner');
+  const btn     = document.getElementById('submit-btn');
+
+  if (!cfg.implemented) {
+    info.style.display = 'none';
+    banner.style.display = 'block';
+    btn.disabled = true;
+    return;
+  }
+
+  banner.style.display = 'none';
+  btn.disabled = false;
+  info.style.display = 'grid';
+
+  const parts = [];
+  if (cfg.mode)           parts.push(`<div>Modo: <span>${cfg.mode}</span></div>`);
+  if (cfg.cuentaCliente)  parts.push(`<div>Cuenta cliente: <span>${cfg.cuentaCliente}</span></div>`);
+  if (cfg.cuentaIngresos) parts.push(`<div>Cuenta ingresos: <span>${cfg.cuentaIngresos}</span></div>`);
+  if (cfg.cuentaBanco)    parts.push(`<div>Cuenta banco: <span>${cfg.cuentaBanco}</span></div>`);
+  if (cfg.cuentaIVA)      parts.push(`<div>Cuenta IVA: <span>${cfg.cuentaIVA}</span></div>`);
+  if (cfg.anal1)          parts.push(`<div>Analítica 1: <span>${cfg.anal1}</span></div>`);
+  if (cfg.anal2)          parts.push(`<div>Analítica 2: <span>${cfg.anal2}</span></div>`);
+  if (cfg.outputFilename) parts.push(`<div>Fichero salida: <span>${cfg.outputFilename}</span></div>`);
+  if (cfg.specialSheetName) parts.push(`<div>Hoja Excel: <span>${cfg.specialSheetName}</span></div>`);
+
+  info.innerHTML = parts.length ? parts.join('') : '<div>Configuración no disponible.</div>';
+}
+
+function showFilename(input) {
+  const el = document.getElementById('filename-display');
+  el.textContent = input.files[0]?.name || '';
+}
+
+document.addEventListener('DOMContentLoaded', updateConfig);
+</script>
+{% endblock %}

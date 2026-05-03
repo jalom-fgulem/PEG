@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Lote #{{ lote.id_lote }} — Ingresos SGPEG{% endblock %}
+{% block page_title %}Lote de Ingresos #{{ lote.id_lote }}{% endblock %}
+{% block page_subtitle %}{{ areas_labels.get(lote.area, lote.area) }} · {{ proceso_labels.get(lote.tipo_proceso, lote.tipo_proceso) }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+  @media(max-width:860px){ .kpi-row{grid-template-columns:repeat(2,1fr);} }
+  .kpi {
+    background:rgba(255,255,255,0.94);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:16px 18px;
+    box-shadow:var(--shadow);
+  }
+  .kpi-label { font-size:0.76rem; text-transform:uppercase; letter-spacing:0.08em; color:#86828b; font-weight:700; margin-bottom:6px; }
+  .kpi-value { font-size:1.55rem; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .kpi-value.green { color:var(--fgulem-green-dark); }
+  .kpi-value.red   { color:#c0392b; }
+  .kpi-value.blue  { color:var(--fgulem-blue); }
+  .kpi-value.magenta { color:var(--fgulem-magenta); }
+  .badge-ok  { background:rgba(47,122,85,0.12);color:var(--fgulem-green-dark);padding:2px 8px;border-radius:8px;font-size:0.78rem;font-weight:700; }
+  .badge-err { background:rgba(192,57,43,0.10);color:#c0392b;padding:2px 8px;border-radius:8px;font-size:0.78rem;font-weight:700; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if msg %}
+<div class="card" style="background:{% if msg_type=='success' %}rgba(47,122,85,0.08){% else %}rgba(194,27,132,0.08){% endif %};border-color:{% if msg_type=='success' %}rgba(47,122,85,0.3){% else %}rgba(194,27,132,0.3){% endif %};">
+  <p style="margin:0;font-weight:700;color:{% if msg_type=='success' %}var(--fgulem-green-dark){% else %}var(--fgulem-magenta){% endif %};">{{ msg }}</p>
+</div>
+{% endif %}
+
+{# KPIs #}
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="kpi-label">Registros OK</div>
+    <div class="kpi-value green">{{ lote.registros_ok }}</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Registros con error</div>
+    <div class="kpi-value {% if lote.registros_error > 0 %}red{% else %}green{% endif %}">{{ lote.registros_error }}</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Importe total</div>
+    <div class="kpi-value magenta">{{ "%.2f"|format(lote.importe_total) }} €</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Total IVA</div>
+    <div class="kpi-value blue">{{ "%.2f"|format(lote.importe_total_iva) }} €</div>
+  </div>
+</div>
+
+{# Cabecera del lote #}
+<div class="card">
+  <div class="toolbar" style="margin-bottom:16px;">
+    <h3 style="margin:0;color:var(--ink);">Detalle del lote</h3>
+    <div class="actions">
+      <a href="/ingresos/{{ lote.id_lote }}/descargar" class="btn btn-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Descargar {{ lote.nombre_fichero_dat }}
+      </a>
+      <a href="/ingresos/" class="btn btn-secondary">← Volver al listado</a>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 32px;font-size:0.9rem;">
+    <div><span class="muted">Área:</span> <strong>{{ areas_labels.get(lote.area, lote.area) }}</strong></div>
+    <div><span class="muted">Operación:</span> <strong>{{ proceso_labels.get(lote.tipo_proceso, lote.tipo_proceso) }}</strong></div>
+    <div><span class="muted">Empresa A3:</span>
+      {% if lote.destino_a3 == 'oficial' %}
+      <span style="font-weight:700;color:var(--fgulem-green-dark);">OFICIAL (00005)</span>
+      {% else %}
+      <span style="font-weight:700;color:var(--fgulem-blue);">PRUEBAS (00006)</span>
+      {% endif %}
+    </div>
+    <div><span class="muted">Estado:</span>
+      {% if lote.estado == 'EXPORTADO' %}
+      <span style="font-weight:700;color:var(--fgulem-green-dark);">EXPORTADO</span>
+      {% else %}
+      <span style="font-weight:700;color:var(--fgulem-magenta);">GENERADO (pendiente descarga)</span>
+      {% endif %}
+    </div>
+    <div><span class="muted">Fichero origen:</span> {{ lote.nombre_fichero_origen }}</div>
+    <div><span class="muted">Fichero DAT:</span> {{ lote.nombre_fichero_dat }}</div>
+    <div><span class="muted">Hoja Excel usada:</span> {{ lote.hoja_excel }}</div>
+    <div><span class="muted">Filas leídas:</span> {{ lote.filas_excel }}</div>
+    <div><span class="muted">Fecha importación:</span> {{ lote.fecha_importacion[:16] | replace("T"," ") }}</div>
+    <div><span class="muted">Base imponible total:</span> <strong>{{ "%.2f"|format(lote.importe_total_base) }} €</strong></div>
+  </div>
+</div>
+
+{# Tabla de registros OK #}
+{% set registros_ok  = registros | selectattr("estado","eq","OK")    | list %}
+{% set registros_err = registros | selectattr("estado","eq","ERROR")  | list %}
+
+{% if registros_ok %}
+<div class="card">
+  <h3 style="margin-top:0;color:var(--ink);">
+    Registros procesados
+    <span class="badge-ok" style="font-size:0.85rem;margin-left:6px;">{{ registros_ok|length }}</span>
+  </h3>
+  <div style="overflow-x:auto;">
+  <table>
+    <thead>
+      <tr>
+        <th>Fila</th>
+        <th>Nº Factura/Ref.</th>
+        <th>Cliente</th>
+        <th>NIF</th>
+        <th>Fecha</th>
+        <th class="num">Base</th>
+        <th class="num">IVA %</th>
+        <th class="num">Cuota IVA</th>
+        <th class="num">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in registros_ok %}
+      <tr>
+        <td class="muted" style="font-size:0.82rem;">{{ r.fila_excel }}</td>
+        <td style="font-size:0.88rem;">{{ r.numero_factura }}</td>
+        <td style="font-size:0.88rem;">{{ r.cliente }}</td>
+        <td style="font-size:0.82rem;color:var(--ink-soft);">{{ r.nif or '—' }}</td>
+        <td style="font-size:0.86rem;white-space:nowrap;">
+          {% if r.fecha|length == 8 %}
+          {{ r.fecha[6:8] }}/{{ r.fecha[4:6] }}/{{ r.fecha[0:4] }}
+          {% else %}{{ r.fecha }}{% endif %}
+        </td>
+        <td class="num">{{ "%.2f"|format(r.base_imponible) }}</td>
+        <td class="num">{{ "%.2f"|format(r.porcentaje_iva) }}%</td>
+        <td class="num">{{ "%.2f"|format(r.cuota_iva) }}</td>
+        <td class="num" style="font-weight:700;">{{ "%.2f"|format(r.total) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="5" style="font-weight:700;font-size:0.86rem;padding:12px;">
+          {{ registros_ok|length }} registro{% if registros_ok|length != 1 %}s{% endif %}
+        </td>
+        <td class="num" style="font-weight:700;">{{ "%.2f"|format(registros_ok|sum(attribute='base_imponible')) }}</td>
+        <td></td>
+        <td class="num" style="font-weight:700;">{{ "%.2f"|format(registros_ok|sum(attribute='cuota_iva')) }}</td>
+        <td class="num" style="font-weight:700;">{{ "%.2f"|format(registros_ok|sum(attribute='total')) }}</td>
+      </tr>
+    </tfoot>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+{# Tabla de errores #}
+{% if registros_err %}
+<div class="card" style="border-color:rgba(192,57,43,0.25);">
+  <h3 style="margin-top:0;color:#c0392b;">
+    Registros con error
+    <span class="badge-err" style="margin-left:6px;">{{ registros_err|length }}</span>
+  </h3>
+  <p style="color:var(--ink-soft);font-size:0.9rem;margin-top:0;">
+    Estas filas no se incluyeron en el fichero DAT. Corrígelas en el Excel original y vuelve a importar.
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Fila Excel</th>
+        <th>Motivo del error</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in registros_err %}
+      <tr>
+        <td>{{ r.fila_excel }}</td>
+        <td style="color:#c0392b;">{{ r.error_mensaje }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if not registros %}
+<div class="card">
+  <div class="empty-state">No hay registros para este lote.</div>
+</div>
+{% endif %}
+
+{% endblock %}

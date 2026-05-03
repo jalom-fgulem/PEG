@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Ingresos — SGPEG{% endblock %}
+{% block page_title %}Ingresos{% endblock %}
+{% block page_subtitle %}Histórico de lotes SUENLACE generados{% endblock %}
+
+{% block content %}
+{% if msg %}
+<div class="card" style="background:{% if msg_type=='success' %}rgba(47,122,85,0.08){% else %}rgba(194,27,132,0.08){% endif %};border-color:{% if msg_type=='success' %}rgba(47,122,85,0.3){% else %}rgba(194,27,132,0.3){% endif %};">
+  <p style="margin:0;font-weight:700;color:{% if msg_type=='success' %}var(--fgulem-green-dark){% else %}var(--fgulem-magenta){% endif %};">{{ msg }}</p>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="toolbar">
+    <div class="actions" style="flex-wrap:wrap;gap:8px;">
+      {# Filtro por área #}
+      <a href="/ingresos/"
+         class="btn {% if not filtro_area %}btn-primary{% else %}btn-secondary{% endif %}"
+         style="font-size:0.84rem;padding:8px 12px;">Todas las áreas</a>
+      {% for key, label in areas_labels.items() %}
+      <a href="/ingresos/?area={{ key }}{% if filtro_estado %}&estado={{ filtro_estado }}{% endif %}"
+         class="btn {% if filtro_area == key %}btn-primary{% else %}btn-ghost{% endif %}"
+         style="font-size:0.84rem;padding:8px 12px;">{{ label }}</a>
+      {% endfor %}
+    </div>
+    <a href="/ingresos/importar" class="btn btn-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Nuevo lote
+    </a>
+  </div>
+
+  {# Filtro estado #}
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+    <a href="/ingresos/{% if filtro_area %}?area={{ filtro_area }}{% endif %}"
+       class="btn {% if not filtro_estado %}btn-secondary{% else %}btn-ghost{% endif %}"
+       style="font-size:0.82rem;padding:6px 10px;">Todos</a>
+    <a href="/ingresos/?{% if filtro_area %}area={{ filtro_area }}&{% endif %}estado=GENERADO"
+       class="btn {% if filtro_estado == 'GENERADO' %}btn-secondary{% else %}btn-ghost{% endif %}"
+       style="font-size:0.82rem;padding:6px 10px;">Generados</a>
+    <a href="/ingresos/?{% if filtro_area %}area={{ filtro_area }}&{% endif %}estado=EXPORTADO"
+       class="btn {% if filtro_estado == 'EXPORTADO' %}btn-secondary{% else %}btn-ghost{% endif %}"
+       style="font-size:0.82rem;padding:6px 10px;">Exportados</a>
+  </div>
+
+  {% if not lotes %}
+  <div class="empty-state">
+    <p>No hay lotes de ingresos{% if filtro_area %} para <strong>{{ areas_labels[filtro_area] }}</strong>{% endif %}.</p>
+    <a href="/ingresos/importar" class="btn btn-primary" style="margin-top:8px;">Importar primer lote</a>
+  </div>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Fecha</th>
+        <th>Área</th>
+        <th>Operación</th>
+        <th>Destino A3</th>
+        <th>Fichero origen</th>
+        <th class="num">Registros</th>
+        <th class="num">Errores</th>
+        <th class="num">Importe total</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for lote in lotes %}
+      <tr>
+        <td><span class="muted" style="font-size:0.82rem;">#{{ lote.id_lote }}</span></td>
+        <td style="white-space:nowrap;font-size:0.88rem;">
+          {{ lote.fecha_importacion[:16] | replace("T"," ") }}
+        </td>
+        <td>
+          <span style="font-weight:700;">{{ areas_labels.get(lote.area, lote.area) }}</span>
+        </td>
+        <td>{{ proceso_labels.get(lote.tipo_proceso, lote.tipo_proceso) }}</td>
+        <td>
+          {% if lote.destino_a3 == 'oficial' %}
+          <span style="background:rgba(47,122,85,0.12);color:var(--fgulem-green-dark);padding:2px 8px;border-radius:8px;font-size:0.8rem;font-weight:700;">OFICIAL</span>
+          {% else %}
+          <span style="background:rgba(90,159,211,0.12);color:var(--fgulem-blue);padding:2px 8px;border-radius:8px;font-size:0.8rem;font-weight:700;">PRUEBAS</span>
+          {% endif %}
+        </td>
+        <td style="font-size:0.84rem;color:var(--ink-soft);">{{ lote.nombre_fichero_origen }}</td>
+        <td class="num">{{ lote.registros_ok }}</td>
+        <td class="num">
+          {% if lote.registros_error > 0 %}
+          <span style="color:#c0392b;font-weight:700;">{{ lote.registros_error }}</span>
+          {% else %}
+          <span class="muted">0</span>
+          {% endif %}
+        </td>
+        <td class="num">
+          {{ "%.2f"|format(lote.importe_total) }} €
+        </td>
+        <td>
+          {% if lote.estado == 'EXPORTADO' %}
+          <span style="background:rgba(47,122,85,0.12);color:var(--fgulem-green-dark);padding:2px 8px;border-radius:8px;font-size:0.8rem;font-weight:700;">EXPORTADO</span>
+          {% else %}
+          <span style="background:rgba(194,27,132,0.10);color:var(--fgulem-magenta);padding:2px 8px;border-radius:8px;font-size:0.8rem;font-weight:700;">GENERADO</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="/ingresos/{{ lote.id_lote }}" class="btn btn-ghost" style="padding:6px 10px;font-size:0.82rem;">Ver</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="8" style="padding:12px;font-weight:700;color:var(--ink-soft);font-size:0.86rem;">
+          {{ lotes|length }} lote{% if lotes|length != 1 %}s{% endif %}
+        </td>
+        <td class="num" style="font-weight:700;">
+          {{ "%.2f"|format(lotes|sum(attribute='importe_total')) }} €
+        </td>
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+  </table>
+  {% endif %}
+</div>
+{% endblock %}

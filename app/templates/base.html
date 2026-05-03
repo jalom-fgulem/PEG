@@ -446,6 +446,12 @@
           {% endif %}
         </details>
 
+        <details {% if request.url.path.startswith('/ingresos') %}open{% endif %} class="nav-section">
+          <summary>Ingresos</summary>
+          <a class="nav-link {% if request.url.path.startswith('/ingresos') and not request.url.path.startswith('/ingresos/importar') %}active{% endif %}" href="/ingresos/">Histórico lotes</a>
+          <a class="nav-link {% if request.url.path.startswith('/ingresos/importar') %}active{% endif %}" href="/ingresos/importar">Importar Excel</a>
+        </details>
+
         <details {% if request.url.path.startswith('/proveedores') %}open{% endif %} class="nav-section">
           <summary>Gestión de datos</summary>
           <a class="nav-link {% if request.url.path.startswith('/proveedores') %}active{% endif %}" href="/proveedores/">Proveedores</a>
